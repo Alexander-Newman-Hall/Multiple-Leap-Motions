@@ -259,6 +259,10 @@ TEST(LegacyOscContract, TargetChangeAndMultipleValuesKeepSeparatePackets) {
 }
 
 TEST(LegacyOscContract, NativeBroadcastPermissionErrorIsNotReportedAsSuccess) {
+#ifdef _WIN32
+    GTEST_SKIP() << "This kernel-permission regression is POSIX-specific: the Windows CI UDP provider accepts broadcast sends. "
+                   "Readiness/closed-socket failures and actual UDP packet decoding are tested separately on Windows.";
+#else
     // No SO_BROADCAST is enabled. The kernel rejects connect or send; no
     // broadcast packet leaves the socket. This exercises a real OS error.
     OscSender sender("255.255.255.255", 9000);
@@ -270,4 +274,5 @@ TEST(LegacyOscContract, NativeBroadcastPermissionErrorIsNotReportedAsSuccess) {
     EXPECT_EQ(stats.lastSuccessUs, 0U);
     EXPECT_FALSE(stats.lastError.empty());
     EXPECT_EQ(stats.lastError.find("OSC target requires"), std::string::npos);
+#endif
 }

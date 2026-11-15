@@ -91,3 +91,16 @@ poll owner and bounded timeout; retain the current mock/OSC suite. Build the new
 headless SDK target on the configured PC, then record two-device frames and OSC
 observations using HARDWARE_TEST_PLAN; absence of devices must be marked BLOCKED.
 Do not expand into GUI, fusion, processing or a full release in that task.
+
+## First observed Windows CI and portability correction
+
+Runtime/build source commit: `060ee47dd3897859504ac97c911a5a504754367a`.
+Draft PR: https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/pull/1
+Run https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43766927335:
+Ubuntu PASS40/40. Windows Server2022/MSVC19.44 build PASS; tests39 passed/1 failed
+because the broadcast-permission test assumed POSIX kernel rejection. The Windows
+provider actually accepted the send; this is a test assumption, not evidence of
+incorrect checked-send results. The native-permission test is now explicitly
+POSIX-only and skips on Windows; closed-socket/readiness failure and actual packet
+receiver tests still run there. Next CI run will establish final Windows counts.
+No physical hardware test was performed.

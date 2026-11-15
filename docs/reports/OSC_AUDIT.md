@@ -10,7 +10,7 @@ Audited against `handbridge-v2` base `5f547181f6d512ab6a8d2146022227e26cec48d2` 
 
 ## Exact default and address contract
 
-- `ConfigManager.cpp:81-82` uses `127.0.0.1:9000` when a successfully parsed file lacks those fields. Baseline constructor/member settings were uninitialized when no file loaded; this increment adds explicit constructor-safe defaults using those same fallback values. `README.md:73` instead shows saved `osc_port:7000`; that is an example, not the compiled default. The repository contains no deployed user config to identify which port a particular installation actually uses. Preserve a loaded valid port.
+- `ConfigManager.cpp:83-84` uses `127.0.0.1:9000` when a successfully parsed file lacks those fields. Baseline constructor/member settings were uninitialized when no file loaded; this increment adds explicit constructor-safe defaults using those same fallback values. `README.md:73` instead shows saved `osc_port:7000`; that is an example, not the compiled default. The repository contains no deployed user config to identify which port a particular installation actually uses. Preserve a loaded valid port.
 - UI port storage starts at zero (`UIController.hpp:119`) and is initialized from the config (`AppCore.cpp:213`). The UI accepts 0..65535 (`MainAppWindow.cpp:633-634`) although sending port zero is invalid for the new validated transport/config path.
 - Processor defaults (`03_DataProcessor.cpp:25-29`) and UI defaults (`UIController.cpp:15-20`): palm, wrist, all five fingertips, pinchStrength and grabStrength ON; palm orientation, velocity, normal, visibleTime and finger extension OFF. Config initialization invokes the complete 14-flag callback (`UIController.cpp:89-121`).
 - `03_DataProcessor.cpp:35-43`: addresses are `/leap/{alias}/{handType}/{dataType}[/{subType}]`; one float32 argument. The poller supplies lowercase `left`/`right`. No bundles or timestamp messages. `04_OscSender.cpp:80-83` uses `osc::BeginMessage` then one float. `sendMessages:92-101` flattens even a multi-value DTO into separate packets to the same address.
@@ -67,3 +67,13 @@ Confirmed source defects/limitations:
 **CLOUD Linux:** `PATH="$PWD/work/tooling/bin:$PATH" cmake --build --preset core-debug --target test_LegacyOscContract -j 4 && out/build/core-debug/test_LegacyOscContract` — completed successfully; **8/8 tests passed**, 4 ms reported by GTest. Actual packet tests decode 23 default, 39 all-enabled and 28 disappearance native UDP datagrams, plus independent second-device output/reacquisition. Native broadcast error reported `connect: Permission denied`, with no packets sent and one counted failed attempt. This verifies a real Linux OS failure, not Windows error behavior.
 
 Physical Windows Hyperion, two USB devices, TouchDesigner receipt, Windows socket failures and hardware soak remain **NOT RUN**.
+
+### Observed Windows portability result
+
+Windows CI at source060ee47 compiled the engine and passed all other tests,
+but its UDP provider accepted the broadcast send used to provoke POSIX denial.
+The kernel-denial case is now skipped explicitly on Windows; do not infer Windows
+kernel-error coverage from the Linux denial result. Windows closed/readiness
+failure accounting and golden packet tests remain active. No transport behavior
+was changed to manufacture a failure; isolated native Windows syscall fault
+injection is deferred. See final state/handoff for rerun counts.

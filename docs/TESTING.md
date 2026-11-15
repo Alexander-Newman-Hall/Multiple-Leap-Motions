@@ -54,3 +54,8 @@ launching the actual headless executable, parses padded OSC/network float bytes,
 checks B sends during A loss/recovery, actual config aliases/channels and CLI
 rejection. Physical Hyperion, USB, TouchDesigner and GUI lifecycle checks remain
 NOT RUN. Sanitizers cover project code/tests, not third-party dependencies.
+
+The actual broadcast-permission kernel regression is POSIX-only: Windows CI's UDP
+provider accepts that send, so the case skips on Windows. Windows readiness/closed
+socket failures and all decoded UDP/runtime/config tests still execute. Report
+39 passed + 1 platform-specific skip instead of claiming 40 Windows passes.

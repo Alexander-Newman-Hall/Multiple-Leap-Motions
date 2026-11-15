@@ -68,3 +68,16 @@ and RAII for connection/device/subscriptions, owned frame copies and bounded pol
 Keep the mock/golden suite green. Compile on a configured Windows x64 SDK PC,
 then record two-device discovery/frame/OSC and loss evidence; mark physical work
 BLOCKED if the machine/devices are unavailable. Do not start GUI/processing work.
+
+## First observed Windows CI and portability correction
+
+Runtime/build source commit: `060ee47dd3897859504ac97c911a5a504754367a`.
+Draft PR: https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/pull/1
+Run https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43766927335:
+Ubuntu PASS40/40. Windows Server2022/MSVC19.44 build PASS; tests39 passed/1 failed
+because the broadcast-permission test assumed POSIX kernel rejection. The Windows
+provider actually accepted the send; this is a test assumption, not evidence of
+incorrect checked-send results. The native-permission test is now explicitly
+POSIX-only and skips on Windows; closed-socket/readiness failure and actual packet
+receiver tests still run there. Next CI run will establish final Windows counts.
+No physical hardware test was performed.

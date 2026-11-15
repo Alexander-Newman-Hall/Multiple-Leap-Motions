@@ -8,7 +8,7 @@ Line references below refer to the audited input commit unless stated otherwise.
 
 ## Actual executable path
 
-The Visual Studio application enters `WinMain` (`src/main.cpp:92`), constructs a
+The Visual Studio application enters `WinMain` (`src/main.cpp:88`), constructs a
 `MainAppWindow` and `AppCore`, then drains frames in the SDL event/render loop
 (`src/main.cpp:349-390`). `AppCore` owns `LeapConnection`, `LeapInput`, `LeapSorter`,
 `DataProcessor`, and the `ITransportSink` implemented by `OscSender`
@@ -56,11 +56,11 @@ process; a blocked UI thread still blocks OSC processing.
    while AppCore wires device callbacks but not service callbacks. Do not assume
    reopening the whole connection is always required by LeapC; verify exact SDK.
 5. **First-run configuration is undefined:** constructor initializes gains only
-   (`ConfigManager.cpp:43-47`); primitive port/flags remain indeterminate if load
+   (`ConfigManager.cpp:35-39`); primitive port/flags remain indeterminate if load
    fails. Config load fallbacks and processor defaults establish repair defaults.
 6. **Aliases do not round-trip:** serializer writes `deviceAliases`, save reads
-   `device_aliases`, and loader expects a different wrapper (`DeviceAliasManager.cpp:62-96`,
-   `ConfigManager.cpp:118-120`, `:195`). A saved null map cannot recover old aliases.
+   `device_aliases`, and loader expects a different wrapper (`DeviceAliasManager.cpp:47-79`,
+   `ConfigManager.cpp:93-95`, `:159`). A saved null map cannot recover old aliases.
 7. **Dropped frames are silent:** queue push failure is logged only under
    `VERBOSE_LEAP_LOGGING` (`LeapInput.cpp:59-65`), with no unconditional counter.
 8. **Hot-path overhead:** every scalar logs in AppCore and sender
