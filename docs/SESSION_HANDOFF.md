@@ -18,3 +18,10 @@ build/test PASS has been claimed at this checkpoint.
 Completion must record all tested settings, UI lifecycle/UDP evidence, screenshots,
 exact Windows/cloud commands/results and limitations. Keep one next recommended
 task focused on installed-SDK hardware integration after the GUI is reviewable.
+
+
+Portable milestone commit subject: feat: add validated controller settings and
+real processing controls. FilesControlSettings/Processing/EngineRuntime cpp/hpp,
+two new testfiles andportable CMake additions. SDK-free configure/build+CTest
+55/55PASS,zero skipped,3.76s onLinux/GCC14. This establishes real parameter effects
+before GUI commit; no hardware result. XMLwork/controller-core-results.xml.

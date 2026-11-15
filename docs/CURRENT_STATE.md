@@ -24,3 +24,10 @@ still simulation-only. Original ImGui source is retained for rollback.
 Next action in this task: integrate/build the native GUI and test parameter changes
 against actual UDP, then verify that closing/killing/reopening the controller does
 not stop the engine. Final handoff replaces this checkpoint with exact results.
+
+
+Portable settings/processing checkpoint: strictschema2andlegacyimport, real OSC
+mute/rate/channels/alias/handrouting, timebasedfilters/transformunits, optional
+gesturehysteresis and raw/processedpreview implemented. Final SDK-free Debug
+CTest55/55PASS,0skips,3.76s (work/controller-core-results.xml). Legacygoldens
+unchanged. GUI/IPC/native tests are under final integration separately.

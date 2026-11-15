@@ -64,6 +64,8 @@ endif()
 
 add_library(handbridge-runtime STATIC
     src/runtime/MockTrackingSource.cpp
+    src/runtime/ControlSettings.cpp
+    src/runtime/Processing.cpp
     src/runtime/EngineRuntime.cpp)
 target_link_libraries(handbridge-runtime PUBLIC handbridge-core)
 add_executable(handbridge-engine src/runtime/engine_main.cpp)
@@ -94,7 +96,7 @@ if(BUILD_TESTING)
     FetchContent_MakeAvailable(googletest)
     include(GoogleTest)
     # Explicit list: stale legacy tests are inventoried in BUILD_AUDIT.md.
-    foreach(handbridge_test test_ConfigManager test_DeviceAliasManager test_LeapSorter test_LegacyOscContract test_EngineRuntime)
+    foreach(handbridge_test test_ConfigManager test_DeviceAliasManager test_LeapSorter test_LegacyOscContract test_EngineRuntime test_ControlSettings test_Processing)
         add_executable(${handbridge_test} tests/${handbridge_test}.cpp)
         target_link_libraries(${handbridge_test} PRIVATE handbridge-runtime GTest::gtest_main)
         gtest_discover_tests(${handbridge_test} DISCOVERY_TIMEOUT 30)
