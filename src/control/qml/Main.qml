@@ -27,6 +27,8 @@ ApplicationWindow {
     readonly property var pageSubtitles: ["Independent cameras. One dependable signal path.", "Identity, routing, and recovery for each camera.", "Shape the output. Keep the raw observation intact.", "Choose exactly what TouchDesigner receives.", "Recall a session. Inspect the engine's actual state."]
     readonly property var deviceRows: controller.devices || []
     readonly property var output: controller.status.output || ({})
+    readonly property var tracking: controller.status.tracking || ({})
+    readonly property string lastTrackingError: tracking.last_error || ""
     readonly property bool processingBypass: setting("processing.bypass", true)
     readonly property var appliedProcessing: controller.config.processing || ({})
     readonly property bool appliedBypass: appliedProcessing.bypass !== false
@@ -210,7 +212,13 @@ ApplicationWindow {
                 text: "SIMULATED SOURCE"
                 live: false
                 tint: theme.amber
-                visible: controller.connected && controller.status.simulated !== false
+                visible: controller.connected && controller.status.simulated === true
+            }
+            StatePill {
+                objectName: "hardwareProviderBadge"
+                text: "LEAPC SOURCE"
+                live: false
+                visible: controller.connected && controller.status.simulated === false
             }
             StatePill {
                 text: controller.dirty ? "EDITING" : controller.revision === controller.savedRevision && controller.connected ? "SAVED" : controller.connected ? "APPLIED · UNSAVED" : "OFFLINE"
@@ -411,13 +419,22 @@ ApplicationWindow {
                 objectName: "connectEngineButton"
                 text: "Reconnect"
                 visible: !controller.connected
+                enabled: !controller.busy
                 onClicked: controller.connectToEngine()
+            }
+            StudioButton {
+                objectName: "startHardwareButton"
+                text: "Start engine"
+                primary: true
+                visible: !controller.connected
+                enabled: !controller.busy
+                onClicked: controller.startHardwareEngine()
             }
             StudioButton {
                 objectName: "startSimulatorButton"
                 text: "Start simulator"
-                primary: true
                 visible: !controller.connected
+                enabled: !controller.busy
                 onClicked: controller.startSimulator()
             }
             RowLayout {
@@ -499,6 +516,40 @@ ApplicationWindow {
                                 value: controller.connected ? metric(output.send_errors, 0) : "—"
                                 tint: output.send_errors > 0 ? theme.amber : "#d9e1ed"
                                 Layout.fillWidth: true
+                            }
+                        }
+                    }
+                    Rectangle {
+                        objectName: "trackingErrorBanner"
+                        visible: controller.connected && lastTrackingError.length > 0
+                        Layout.fillWidth: true
+                        implicitHeight: trackingErrorContent.implicitHeight + 30
+                        color: "#30291f"
+                        radius: 9
+                        border.color: "#67533c"
+                        ColumnLayout {
+                            id: trackingErrorContent
+                            anchors.fill: parent
+                            anchors.margins: 15
+                            spacing: 7
+                            SmallLabel {
+                                text: "LAST TRACKING ERROR · RETAINED HISTORY"
+                                color: theme.amber
+                            }
+                            Text {
+                                objectName: "trackingErrorText"
+                                Layout.fillWidth: true
+                                text: lastTrackingError
+                                color: "#dfc7a4"
+                                font.pixelSize: 11
+                                wrapMode: Text.WrapAnywhere
+                            }
+                            Text {
+                                Layout.fillWidth: true
+                                text: "Retained after recovery; check the live service and device state below."
+                                color: "#a99881"
+                                font.pixelSize: 9
+                                wrapMode: Text.WordWrap
                             }
                         }
                     }
@@ -1372,6 +1423,99 @@ Raw observations remain unchanged."
                         }
                     }
                     Panel {
+                        objectName: "trackingProviderDiagnostics"
+                        visible: controller.connected && controller.status.simulated === false
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: providerDetails.implicitHeight + 85
+                        title: "LeapC provider diagnostics"
+                        subtitle: "Loaded library metadata; physical tracking remains unverified"
+                        badge: "NATIVE PROVIDER"
+                        ColumnLayout {
+                            id: providerDetails
+                            anchors.fill: parent
+                            spacing: 12
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 30
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 5
+                                    SmallLabel {
+                                        text: "LIBRARY VERSION"
+                                    }
+                                    Text {
+                                        objectName: "trackingLibraryVersion"
+                                        text: tracking.library_version || "Not reported"
+                                        color: "#bcc9db"
+                                        font.family: theme.mono
+                                        font.pixelSize: 12
+                                    }
+                                }
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 5
+                                    SmallLabel {
+                                        text: "TRACKING SERVICE"
+                                    }
+                                    Text {
+                                        objectName: "trackingServiceVersion"
+                                        text: tracking.service_version || "Not connected / unverified"
+                                        color: "#bcc9db"
+                                        font.family: theme.mono
+                                        font.pixelSize: 12
+                                    }
+                                }
+                                ColumnLayout {
+                                    spacing: 5
+                                    SmallLabel {
+                                        text: "CONNECT ATTEMPTS"
+                                    }
+                                    Text {
+                                        text: metric(tracking.connection_attempts, 0)
+                                        color: "#bcc9db"
+                                        font.family: theme.mono
+                                        font.pixelSize: 12
+                                    }
+                                }
+                                ColumnLayout {
+                                    spacing: 5
+                                    SmallLabel {
+                                        text: "POLL ERRORS"
+                                    }
+                                    Text {
+                                        text: metric(tracking.poll_errors, 0)
+                                        color: tracking.poll_errors > 0 ? theme.amber : "#bcc9db"
+                                        font.family: theme.mono
+                                        font.pixelSize: 12
+                                    }
+                                }
+                            }
+                            SmallLabel {
+                                text: "LIBRARY PATH"
+                            }
+                            Text {
+                                Layout.fillWidth: true
+                                text: tracking.library_path || tracking.path || "Not reported"
+                                color: "#8f9eb3"
+                                font.family: theme.mono
+                                font.pixelSize: 10
+                                wrapMode: Text.WrapAnywhere
+                            }
+                            SmallLabel {
+                                text: "LAST TRACKING ERROR · RETAINED HISTORY"
+                                color: lastTrackingError.length ? theme.amber : "#818b9d"
+                            }
+                            Text {
+                                objectName: "trackingDiagnosticError"
+                                Layout.fillWidth: true
+                                text: lastTrackingError || "No tracking error reported."
+                                color: lastTrackingError.length ? "#d5bd9c" : "#8f9eb3"
+                                font.pixelSize: 11
+                                wrapMode: Text.WrapAnywhere
+                            }
+                        }
+                    }
+                    Panel {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 340
                         title: "Engine event log"
@@ -1433,7 +1577,7 @@ Raw observations remain unchanged."
                         }
                     }
                     Text {
-                        text: "UNTESTED ON HARDWARE · The current source is simulated. Real Hyperion, USB recovery and TouchDesigner receipt need local Windows verification."
+                        text: !controller.connected ? "UNTESTED ON HARDWARE · Connect to a local engine, or start the simulator without cameras." : controller.status.simulated === true ? "UNTESTED ON HARDWARE · The current source is simulated. Real Hyperion, USB recovery and TouchDesigner receipt need local Windows verification." : "UNTESTED ON HARDWARE · LeapC provider selected. Verify physical tracking, USB recovery and TouchDesigner receipt on this Windows PC."
                         color: "#8d96a5"
                         font.pixelSize: 10
                         Layout.fillWidth: true

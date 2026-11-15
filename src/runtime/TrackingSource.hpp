@@ -6,6 +6,10 @@
 
 namespace handbridge {
 using Millis = std::uint64_t; // Injected monotonic clock, never LeapC's timestamp domain.
+struct TrackingSourceDiagnostics {
+    std::string lastError, libraryPath, libraryVersion, serviceVersion;
+    std::uint64_t connectionAttempts = 0, pollErrors = 0;
+};
 enum class TrackingEventKind { ServiceConnected, ServiceLost, DeviceConnected, DeviceLost,
                                Subscribed, SubscriptionFailed, Frame };
 struct TrackingEvent {
@@ -27,5 +31,7 @@ public:
     // true means a fresh subscription was established; frame delivery is separate.
     virtual bool restartDevice(const std::string& serial, Millis now) = 0;
     virtual void stop() noexcept = 0;
+    // Read on the same owner thread as poll; no SDK objects escape the source.
+    virtual TrackingSourceDiagnostics diagnostics() const { return {}; }
 };
 }

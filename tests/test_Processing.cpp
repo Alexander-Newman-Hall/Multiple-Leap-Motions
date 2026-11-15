@@ -75,6 +75,80 @@ TEST(Processing, GestureHysteresisAndHandLossAreExplicitWithoutChangingNativeStr
     EXPECT_EQ(loss[0].address,"/leap/dev1/left/pinchActive"); EXPECT_FLOAT_EQ(loss[0].values[0],0);
     EXPECT_TRUE(pipeline.gestures(input,"dev1").empty());
 }
+TEST(Processing, NewNativeHandIdentityResetsOnlyItsOwnFiltersAndGestureHysteresis) {
+    ProcessingPipeline pipeline;
+    ProcessingSettings settings;
+    settings.bypass = false;
+    settings.smoothingMs = 100;
+    settings.deadzoneMm = 20;
+    settings.gesturesEnabled = true;
+    pipeline.setSettings(settings);
+    auto a = sample(10);
+    a.hands[0].nativeHandId = 10;
+    a.hands[0].pinchStrength = a.hands[0].grabStrength = .9f;
+    auto right = sample(100, "right").hands[0];
+    right.nativeHandId = 20;
+    right.pinchStrength = right.grabStrength = .9f;
+    a.hands.push_back(right);
+    auto b = sample(500);
+    b.deviceId = "B";
+    b.hands[0].nativeHandId = 30;
+    b.hands[0].pinchStrength = b.hands[0].grabStrength = .9f;
+    pipeline.gestures(pipeline.process(a, 0), "dev1");
+    pipeline.gestures(pipeline.process(b, 0), "dev2");
+
+    // The replacement hand arrives without an empty frame. Its old palm would
+    // be blended by smoothing and its tip held by the prior hand's dead zone.
+    a.hands[0].nativeHandId = 11;
+    a.hands[0].palm.position.x = 1000;
+    a.hands[0].fingers[0].bones[3].nextJoint.x = 8;
+    a.hands[1].palm.position.x = 200;
+    for (auto& hand : a.hands) hand.pinchStrength = hand.grabStrength = .7f;
+    b.hands[0].palm.position.x = 600;
+    b.hands[0].pinchStrength = b.hands[0].grabStrength = .7f;
+    const auto outA = pipeline.process(a, 100);
+    const auto outB = pipeline.process(b, 100);
+    const auto alpha = 1 - std::exp(-1.);
+    EXPECT_FLOAT_EQ(outA.hands[0].palm.position.x, 1000);
+    EXPECT_FLOAT_EQ(outA.hands[0].fingers[0].bones[3].nextJoint.x, 8);
+    EXPECT_NEAR(outA.hands[1].palm.position.x, 100 + 100 * alpha, 1e-4);
+    EXPECT_NEAR(outB.hands[0].palm.position.x, 500 + 100 * alpha, 1e-4);
+    const auto gesturesA = pipeline.gestures(outA, "dev1");
+    const auto gesturesB = pipeline.gestures(outB, "dev2");
+    ASSERT_EQ(gesturesA.size(), 4u);
+    EXPECT_EQ(gesturesA[0].address, "/leap/dev1/left/pinchActive");
+    EXPECT_FLOAT_EQ(gesturesA[0].values[0], 0);
+    EXPECT_FLOAT_EQ(gesturesA[1].values[0], 0);
+    EXPECT_EQ(gesturesA[2].address, "/leap/dev1/right/pinchActive");
+    EXPECT_FLOAT_EQ(gesturesA[2].values[0], 1);
+    EXPECT_FLOAT_EQ(gesturesA[3].values[0], 1);
+    ASSERT_EQ(gesturesB.size(), 2u);
+    EXPECT_FLOAT_EQ(gesturesB[0].values[0], 1);
+    EXPECT_FLOAT_EQ(gesturesB[1].values[0], 1);
+
+    // The same new identity keeps normal time-based filter state afterwards.
+    a.hands[0].palm.position.x = 1100;
+    EXPECT_NEAR(pipeline.process(a, 200).hands[0].palm.position.x, 1000 + 100 * alpha, 1e-4);
+}
+TEST(Processing, KnownNativeIdentityChangeResetsGestureEntryEvenWithRawBypass) {
+    ProcessingPipeline pipeline;
+    ProcessingSettings settings;
+    settings.gesturesEnabled = true;
+    pipeline.setSettings(settings);
+    auto input = sample();
+    input.hands[0].nativeHandId = 1;
+    input.hands[0].pinchStrength = input.hands[0].grabStrength = .9f;
+    const auto before = pipeline.gestures(pipeline.process(input, 0), "dev1");
+    ASSERT_EQ(before.size(), 2u);
+    EXPECT_FLOAT_EQ(before[0].values[0], 1);
+    input.hands[0].nativeHandId = 2;
+    input.hands[0].pinchStrength = input.hands[0].grabStrength = .7f;
+    const auto after = pipeline.gestures(pipeline.process(input, 1), "dev1");
+    ASSERT_EQ(after.size(), 2u);
+    EXPECT_FLOAT_EQ(after[0].values[0], 0);
+    EXPECT_FLOAT_EQ(after[1].values[0], 0);
+    EXPECT_FLOAT_EQ(input.hands[0].pinchStrength, .7f);
+}
 TEST_F(SettingsRuntime, EverySettingFamilyChangesRealMessagesAndPreview) {
     frame(1,0); auto settings = runtime.settings(); settings.processing.bypass = false;
     settings.processing.scale = {2,1,1}; settings.processing.offsetMm = {5,0,0}; settings.channels.sendWrist = false;

@@ -99,7 +99,8 @@ def main(executable):
                                   capture_output=True, text=True, timeout=5)
         assert rejected.returncode != 0, "Unknown future schema must not silently fall back"
 
-    for arguments in ([], ["--simulate", "--port", "0"], ["--simulate", "--host", "bad-host"],
+    missing_library = str((Path(directory) / "missing-LeapC.dll").resolve())
+    for arguments in (["--leapc-library", missing_library], ["--simulate", "--port", "0"], ["--simulate", "--host", "bad-host"],
                       ["--simulate", "--unknown"], ["--simulate", "--duration-ms", "-1"]):
         result = subprocess.run([executable] + arguments, capture_output=True, text=True, timeout=5)
         assert result.returncode != 0, arguments

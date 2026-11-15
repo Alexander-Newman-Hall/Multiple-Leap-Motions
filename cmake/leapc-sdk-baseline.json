@@ -1,0 +1,88 @@
+{
+  "runtime_family": "Ultraleap Hyperion",
+  "tracking_software_version": "6.2.0",
+  "official_download_page": "https://leap2.ultraleap.com/downloads/leap-motion-controller-2/",
+  "dll_file_version": "6.2.0.0",
+  "dll_product_version": "6.2.0.0-c98d293a",
+  "licence_url": "https://leap2.ultraleap.com/legal/enterprise-tracking-licence",
+  "installer": {
+    "path": "tracking-software-windows-6.2.0.exe",
+    "url": "https://s3.eu-west-1.amazonaws.com/downloads.ultraleap.com/software/tracking-software/6.2.0/tracking-software-windows-6.2.0.exe",
+    "bytes": 629594088,
+    "sha256": "e219438dc5031af3dc75e115f277c4e6e33475bad21fee1e90a278e77f5fadf1"
+  },
+  "extractors": {
+    "linux": {
+      "path": "innoextract-1.9-linux.tar.xz",
+      "url": "https://constexpr.org/innoextract/files/innoextract-1.9-linux.tar.xz",
+      "bytes": 890320,
+      "sha256": "008efe5011476ccc4aae17c3e22038b5a1bc5c7aad2b9d4d869537bf3874d21f",
+      "member": "innoextract-1.9-linux/bin/amd64/innoextract"
+    },
+    "windows": {
+      "path": "innoextract-1.9-windows.zip",
+      "url": "https://constexpr.org/innoextract/files/innoextract-1.9-windows.zip",
+      "bytes": 520705,
+      "sha256": "6989342c9b026a00a72a38f23b62a8e6a22cc5de69805cf47d68ac2fec993065",
+      "member": "innoextract.exe"
+    }
+  },
+  "files": [
+    {
+      "path": "include/LeapC.h",
+      "installer_path": "app/LeapSDK/include/LeapC.h",
+      "kind": "header",
+      "bytes": 142142,
+      "sha256": "27d512f953bc7dcf2d52475e5e771519b9905bc4d9a88641b1877c2897641765"
+    },
+    {
+      "path": "lib/x64/LeapC.lib",
+      "installer_path": "app/LeapSDK/lib/x64/LeapC.lib",
+      "kind": "binary",
+      "bytes": 22214,
+      "sha256": "fef3f50d8323088ce0747a82d3ece5f61178f217685b9fd9412c1eab9b112fef"
+    },
+    {
+      "path": "lib/x64/LeapC.dll",
+      "installer_path": "app/LeapSDK/lib/x64/LeapC.dll",
+      "kind": "binary",
+      "bytes": 13124160,
+      "sha256": "a1127ed0b573a9431a50d8249ac21c7440e6480014b3fbc683225d90d87145f8"
+    },
+    {
+      "path": "LICENSE.rft",
+      "installer_path": "app/LeapSDK/LICENSE.rft",
+      "kind": "notice",
+      "bytes": 131485,
+      "sha256": "f2a76cc828b9d554d4797b3b3747a2aa24c1fe71a3194c2137898d1a8a7e7bec"
+    },
+    {
+      "path": "README.md",
+      "installer_path": "app/LeapSDK/README.md",
+      "kind": "notice",
+      "bytes": 5903,
+      "sha256": "57e1abb75847919eb2a556a36723a2cf895e2b1d9d5630fa40b482261eca125a"
+    },
+    {
+      "path": "ThirdPartyNotices.md",
+      "installer_path": "app/LeapSDK/ThirdPartyNotices.md",
+      "kind": "notice",
+      "bytes": 387653,
+      "sha256": "1baa03d5b2cdc91d14b9519d959ccb3ddcd09503badc02dfc3d7323cb7bfaa12"
+    },
+    {
+      "path": "lib/x64/LICENSE.protobuf",
+      "installer_path": "app/LeapSDK/lib/x64/LICENSE.protobuf",
+      "kind": "notice",
+      "bytes": 1732,
+      "sha256": "6e5e117324afd944dcf67f36cf329843bc1a92229a8cd9bb573d7a83130fea7d"
+    },
+    {
+      "path": "samples/MultiDeviceSample.c",
+      "installer_path": "app/LeapSDK/samples/MultiDeviceSample.c",
+      "kind": "sample",
+      "bytes": 5989,
+      "sha256": "970d0d413c72e98af1b572b11c50b9f27824f6da8fae4757720119a1774a3351"
+    }
+  ]
+}

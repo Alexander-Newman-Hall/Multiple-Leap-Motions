@@ -1,6 +1,9 @@
 # Physical hardware test results
 
-**Status:** UNTESTED ON HARDWARE. The 2026-11-15 implementation session built/tested only SDK-independent cloud targets. No physical Windows, Hyperion, USB or TouchDesigner tests have run. GitHub Windows CI, when recorded in CURRENT_STATE, covers only the simulated engine.
+**Status:** UNTESTED ON HARDWARE. Cloud checks include the genuine-header adapter
+with injected SDK calls; Windows DLL/deployment checks are recorded separately
+in CURRENT_STATE. No physical Hyperion/camera/USB/TouchDesigner tests have run.
+A real DLL load or simulated frame does not establish a service/camera result.
 
 For every run, complete the checklist in `docs/HARDWARE_TEST_PLAN.md` and append the following record. Do not label simulated/cloud tests as physical.
 

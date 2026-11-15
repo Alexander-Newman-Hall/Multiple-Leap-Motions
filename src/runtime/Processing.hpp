@@ -3,12 +3,14 @@
 #include "TrackingSource.hpp"
 #include "transport/osc/OscMessage.hpp"
 #include <map>
+#include <optional>
 #include <set>
 #include <vector>
 
 namespace handbridge {
-// Stateful positional filters are isolated by serial/hand/channel. Source DTOs
-// currently lack native hand IDs; loss/restart/settings changes reset all state.
+// Stateful filters are isolated by serial/hand/channel. A change between known
+// native hand IDs resets only that hand; unknown legacy/simulated IDs preserve
+// existing behavior. Loss/restart/settings changes also reset state.
 class ProcessingPipeline {
 public:
     void setSettings(const ProcessingSettings& settings);
@@ -18,11 +20,15 @@ public:
     void reset();
 private:
     struct HandState {
+        std::optional<std::uint32_t> nativeId;
         Millis lastMs = 0;
         bool initialized = false;
         std::map<std::string, Vector3> positions;
     };
-    struct GestureState { bool pinch = false, grab = false; };
+    struct GestureState {
+        std::optional<std::uint32_t> nativeId;
+        bool pinch = false, grab = false;
+    };
     ProcessingSettings settings_;
     std::map<std::string, std::map<std::string, HandState>> hands_;
     std::map<std::string, std::map<std::string, GestureState>> gestures_;

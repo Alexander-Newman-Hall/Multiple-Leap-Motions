@@ -47,8 +47,10 @@ FrameData ProcessingPipeline::process(const FrameData& raw, Millis arrivalMs) {
     for (auto& hand : result.hands) {
         current.insert(hand.handType);
         auto& state = states[hand.handType];
+        if (hand.nativeHandId && state.nativeId && hand.nativeHandId != state.nativeId) state = {};
         // Clock discontinuity resets rather than creating an extrapolated pose.
         if (state.initialized && arrivalMs < state.lastMs) state = {};
+        if (hand.nativeHandId) state.nativeId = hand.nativeHandId;
         const auto delta = state.initialized ? arrivalMs - state.lastMs : 0;
         const auto alpha = settings_.smoothingMs > 0 ? 1 - std::exp(-double(delta)/settings_.smoothingMs) : 1;
         std::set<std::string> validPositions;
@@ -108,6 +110,8 @@ std::vector<OscMessage> ProcessingPipeline::gestures(const FrameData& frame, con
         if (!hand.isValid()) continue;
         current.insert(hand.handType);
         auto& state = states[hand.handType];
+        if (hand.nativeHandId && state.nativeId && hand.nativeHandId != state.nativeId) state = {};
+        if (hand.nativeHandId) state.nativeId = hand.nativeHandId;
         state.pinch = state.pinch ? hand.pinchStrength > settings_.pinchExit : hand.pinchStrength >= settings_.pinchEnter;
         state.grab = state.grab ? hand.grabStrength > settings_.grabExit : hand.grabStrength >= settings_.grabEnter;
         message(hand.handType,"pinchActive",state.pinch); message(hand.handType,"grabActive",state.grab);

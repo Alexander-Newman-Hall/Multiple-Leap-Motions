@@ -10,6 +10,8 @@
 #include <QTimer>
 #include <QVariant>
 
+class QProcess;
+
 // Presentation state only. Tracking, validation, profiles and OSC belong to the
 // separate engine. All methods run on the GUI thread and use asynchronous IPC.
 class Controller final : public QObject {
@@ -53,6 +55,7 @@ public:
     Q_INVOKABLE void apply();
     Q_INVOKABLE void revert();
     Q_INVOKABLE void startSimulator();
+    Q_INVOKABLE void startHardwareEngine();
     Q_INVOKABLE void connectToEngine();
     Q_INVOKABLE void saveProfile(const QString& name);
     Q_INVOKABLE void loadProfile(const QString& name);
@@ -84,6 +87,8 @@ private:
     void disconnected();
     void setError(const QString& message);
     void checkTimeouts();
+    void startEngine(bool simulate);
+    void launchDetachedEngine(const QString& executable, bool simulate);
     static bool isMutation(const QString& command);
 
     QString endpoint_;
@@ -92,6 +97,7 @@ private:
     QTimer reconnectTimer_, timeoutTimer_;
     QElapsedTimer clock_;
     QHash<qint64, Pending> pending_;
+    QProcess* launchProbe_ = nullptr; // Owned nontracking preflight only; never the running engine.
     qint64 nextId_ = 1, revision_ = 0, savedRevision_ = 0, draftRevision_ = 0;
     bool connected_ = false, connecting_ = false, rejected_ = false;
     QJsonObject config_, draft_, status_;

@@ -6,14 +6,13 @@ This is a **phased plan for multiple Codex tasks**, not a request to finish ever
 
 P0 inventory/build feasibility and source-backed OSC/config baseline are delivered
 in this branch; see docs/CURRENT_STATE.md for exact tests and remaining limits.
-P1.1–P1.5 begin as one bounded simulation vertical slice: owned event envelope,
-mock source, independent console host, mailbox/freshness/retry counters and checked
-scalar sender. File replay, full stage/FPS metrics, automatic output reset, real
-LeapC adapter and Qt/IPC are not implemented. This is not completion of all P1
-capabilities or the hardware gate. Acceptance evidence belongs in the living
-state/handoff, not inferred from these checkboxes.
+The bounded simulation foundation and native controller/settings slice are
+delivered. A real LeapC adapter and Windows portable packaging are the current
+user-authorized increment. File replay, full stage metrics, automatic output
+reset, OSCv2 and physical acceptance remain separate work. Acceptance evidence
+belongs in the living state/handoff, not inferred from these checkboxes.
 
-## User-approved controller rebuild — active task
+## User-approved controller rebuild — delivered
 
 The user explicitly requested a complete modern native GUI rebuild with a VST
 feel and working settings, after the initial pause for local hardware work. This
@@ -26,13 +25,27 @@ Delivered: portable settings `2de385f`, native IPC/profile host `99622f2`,
 VST-style Qt controller `9f5260e`, applied-preview correction `ebb3bd9`; final green
 Windows/Ubuntu native CI at `ebb3bd9`, including repeated Windows lifecycle checks.
 Actual results and remaining hardware gate are in CURRENT_STATE/SESSION_HANDOFF.
-The next task returns to the local installed-SDK adapter; preserve this controller.
+Preserve this controller while adding the real source and deployment checks.
 
 Bounded increments: (1) validated engine settings and real processing effects;
 (2) same-user native IPC, atomic profiles, independent engine lifecycle;
 (3) Qt Quick controller with five functional pages and VST-style controls;
 (4) packet/process/UI lifecycle tests, screenshots, Windows/Linux build evidence
 and handoff. No fusion, web frontend, real-camera claim or SDK API invention.
+
+## User-approved SDK and release increment — active task
+
+The user explicitly requested the real adapter and a Windows Release ZIP before
+connecting cameras, and clarified that **latest Hyperion v6** is required. Use the
+SDK files from the current official Hyperion6.2 Windows package, not the earlier
+Unreal-plugin5.30 development baseline. Record the actual header/client/service
+versions separately. This authorizes P2.1 plus the portable portion of P5.2;
+it does not waive the P2/P5 physical acceptance gates.
+
+Deliver a real-header compiled adapter, deterministic injected-API tests, runtime
+DLL preflight, SDK-independent fallback, separate real/simulator GUI actions,
+Release deployment with Qt/MSVC runtimes and a PATH-clean extracted-ZIP smoke.
+Keep SDK licence boundaries explicit and preserve all earlier branches.
 
 ## P0: Baseline and evidence (start here)
 
