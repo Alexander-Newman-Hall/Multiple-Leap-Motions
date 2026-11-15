@@ -85,3 +85,20 @@ Windows skip is the previously documented POSIX kernel-permission test.
 Final source sanitizer rerun: 56 passed, zero failures/skips, 6.59 s with leak
 checking; no diagnostics. Exact instrumentation exclusions remain in GUI_BUILD.
 This is still simulator/IPC/OSC evidence, not hardware or TouchDesigner validation.
+
+## Windows startup test-harness correction
+
+The parallel push run43771496974 at the same5d1c4c2 source did reproduce the
+integration failure. Retained QtTest logs show the first three behavior cases
+passed, then a later fixture failed to connect although the engine logged both
+streams as live. Failed initialization left the member QProcess alive and later
+setups cascaded with 'Process is already running'. This is test-harness evidence;
+no production GUI/engine defect is inferred or silently patched.
+
+The independent test client now uses bounded asynchronous connection attempts
+instead of repeated20ms blocking waits. Every failed startup owns cleanup, and
+case setup clears any prior process. Failure messages record process/socket/request
+stages. A real delayed-server regression was added. Original total5s connect
+bound and output assertions are unchanged. Local58/58PASS,19.87s. Windows CI now
+runs the integration bundle three times using until-fail, never until-pass.
+Final Windows stability results will be recorded before completion.

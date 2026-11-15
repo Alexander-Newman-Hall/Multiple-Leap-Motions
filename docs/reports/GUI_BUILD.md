@@ -222,3 +222,19 @@ Final source sanitizer recheck by root: 56/56 passed in 6.59 s, zero failures/sk
 ASan/UBSan and leak checking enabled. The latest normal native render/resource
 suite passed 58/58 in 18.42 s. Application source is `9f5260e`; green CI at
 `5d1c4c2` adds only explicit QtTest diagnostic file logging, not application fixes.
+
+## Same-source push-run discrepancy — investigated before completion
+
+The separate push-event run43771496974 at the same5d1c4c2 also had a Windows
+Integration failure, now visible in its file logger (job132988183221). First3
+integration behaviors passed; the next fixture init returned false from startEngine
+while engine stderr showed both cameras STREAMING. Later init attempts reused an
+already-running QProcess and failed in a cascade. Thus the single passing PR run
+above is insufficient evidence of a stable harness. The exact first startup
+failure remains a harness/IPC timing question; no camera/product fix is claimed.
+
+The integration-test owner is repairing asynchronous startup and guaranteed
+failure cleanup/diagnostics. The Windows workflow will run an additional
+`--repeat until-fail:3` Integration check after the full suite: any failed attempt
+fails the step, unlike retry-until-pass. Final outcome must be recorded after that
+change, and no test is skipped or timeout inflated to hide the discrepancy.

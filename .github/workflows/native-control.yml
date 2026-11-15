@@ -53,6 +53,9 @@ jobs:
         run: cmake --build --preset ${{ matrix.preset }} --parallel 2
       - name: Core, processing, local IPC and detached UI tests
         run: ctest --preset ${{ matrix.preset }} --output-junit "${{ github.workspace }}/native-control-results.xml"
+      - name: Verify Windows process lifecycle repeatedly without masking failures
+        if: runner.os == 'Windows'
+        run: ctest --preset ${{ matrix.preset }} -R "^ControlIntegration$" --repeat until-fail:3 --output-on-failure --output-junit "${{ github.workspace }}/native-control-repeat-results.xml"
       - name: Print native Qt test diagnostics
         if: always()
         shell: python
@@ -68,6 +71,7 @@ jobs:
           name: native-control-test-results-${{ matrix.os }}
           path: |
             native-control-results.xml
+            native-control-repeat-results.xml
             out/build/${{ matrix.preset }}/Testing/Temporary/LastTest.log
             out/build/${{ matrix.preset }}/qt-*.txt
           if-no-files-found: warn

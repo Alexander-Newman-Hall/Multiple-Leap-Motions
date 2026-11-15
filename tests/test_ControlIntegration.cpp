@@ -7,11 +7,13 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QLocalServer>
 #include <QLocalSocket>
 #include <QProcess>
 #include <QProcessEnvironment>
 #include <QSet>
 #include <QTemporaryDir>
+#include <QTimer>
 #include <QUdpSocket>
 #include <QUuid>
 #include "engine/ConfigurationStore.hpp"
@@ -52,11 +54,32 @@ public:
     qint64 sequence = 0;
 
     bool connect(const QString& endpoint) {
-        return eventually([&] {
+        // Do not combine short blocking waitForConnected() calls with the
+        // asynchronous Windows named-pipe state machine. A timed-out blocking
+        // attempt can retain ConnectingState and strand every subsequent poll.
+        socket.abort();
+        buffered.clear();
+        error.clear();
+        QElapsedTimer elapsed;
+        elapsed.start();
+        qint64 lastAttempt = -100;
+        const bool connected = eventually([&] {
             if (socket.state() == QLocalSocket::ConnectedState) return true;
-            if (socket.state() == QLocalSocket::UnconnectedState) socket.connectToServer(endpoint);
-            return socket.waitForConnected(20);
+            const auto now = elapsed.elapsed();
+            if (socket.state() == QLocalSocket::ConnectingState && now - lastAttempt >= 250)
+                socket.abort(); // Bound each incomplete attempt; retry cleanly.
+            if (socket.state() == QLocalSocket::UnconnectedState && now - lastAttempt >= 100) {
+                lastAttempt = now;
+                socket.connectToServer(endpoint);
+            }
+            return socket.state() == QLocalSocket::ConnectedState;
         });
+        if (!connected) {
+            error = QString("IPC connect timed out: state=%1, socket=%2")
+                .arg(int(socket.state())).arg(socket.errorString());
+            socket.abort();
+        }
+        return connected;
     }
 
     QList<QJsonObject> read() {
@@ -166,21 +189,38 @@ private:
     std::unique_ptr<Client> client_;
     QProcess engine_;
     QString endpoint_;
+    QString startupError_;
 
     bool startEngine(bool explicitPort = true) {
+        // QTest can leave a failed init without reaching the case's normal
+        // cleanup path. Every start owns cleanup even when bootstrap fails.
+        stopEngine();
+        startupError_.clear();
+        const auto failed = [&](const QString& stage) {
+            startupError_ = QString("%1; processState=%2, processError=%3")
+                .arg(stage).arg(int(engine_.state())).arg(engine_.errorString());
+            if (client_) {
+                startupError_ += QString("; socketState=%1, socketError=%2, requestError=%3")
+                    .arg(int(client_->socket.state())).arg(client_->socket.errorString()).arg(client_->error);
+            }
+            startupError_ += "; engine stderr=" + QString::fromUtf8(engine_.readAllStandardError());
+            stopEngine();
+            return false;
+        };
         engine_.setProgram(QString::fromUtf8(TEST_ENGINE_PATH));
         QStringList arguments{"--simulate", "--headless", "--endpoint", endpoint_,
             "--state-dir", directory_->path()};
         if (explicitPort) arguments << "--port" << QString::number(receiver_->localPort());
         engine_.setArguments(arguments);
         engine_.start();
-        if (!engine_.waitForStarted(5000)) return false;
+        if (!engine_.waitForStarted(5000)) return failed("Engine process did not start");
         client_ = std::make_unique<Client>();
-        if (!client_->connect(endpoint_)) return false;
-        return eventually([&] {
+        if (!client_->connect(endpoint_)) return failed("Engine IPC did not connect");
+        const bool initialized = eventually([&] {
             const auto reply = client_->request("get_state");
             return reply.value("ok").toBool() && reply.value("config").toObject().value("devices").toObject().size() == 2;
         });
+        return initialized ? true : failed("Engine did not acknowledge two-device state");
     }
 
     void stopEngine() {
@@ -202,12 +242,13 @@ private:
 
 private slots:
     void init() {
+        stopEngine(); // Isolate cases even if the preceding init failed.
         directory_ = std::make_unique<QTemporaryDir>();
         QVERIFY(directory_->isValid());
         receiver_ = std::make_unique<QUdpSocket>();
         QVERIFY(receiver_->bind(QHostAddress(QHostAddress::LocalHost), 0));
         endpoint_ = "handbridge-test-" + QUuid::createUuid().toString(QUuid::Id128);
-        QVERIFY2(startEngine(), qPrintable(engine_.readAllStandardError()));
+        QVERIFY2(startEngine(), qPrintable(startupError_));
     }
     void cleanup() {
         stopEngine();
@@ -318,7 +359,7 @@ private slots:
         QVERIFY2(loaded.value("ok").toBool(), qPrintable(QJsonDocument(loaded).toJson()));
         QVERIFY(loaded.value("config").toObject().value("osc").toObject().value("enabled").toBool());
         stopEngine();
-        QVERIFY2(startEngine(), qPrintable(engine_.readAllStandardError()));
+        QVERIFY2(startEngine(), qPrintable(startupError_));
         const auto restored = state().value("config").toObject();
         QCOMPARE(restored.value("devices").toObject().value("SIM-A").toObject().value("alias").toString(), "dev7");
         QCOMPARE(restored.value("osc").toObject().value("port").toInt(), receiver_->localPort());
@@ -376,7 +417,7 @@ private slots:
         stopEngine();
         handbridge::engine::ConfigurationStore::write(directory_->filePath("current.json"), startup);
         // No CLI overrides: a restored schema2 snapshot begins saved at revision1.
-        QVERIFY2(startEngine(false), qPrintable(engine_.readAllStandardError()));
+        QVERIFY2(startEngine(false), qPrintable(startupError_));
         const auto discovered = state();
         QCOMPARE(discovered.value("revision").toInteger(), qint64(2));
         QCOMPARE(discovered.value("saved_revision").toInteger(), qint64(1));
@@ -384,6 +425,23 @@ private slots:
         QFile persisted(directory_->filePath("current.json"));
         QVERIFY(persisted.open(QIODevice::ReadOnly));
         QVERIFY(QJsonDocument::fromJson(persisted.readAll()).object().value("devices").toObject().isEmpty());
+    }
+
+    void independentClientRetriesWhenLocalServerAppearsAfterFirstAttempt() {
+        QLocalServer delayed;
+        delayed.setSocketOptions(QLocalServer::UserAccessOption);
+        const auto endpoint = "handbridge-delayed-" + QUuid::createUuid().toString(QUuid::Id128);
+        bool listening = false;
+        // The server is intentionally absent at the first connection attempt.
+        // Its timer must still run while the test client waits asynchronously.
+        QTimer::singleShot(150, &delayed, [&] { listening = delayed.listen(endpoint); });
+        Client reconnecting;
+        QVERIFY2(reconnecting.connect(endpoint), qPrintable(reconnecting.error));
+        QVERIFY(listening);
+        QVERIFY(eventually([&] { return delayed.hasPendingConnections(); }));
+        std::unique_ptr<QLocalSocket> peer(delayed.nextPendingConnection());
+        QVERIFY(peer);
+        QCOMPARE(reconnecting.socket.state(), QLocalSocket::ConnectedState);
     }
 
     void malformedClientsAndDuplicateEngineDoNotStopTracking() {

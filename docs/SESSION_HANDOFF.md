@@ -101,3 +101,14 @@ Final source ASan/UBSan rerun: 56 passed, 6.59 s, leak checking enabled, no erro
 The full unsanitized GUI suite passed separately; exclusions are documented above.
 No real LeapC/USB/Hyperion/TouchDesigner test has run. Next task remains the local
 installed-SDK adapter with actual two-camera observations, preserving this GUI.
+
+## Follow-up on the initially unattributed Windows failure
+
+A parallel push job (run43771496974, Windows132988183221) at5d1c4c2 failed while
+the PR job passed. File logs identified an intermittent independent-client startup
+failure and cascading alive-QProcess fixtures after failed init. Production GUI /
+engine sources remain9f5260e. The test helper now connects asynchronously with
+bounded retries, owns failed-start cleanup and includes stage diagnostics plus a
+real late-server test. No output tolerance, test skip or total connect bound was
+changed. Local58/58PASS19.87s; Windows until-fail three-run integration gate added.
+Observe its result before describing the platform checks as stable.
