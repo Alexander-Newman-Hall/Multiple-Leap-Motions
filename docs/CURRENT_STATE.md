@@ -81,3 +81,8 @@ incorrect checked-send results. The native-permission test is now explicitly
 POSIX-only and skips on Windows; closed-socket/readiness failure and actual packet
 receiver tests still run there. Next CI run will establish final Windows counts.
 No physical hardware test was performed.
+
+CI artifact correction: the workflow now writes JUnit XML to an absolute workspace
+path so the existing artifact step includes both XML and LastTest.log. This is
+build/report plumbing only; runtime source remains060ee47, Windows test correction
+a18132b. Final rerun is pending.

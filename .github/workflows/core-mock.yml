@@ -32,7 +32,7 @@ jobs:
       - name: Build
         run: cmake --build --preset ${{ matrix.preset }} --parallel 2
       - name: Unit, fault injection, and loopback receiver tests
-        run: ctest --preset ${{ matrix.preset }} --output-junit core-mock-results.xml
+        run: ctest --preset ${{ matrix.preset }} --output-junit "${{ github.workspace }}/core-mock-results.xml"
       - name: Upload test results only (no hardware product binary)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

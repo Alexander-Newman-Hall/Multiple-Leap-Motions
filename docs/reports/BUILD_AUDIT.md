@@ -131,3 +131,11 @@ Release **40/40 PASS (3.73 s)**, ASan+UBSan **40/40 PASS (4.11 s)**, no skips or
 sanitizer diagnostics. These supersede the earlier 37/38-case checkpoints above.
 Exact tested source SHA and observed workflow status are recorded in the final
 SESSION_HANDOFF/CURRENT_STATE documentation checkpoint.
+
+First observed PR CI run43766927335: Ubuntu configure/build/test PASS40/40;
+Windows Server2022/MSVC19.44 configure/build PASS, tests39 passed/1 failed due to
+a POSIX-only broadcast-denial assumption. Correction a18132b explicitly skips that
+OS-specific test on Windows; no production code changed. JUnit output now uses an
+absolute workspace path so both XML and LastTest.log are retained by the artifact
+step (relative CTest output was placed under the binary directory). Final CI run
+and exact source SHA are recorded in CURRENT_STATE/SESSION_HANDOFF.
