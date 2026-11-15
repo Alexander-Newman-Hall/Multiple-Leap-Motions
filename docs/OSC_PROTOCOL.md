@@ -1,11 +1,11 @@
 # OSC contract for TouchDesigner
 
-**State:** Legacy behavior observed statically in the original repository; verify by running the original program or fixtures in Phase 0. All improvements MUST retain an opt-in-free legacy compatibility mode.
+**State:** Source-audited legacy contract, frozen by decoded UDP golden fixtures in this increment. Physical TouchDesigner validation remains UNTESTED ON HARDWARE.
 
 ## Transport
 - OSC/UDP; configured address normally `127.0.0.1` to communicate with TouchDesigner on the same PC.
-- Existing `src/core/ConfigManager.cpp` loads the `osc_port` setting and falls back to **9000** if missing. Earlier human-facing examples may show 7000. **Audit before finalizing the user default.** Never silently change a deployed setting.
-- Legacy output currently sends separate OSC messages containing single `float` arguments. `src/pipeline/04_OscSender.cpp::sendBundle` is a stub; it must not be represented as an implemented feature.
+- Existing `src/core/ConfigManager.cpp` loads the `osc_port` setting and falls back to **9000** if missing. The original README example shows 7000; no deployed user config is tracked. The source-backed default remains 9000 and loaded valid ports are preserved.
+- Legacy output sends separate OSC messages containing single float32 arguments (OSC type tag `,f`, network byte order). `src/pipeline/04_OscSender.cpp::sendBundle` is a stub; it must not be represented as an implemented feature.
 - OSC UDP packet delivery is not guaranteed; a successful sender call is not proof of TouchDesigner receipt.
 
 ## Source-confirmed legacy address family (examples)
@@ -54,3 +54,35 @@ For v2 define axis convention, units (e.g. meters), hand IDs, validity, sequence
 - An **OSC In CHOP** can receive scalar numeric channels on the same port; inspect path mapping options and device names. An **OSC In DAT** is useful to inspect message paths and bundles or debug timestamps.
 - Sample test must demonstrate dev1 and dev2 arriving at the same local receiver port with stable per-device addresses, and disconnect/invalid state behavior.
 - If TouchDesigner and the bridge are on the same PC, use `127.0.0.1` and the exact configured port, not the PC's LAN IP, unless the user chooses to route remotely.
+
+## Exact compatibility fixtures and loss boundaries (implemented)
+
+[Golden fixtures](../tests/fixtures/osc/) and
+[test_LegacyOscContract.cpp](../tests/test_LegacyOscContract.cpp) exercise the
+preserved production processor and serializer through a real bound UDP receiver
+with an independent parser. [Full audit](reports/OSC_AUDIT.md) gives baseline lines.
+A full valid hand sends 23 default packets or 39 with all optional channels.
+Default loss sends 28 zeros once; all-options loss sends 34. Finger `exists=0`
+is emitted only on loss, never `exists=1`. Optional orientation/velocity/normal
+are not cleared on loss; extension loss depends on fingertip position selection.
+These quirks are preserved, so zero is not a general explicit validity signal.
+
+The new headless supervisor submits an empty frame once on stale/device/service
+loss and shutdown. This repairs indefinite held default pose in that host while
+retaining the scalar loss contract. Optional orientation/velocity/normal may
+still hold their last value at receivers; consult engine freshness state. The
+original hardware path has not gained the new supervisor yet.
+
+Packet order is frozen per fixture; each scalar remains one datagram. No new
+bundle/v2 schema or timestamp packet is enabled. Invalid wrist/finger geometry
+is omitted, and top-level hand validity is not interpreted by the legacy processor.
+Velocity remains mm/s, normal dimensionless, quaternion order WXYZ, visibleTime
+seconds from source microseconds. Multiple DTO values retain historical separate
+packets rather than changing argument arity.
+
+Sender readiness, attempted packets, actual checked OS-send successes, bytes,
+errors and last attempt/success timestamps are distinct. Even OS acceptance does
+not establish receipt. Sender errors are rate-limited in logs. The transport uses
+oscpack serialization with a checked native UDP socket because upstream oscpack's
+Send ignores native return values. Destination changes recreate the socket;
+automatic sender reset/backoff remains future work, not a claimed feature.

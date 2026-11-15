@@ -40,7 +40,7 @@ void DataProcessor::sendOscMessage(const std::string& alias, const std::string& 
     OscMessage msg;
     msg.address = address;
     msg.values.push_back(value);
-    onOscMessage_(msg);
+    if (onOscMessage_) onOscMessage_(msg);
 }
 
 // Helper function to send zero values for a specific hand type
@@ -183,5 +183,5 @@ void DataProcessor::processData(const std::string& serialNumber, const FrameData
             sendOscMessage(alias, currentHandType, "visibleTime", "", visibleSec);
         }
     }
-    onUiEvent_(frame);
+    if (onUiEvent_) onUiEvent_(frame);
 }

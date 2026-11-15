@@ -117,7 +117,7 @@ bool LeapPoller::getDeviceSerial(LEAP_DEVICE device, std::string& serialNumber) 
     return true;
 }
 
-#include "../../LeapSDK/include/LeapC.h"
+#include <LeapC.h>
 
 bool LeapPoller::initializeDevices() {
     // Enumerate and open Leap devices

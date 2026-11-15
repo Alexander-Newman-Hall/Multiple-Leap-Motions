@@ -2,6 +2,21 @@
 
 This is a **phased plan for multiple Codex tasks**, not a request to finish everything in one task. Each task should produce a reviewable PR with precise acceptance evidence and updated handoff docs. Follow `PROJECT_SPEC.md` for product requirements.
 
+## Execution checkpoint — 2026-11-15
+
+P0 inventory/build feasibility and source-backed OSC/config baseline are delivered
+in this branch; see docs/CURRENT_STATE.md for exact tests and remaining limits.
+P1.1–P1.5 begin as one bounded simulation vertical slice: owned event envelope,
+mock source, independent console host, mailbox/freshness/retry counters and checked
+scalar sender. File replay, full stage/FPS metrics, automatic output reset, real
+LeapC adapter and Qt/IPC are not implemented. This is not completion of all P1
+capabilities or the hardware gate. Acceptance evidence belongs in the living
+state/handoff, not inferred from these checkboxes.
+
+The next task is a narrow P2.1 installed-SDK adapter compile/ownership seam plus
+Windows evidence; retain the tested mock contract and block physical claims
+until hardware results exist. Do not skip ahead to GUI or processing features.
+
 ## P0: Baseline and evidence (start here)
 
 **Task P0.1 — Repo inventory:** Pin the starting commit; map CMake + VS sources/dependencies, launch path, device callbacks, processing, OSC, configuration and UI links. Identify duplicate/dead modules and tracked generated artifacts. Deliver `docs/LEGACY_AUDIT.md` with file/line references and test status.

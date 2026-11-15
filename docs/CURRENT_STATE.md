@@ -1,49 +1,91 @@
-# Current project state — living status file
+# Current state — 2026-11-15
 
-**Updated:** 2026-11-15 (specification kit preparation)
-**Project:** Hand Bridge 2.0
-**Repo:** https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions
-**Initial reference commit:** `054e578525a5d5202ea8f6eb417ce55ded7d61b8` (`master`, observed at planning time)
-**Active development branch/commit:** NOT CREATED IN THIS KIT
-**Phase:** Phase 0 — awaiting Codex implementation/audit
-**Authoritative product spec:** `PROJECT_SPEC.md`
+Branch: `codex/handbridge-phase0-reliability`, based on `handbridge-v2`
+`5f547181f6d512ab6a8d2146022227e26cec48d2`. Original remote `master` rechecked
+at `054e578525a5d5202ea8f6eb417ce55ded7d61b8`; both input branches preserved.
+Commits so far: audit `350249f`, config `36c8f9b`, OSC `c7e006e`.
+Runtime/build: `060ee47dd3897859504ac97c911a5a504754367a`.
+Windows test correction: `a18132ba5cda80b1e9321bb7f3da8d3c08e61361`.
+CI report-path correction: `61ca88295e77c3ae67b9aa4fbb45316961cf0bbe`.
+Draft [PR1](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/pull/1).
+Final documentation checkpoint adds this observed evidence and local handoff.
 
-## Reality check
+**User steering:** stop cloud implementation here; continue hardware integration
+on the user's local Windows PC. See [local setup and next prompt](WINDOWS_LOCAL_HANDOFF.md).
 
-- [x] Product requirements drafted.
-- [x] Initial static source assessment (NOT a complete runtime audit).
-- [x] Hybrid/cloud/Windows acceptance plan drafted.
-- [ ] Reproducible Windows build validated.
-- [ ] SDK-free mock pipeline built.
-- [ ] CI configured and passing.
-- [ ] UI separated from tracking engine.
-- [ ] Config migration implemented.
-- [ ] Legacy OSC golden tests captured.
-- [ ] Real two-camera Windows tracking tested.
-- [ ] Reported silent stream stall reproduced and fixed.
-- [ ] TouchDesigner OSC receiver verified with the replacement build.
+## Delivered scope and gates
 
-## Current top risks
+- **Phase 0 DONE:** complete code/build/test inventory with baseline filename/line
+  references, actual legacy configure failure, exact source-backed OSC/config
+  contracts, preserved README and CMake, dependency/SDK/licensing inventory.
+- **Phase 1 first reliability milestone DELIVERED:** native C++20 headless
+  simulation host, two independent mock sources, owned event/time envelope,
+  per-device latest mailbox/counters, stale/loss invalidation, capped targeted
+  retry and service rediscovery, checked OS UDP sends and golden compatibility.
+  Default remains loopback:9000, raw mm, lowercase hands and scalar float packets.
+- **Phase 1 automated mock gate PASS:** SDK-free Windows/Linux CI observed passing;
+  replay-file CLI, FPS/latency/stage metrics, automatic output socket recreation,
+  threaded poll worker and full versioned/atomic configuration are deferred.
+- **Phase 2 BLOCKED ON INSTALLED SDK/HARDWARE:** no actual ITrackingSource LeapC
+  adapter. Original Windows GUI remains reference with known liveness defects.
+- **Phase 3–5 NOT STARTED:** Qt/IPC/controller lifecycle tests, advanced processing,
+  profiles/v2 output/bundles and release packaging.
 
-1. Unknown root cause of reported runtime stall where program runs but output stops; need stage metrics and fault injection.
-2. Legacy config alias mismatch and state ownership confusion.
-3. CMake/Visual Studio project parity and dependency packaging.
-4. Behavioral parity of legacy OSC address/value/unit/zero-on-loss output.
-5. Licenses/redistribution rights for SDK/Qt/OSC library.
+## Verification matrix
 
-## Latest verification
+CLOUD environment: Debian 13 x64, GCC14.2, Python3.12.14, CMake3.31.6,
+Ninja wheel1.11.1.4. Same final source tree tested in each configuration:
 
-This package contains specifications only. The author did not modify the repository, run builds, or test physical cameras as part of this deliverable. Static repository reading does not constitute PASS.
+| Environment / command | Actual outcome |
+|---|---|
+| Original clean configure | FAIL: required OpenGL missing; full legacy compile never reached |
+| CLOUD `cmake --build --preset core-debug --parallel 2`; `ctest --preset core-debug` | 40/40 PASS, zero skips; 3.76 s |
+| CLOUD `cmake --build --preset core-release --parallel 2`; `ctest --preset core-release` | 40/40 PASS, zero skips; 3.73 s |
+| CLOUD ASan+UBSan Debug configure/build/CTest | 40/40 PASS, zero skips; 4.11 s, no sanitizer diagnostics |
+| CLOUD independently decoded actual UDP | PASS: goldens, A stall/clear/recovery while B continues, config aliases/channels |
+| CLOUD actual kernel send denial | PASS: no false sent packet; error counted |
+| WINDOWS CI Server2022/MSVC19.44 | configure/build PASS; 39 tests PASS + 1 POSIX-only skip, zero failures (4.30 s) |
+| Ubuntu24.04 CI | configure/build PASS; 40/40 PASS |
+| Windows original SDK application | NOT BUILT; explicit SDK path target available, unverified |
+| Physical Hyperion/two cameras/USB/service/TouchDesigner/soak | UNTESTED ON HARDWARE |
+| Qt UI attach/close/crash/reopen | NOT RUN, no controller yet |
 
-## Single next recommended Codex task
+Exact local-tool commands, pins, exclusions and sanitizer scope:
+[BUILD_AUDIT](reports/BUILD_AUDIT.md). JUnit local artifacts:
+`work/core-{debug,release,sanitized}-results.xml` (ignored).
+CI publishes test reports only. Python is a test receiver, not the engine.
 
-**Phase 0:** Check out current repository, inventory executable paths and legacy OSC/config contracts, create a clean testable baseline with CMake/CI feasibility, document concrete build blockers, and update `docs/SESSION_HANDOFF.md` with exact commands/results. Begin Phase 1 only when baseline behavior is documented.
+## Known limitations
 
-## How Codex must update this file
+Real silent OSC stoppage remains unproven; confirmed code defects are not a field
+root-cause claim. Original adapter recovery is unchanged. Optional orientation/
+velocity/normal retain legacy loss quirks; no v2 validity is emitted. Legacy save
+is checked but non-atomic; new host reads explicit legacy config without saving,
+rejects proposed v2 and does not load Windows AppData implicitly. No lost aliases
+can be reconstructed from old null maps. Single owner source poll must be bounded;
+a blocked future SDK call still needs enforced poll timeout/thread supervision.
+No automatic UDP socket recreation/backoff exists yet.
 
-Replace this status on every substantive task with:
-- UTC date, current branch/commit, phase and active PR
-- Items completed since last handoff, changed files and test commands
-- Each verification result labeled `CLOUD`, `WINDOWS CI`, `PHYSICAL WINDOWS`, or `NOT RUN`
-- Known bugs/risks with issue IDs, blockers and their owners
-- **One** next recommended task with acceptance condition
+## Single next recommended task
+
+**P2.1: Add the smallest real LeapC ITrackingSource adapter and Windows SDK build
+seam against exact installed headers.** Record SDK/service versions; use one owner
+and RAII for connection/device/subscriptions, owned frame copies and bounded poll.
+Keep the mock/golden suite green. Compile on a configured Windows x64 SDK PC,
+then record two-device discovery/frame/OSC and loss evidence; mark physical work
+BLOCKED if the machine/devices are unavailable. Do not start GUI/processing work.
+
+## Observed CI evidence
+
+[Run43767212081](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43767212081)
+tested a18132b: Windows and Ubuntu jobs completed successfully. Windows had one
+explicit POSIX kernel-denial skip; all remaining tests passed, including the real
+headless-process UDP receiver. Initial run43766927335 exposed that test's invalid
+cross-platform assumption (39 pass/1 fail); no production defect was established.
+The correction skips only that OS-specific denial case, not other transport tests.
+
+[Run43767314985](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43767314985)
+for CI XML artifact-path correction61ca882: Ubuntu job PASS, Windows rerun still
+in progress at this handoff. Runtime and test sources are identical to the already
+passing a18132b run. Final documentation-only commits may trigger another run;
+check Actions on the local PC. Neither CI run uses physical Ultraleap hardware.

@@ -2,6 +2,7 @@
 #include <string>
 #include <map>
 #include <mutex>
+#include <cstdint>
 #include "json.hpp"
 
 /**
@@ -59,7 +60,7 @@ public:
 
 private:
     std::map<std::string, std::string> serialToAlias_;
-    int nextAliasIndex_ = 1;
+    std::uint64_t nextAliasIndex_ = 1;
     mutable std::mutex mutex_;
 
     /**

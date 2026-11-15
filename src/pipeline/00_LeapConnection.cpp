@@ -1,7 +1,7 @@
 #include "00_LeapConnection.hpp"
 #include "core/Log.hpp"
 #include <stdexcept>
-#include "../../LeapSDK/include/LeapC.h" // Ensure LeapC.h is included for the flag
+#include <LeapC.h> // Resolved only from the explicitly configured installed SDK.
 #include <windows.h> // Include for OutputDebugStringA
 
 LeapConnection::LeapConnection() : connection_(nullptr) {

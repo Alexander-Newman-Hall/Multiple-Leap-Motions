@@ -1,6 +1,6 @@
 # Physical hardware test results
 
-**Status:** NOT RUN. This planning kit did not compile or test the program with physical hardware.
+**Status:** UNTESTED ON HARDWARE. The 2026-11-15 implementation session built/tested only SDK-independent cloud targets. No physical Windows, Hyperion, USB or TouchDesigner tests have run. GitHub Windows CI, when recorded in CURRENT_STATE, covers only the simulated engine.
 
 For every run, complete the checklist in `docs/HARDWARE_TEST_PLAN.md` and append the following record. Do not label simulated/cloud tests as physical.
 

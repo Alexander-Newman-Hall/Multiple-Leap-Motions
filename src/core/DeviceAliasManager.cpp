@@ -14,20 +14,20 @@ AssignedHand DeviceAliasManager::getAssignedHand(const std::string& alias) const
 #include <memory>
 #include <thread>
 #include <shared_mutex>
+#include <set>
+#include <limits>
+#include <algorithm>
 
 void DeviceAliasManager::validateAlias(const std::string& alias) {
-    if (alias.empty() || alias.size() < 4 || alias.substr(0, 3) != "dev") {
-        throw std::invalid_argument("Invalid alias format: must start with 'dev' followed by a number");
+    if (alias.size() < 4 || alias.compare(0, 3, "dev") != 0 ||
+        !std::all_of(alias.begin() + 3, alias.end(), [](unsigned char c) { return c >= '0' && c <= '9'; })) {
+        throw std::invalid_argument("Invalid alias format: expected dev followed by decimal digits");
     }
-    try {
-        size_t pos;
-        int number = std::stoi(alias.substr(3), &pos); // Fix C4834: use return value
-        (void)number; // Silence unused variable warning if not used
-        if (pos != alias.size() - 3) {
-            throw std::invalid_argument("Invalid alias format: number part contains non-numeric characters");
-        }
-    } catch (const std::exception&) {
-        throw std::invalid_argument("Invalid alias format: number part is not a valid integer");
+    // Leave room for the next automatic alias; unlike signed int arithmetic,
+    // this check cannot overflow while recovering a persisted high index.
+    const auto index = std::stoull(alias.substr(3));
+    if (index == std::numeric_limits<std::uint64_t>::max()) {
+        throw std::invalid_argument("Alias index exhausted");
     }
 }
 
@@ -46,30 +46,25 @@ std::string DeviceAliasManager::getOrAssignAlias(const std::string& serial) {
 
 void DeviceAliasManager::loadFromJson(const nlohmann::json& j) {
     std::lock_guard<std::mutex> lock(mutex_);
-    serialToAlias_.clear();
-    if (j.contains("deviceAliases") && j["deviceAliases"].is_object()) {
-        for (auto it = j["deviceAliases"].begin(); it != j["deviceAliases"].end(); ++it) {
-            try {
-                validateAlias(it.value());
-                serialToAlias_[it.key()] = it.value();
-            } catch (const std::exception& e) {
-                // Log error but continue loading other valid aliases
-                std::cerr << "Warning: Invalid alias format for device " << it.key() << ": " << e.what() << std::endl;
-            }
-        }
+    if (!j.is_object() || !j.contains("deviceAliases") || !j.at("deviceAliases").is_object()) {
+        throw std::invalid_argument("Expected deviceAliases object");
     }
-    // Recalculate nextAliasIndex_
-    nextAliasIndex_ = 1;
-    for (const auto& pair : serialToAlias_) {
-        try {
-            if (pair.second.rfind("dev", 0) == 0) {
-                int idx = std::stoi(pair.second.substr(3));
-                if (idx >= nextAliasIndex_) nextAliasIndex_ = idx + 1;
-            }
-        } catch (const std::exception& e) {
-            std::cerr << "Warning: Failed to parse alias index for device " << pair.first << ": " << e.what() << std::endl;
+
+    std::map<std::string, std::string> nextAliases;
+    std::set<std::string> assignedAliases;
+    std::uint64_t nextIndex = 1;
+    for (auto it = j.at("deviceAliases").begin(); it != j.at("deviceAliases").end(); ++it) {
+        const auto alias = it.value().get<std::string>();
+        validateAlias(alias);
+        if (!assignedAliases.insert(alias).second) {
+            throw std::invalid_argument("Duplicate device alias: " + alias);
         }
+        nextAliases.emplace(it.key(), alias);
+        nextIndex = std::max(nextIndex, static_cast<std::uint64_t>(std::stoull(alias.substr(3))) + 1);
     }
+    // Commit only after the entire alias map validates.
+    serialToAlias_ = std::move(nextAliases);
+    nextAliasIndex_ = nextIndex;
 }
 
 nlohmann::json DeviceAliasManager::toJson() const {

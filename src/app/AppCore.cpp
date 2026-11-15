@@ -108,13 +108,6 @@ AppCore::AppCore(std::shared_ptr<IConfigStore> configManager,
         dataProcessor_ = std::make_unique<DataProcessor>(
             configManager_->getDeviceAliasManager(),
             [this](const OscMessage& message) {
-                if(logger_) {
-                    logger_->log("[DP-CALLBACK] Addr: " + message.address + " #Vals: " + std::to_string(message.values.size()));
-                } else {
-                    std::cout << "[DP-CALLBACK] Addr: " << message.address << " #Vals: " << message.values.size() << std::endl;
-                }
-                
-                if(logger_) logger_->log("AppCore: Routing OSC message via ITransportSink.");
                 if (oscSender_) {
                     oscSender_->sendOscMessage(message);
                 }

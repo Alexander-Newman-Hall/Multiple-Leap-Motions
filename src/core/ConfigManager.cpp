@@ -3,15 +3,21 @@
 #include "Log.hpp"
 #include <fstream>
 #include <filesystem> // For path manipulation
+#ifdef _WIN32
 #include <shlobj.h>   // For SHGetFolderPath
 #include <windows.h>  // For PWSTR
 #include <KnownFolders.h> // For FOLDERID_LocalAppData
+#endif
 #include <iomanip> // For std::setw
+#include <stdexcept>
+#include <algorithm>
+#include <cctype>
 
 using json = nlohmann::json;
 
 // Helper function to get %LOCALAPPDATA% path (Windows specific)
 std::string getLocalAppDataPath() {
+#ifdef _WIN32
     PWSTR path = NULL;
     HRESULT hr = SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, NULL, &path);
     std::string appDataPath;
@@ -29,6 +35,10 @@ std::string getLocalAppDataPath() {
     }
     CoTaskMemFree(path);
     return appDataPath;
+#else
+    // SDK-free builds use an explicit filename; do not invent a platform config path.
+    return {};
+#endif
 }
 
 // Constructor - Initialize members with defaults
@@ -68,54 +78,103 @@ bool ConfigManager::loadConfig() {
 
 // Load configuration implementation (public, with filename)
 bool ConfigManager::loadConfig(const std::string& filename) {
-     if (filename.empty()) return false;
-     std::ifstream ifs(filename);
-     if (!ifs.is_open()) {
-         LOG("Config file not found: " << filename << ". Using defaults.");
-         return false; // File doesn't exist, use defaults
-     }
-
+    if (filename.empty()) return false;
+    std::ifstream ifs(filename);
+    if (!ifs.is_open()) {
+        LOG("Config file not found: " << filename << ". Using defaults.");
+        return false;
+    }
     try {
         json j;
         ifs >> j;
-
-        // Load OSC settings
-        this->oscIp = j.value("osc_ip", "127.0.0.1");
-        this->oscPort = j.value("osc_port", 9000);
-        this->lowLatencyMode = j.value("low_latency_mode", false);
-
-        // Load Hand Assignments
-        if (j.contains("hand_assignments") && j["hand_assignments"].is_object()) {
-            this->deviceHandAssignments = j["hand_assignments"].get<std::map<std::string, std::string>>();
+        if (!j.is_object()) throw std::invalid_argument("Config root must be an object");
+        if (j.contains("schema_version")) {
+            throw std::invalid_argument("Versioned configuration is not implemented; use the legacy flat schema");
         }
 
-        // Load Aliases
-        if (j.contains("device_aliases") && j["device_aliases"].is_object()) {
-            deviceAliasManager.loadFromJson(j["device_aliases"]);
+        // Validate a complete candidate before mutating the live configuration.
+        ConfigManager next;
+        next.oscIp = j.value("osc_ip", "127.0.0.1");
+        if (j.contains("osc_port") && (!j.at("osc_port").is_number_integer() ||
+            j.at("osc_port") < 1 || j.at("osc_port") > 65535)) {
+            throw std::invalid_argument("osc_port must be an integer between 1 and 65535");
         }
-
-        // Load Filter Settings using specific members
-        if (j.contains("booleanSettings") && j["booleanSettings"].is_object()) {
-            auto& settings = j["booleanSettings"];
-            this->sendPalm_ = settings.value("sendPalm", this->sendPalm_);
-            this->sendWrist_ = settings.value("sendWrist", this->sendWrist_);
-            this->sendThumb_ = settings.value("sendThumb", this->sendThumb_);
-            this->sendIndex_ = settings.value("sendIndex", this->sendIndex_);
-            this->sendMiddle_ = settings.value("sendMiddle", this->sendMiddle_);
-            this->sendRing_ = settings.value("sendRing", this->sendRing_);
-            this->sendPinky_ = settings.value("sendPinky", this->sendPinky_);
-            this->sendPalmOrientation_ = settings.value("sendPalmOrientation", this->sendPalmOrientation_);
-            this->sendPalmVelocity_ = settings.value("sendPalmVelocity", this->sendPalmVelocity_);
-            this->sendPalmNormal_ = settings.value("sendPalmNormal", this->sendPalmNormal_);
-            this->sendVisibleTime_ = settings.value("sendVisibleTime", this->sendVisibleTime_);
-            this->sendFingerIsExtended_ = settings.value("sendFingerIsExtended", this->sendFingerIsExtended_);
-            this->sendPinchStrength_ = settings.value("sendPinchStrength", this->sendPinchStrength_);
-            this->sendGrabStrength_ = settings.value("sendGrabStrength", this->sendGrabStrength_);
+        next.oscPort = j.value("osc_port", 9000);
+        next.lowLatencyMode = j.value("low_latency_mode", false);
+        next.deviceHandAssignments = deviceHandAssignments;
+        if (j.contains("hand_assignments")) {
+            next.deviceHandAssignments = j.at("hand_assignments").get<std::map<std::string, std::string>>();
         }
+        for (const auto& [serial, assignment] : next.deviceHandAssignments) {
+            std::string normalized = assignment;
+            std::transform(normalized.begin(), normalized.end(), normalized.begin(),
+                           [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+            if (!normalized.empty() && normalized != "LEFT" && normalized != "RIGHT" &&
+                normalized != "BOTH" && normalized != "NONE" && normalized != "DISABLED") {
+                throw std::invalid_argument("Unsupported hand assignment for " + serial);
+            }
+        }
+        next.deviceAliasManager.loadFromJson(deviceAliasManager.toJson());
 
+        // Canonical on-disk key is snake_case; the alias manager's legacy
+        // API uses a camelCase wrapper. Accept both historical containers.
+        if (j.contains("device_aliases") && !j["device_aliases"].is_null()) {
+            if (j.contains("deviceAliases")) {
+                throw std::invalid_argument("Ambiguous alias containers: device_aliases and deviceAliases");
+            }
+            const auto& aliases = j.at("device_aliases");
+            if (aliases.is_object() && aliases.contains("deviceAliases")) {
+                if (aliases.size() != 1) throw std::invalid_argument("Mixed alias containers");
+                next.deviceAliasManager.loadFromJson(aliases);
+            } else {
+                next.deviceAliasManager.loadFromJson(json{{"deviceAliases", aliases}});
+            }
+        } else if (j.contains("deviceAliases")) {
+            next.deviceAliasManager.loadFromJson(j);
+        }
+        // A null device_aliases was produced by the old broken saver. It
+        // contains no recoverable mapping; retain any existing in-memory map.
+        const auto settings = j.value("booleanSettings", json::object());
+        if (!settings.is_object()) throw std::invalid_argument("booleanSettings must be an object");
+        next.sendPalm_ = settings.value("sendPalm", sendPalm_);
+        next.sendWrist_ = settings.value("sendWrist", sendWrist_);
+        next.sendThumb_ = settings.value("sendThumb", sendThumb_);
+        next.sendIndex_ = settings.value("sendIndex", sendIndex_);
+        next.sendMiddle_ = settings.value("sendMiddle", sendMiddle_);
+        next.sendRing_ = settings.value("sendRing", sendRing_);
+        next.sendPinky_ = settings.value("sendPinky", sendPinky_);
+        next.sendPalmOrientation_ = settings.value("sendPalmOrientation", sendPalmOrientation_);
+        next.sendPalmVelocity_ = settings.value("sendPalmVelocity", sendPalmVelocity_);
+        next.sendPalmNormal_ = settings.value("sendPalmNormal", sendPalmNormal_);
+        next.sendVisibleTime_ = settings.value("sendVisibleTime", sendVisibleTime_);
+        next.sendFingerIsExtended_ = settings.value("sendFingerIsExtended", sendFingerIsExtended_);
+        next.sendPinchStrength_ = settings.value("sendPinchStrength", sendPinchStrength_);
+        next.sendGrabStrength_ = settings.value("sendGrabStrength", sendGrabStrength_);
+
+        // The alias loader also validates before swapping. Remaining moves and
+        // scalar assignments do not allocate or parse additional input.
+        deviceAliasManager.loadFromJson(next.deviceAliasManager.toJson());
+        oscIp = std::move(next.oscIp);
+        oscPort = next.oscPort;
+        lowLatencyMode = next.lowLatencyMode;
+        deviceHandAssignments = std::move(next.deviceHandAssignments);
+        sendPalm_ = next.sendPalm_;
+        sendWrist_ = next.sendWrist_;
+        sendThumb_ = next.sendThumb_;
+        sendIndex_ = next.sendIndex_;
+        sendMiddle_ = next.sendMiddle_;
+        sendRing_ = next.sendRing_;
+        sendPinky_ = next.sendPinky_;
+        sendPalmOrientation_ = next.sendPalmOrientation_;
+        sendPalmVelocity_ = next.sendPalmVelocity_;
+        sendPalmNormal_ = next.sendPalmNormal_;
+        sendVisibleTime_ = next.sendVisibleTime_;
+        sendFingerIsExtended_ = next.sendFingerIsExtended_;
+        sendPinchStrength_ = next.sendPinchStrength_;
+        sendGrabStrength_ = next.sendGrabStrength_;
         LOG("Configuration loaded successfully from " << filename);
         return true;
-    } catch (const json::exception& e) {
+    } catch (const std::exception& e) {
         (void)e;
         LOG_ERR("Error parsing config file " << filename << ": " << e.what());
         return false;
@@ -138,7 +197,7 @@ bool ConfigManager::saveConfigToFile(const std::string& filename) const {
     std::filesystem::path configPath(filename);
     std::filesystem::path configDir = configPath.parent_path();
     try {
-        if (!std::filesystem::exists(configDir)) {
+        if (!configDir.empty() && !std::filesystem::exists(configDir)) {
             std::filesystem::create_directories(configDir);
             LOG("Created config directory: " << configDir.string());
         }
@@ -156,7 +215,7 @@ bool ConfigManager::saveConfigToFile(const std::string& filename) const {
     // Save Hand Assignments
     j["hand_assignments"] = this->deviceHandAssignments;
     // Save Aliases
-    j["device_aliases"] = deviceAliasManager.toJson()["device_aliases"];
+    j["device_aliases"] = deviceAliasManager.toJson().at("deviceAliases");
     // Save Filter Settings
     json booleanSettings;
     booleanSettings["sendPalm"] = this->sendPalm_;
@@ -181,7 +240,12 @@ bool ConfigManager::saveConfigToFile(const std::string& filename) const {
         return false;
     }
     try {
-        ofs << std::setw(4) << j << std::endl; 
+        ofs << std::setw(4) << j << std::endl;
+        ofs.flush();
+        if (!ofs) {
+            LOG_ERR("Error writing config file " << filename);
+            return false;
+        }
         LOG("Configuration saved successfully to " << filename);
         return true;
     } catch (const std::exception& e) {

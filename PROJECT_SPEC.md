@@ -1,6 +1,6 @@
 # Hand Bridge 2.0 — Product and Engineering Specification
 
-**Status:** Proposed v1 specification, pending Codex Phase 0 verification. **Owner:** Repository owner. **Target:** Windows 10/11 x64. **Product:** Native multi-Ultraleap camera tracking bridge for local TouchDesigner OSC workflows.
+**Status:** Authoritative v1 specification; Phase 0 code audit completed 2026-11-15. Implementation status is maintained in docs/CURRENT_STATE.md; requirements below are not claims of shipped features. **Owner:** Repository owner. **Target:** Windows 10/11 x64. **Product:** Native multi-Ultraleap camera tracking bridge for local TouchDesigner OSC workflows.
 
 ## 1. Product purpose
 

@@ -1,4 +1,41 @@
-# Configuration and preset contract
+# Implemented legacy configuration and proposed v2 schema
+
+## Implemented in Phase 0/1 (2026-11-15)
+
+The new host accepts an explicit `--config` legacy JSON path; it reads without
+saving. An explicitly missing/malformed config exits nonzero. With no path it
+uses source-backed defaults in memory: `127.0.0.1:9000`, low latency false,
+palm/wrist/all five fingertips/pinch/grab enabled, optional channels disabled.
+The original Windows no-argument ConfigManager location remains
+`%LOCALAPPDATA%/LeapApp/config.json`; no Linux default persistence is invented.
+
+Working example: [legacy-default.example.json](../configs/legacy-default.example.json).
+Persistent keys remain `osc_ip`, `osc_port`, `low_latency_mode`,
+`hand_assignments`, `device_aliases`, `booleanSettings`. Saved port overrides
+9000. Host requires numeric IPv4; loaded ports must be integers 1–65535.
+
+Alias save now emits `"device_aliases":{"serial-A":"dev1"}`. Loading accepts
+that flat map, root camelCase `deviceAliases`, and the observed nested
+`device_aliases.deviceAliases` wrapper. Ambiguous containers, duplicate aliases,
+invalid types and malformed indices reject without modifying prior settings.
+A null alias map written by the old bug contains no recoverable identities.
+See [exact audit and regressions](reports/CONFIG_AUDIT.md).
+
+Hand assignment text accepts left/right/both/none/disabled/empty in either case.
+The headless runtime normalizes case: left/right filter; both/none/empty pass
+through; disabled suppresses that device's hand output while tracking health
+continues. The original sorter's case-sensitive behavior remains a legacy defect;
+this repaired selection belongs to the new host. Assignments and channel toggles
+are exercised against real simulated UDP output.
+
+Legacy load validates a complete candidate before committing. Unsupported
+`schema_version` is rejected, including the proposed example below. There is no
+v2 migration CLI, presets, atomic save/backup or configuration IPC yet. Existing
+legacy setters remain source compatible. Legacy save is direct-write with checked
+flush; the new host never invokes it automatically. Back up existing configs
+before explicitly using the legacy application's save operation.
+
+---
 
 **Status:** Proposed v2 design. The example below is NOT guaranteed to work with the current legacy executable. Codex must implement, version, test and document this schema, and provide a migration path from the legacy `config.json`.
 

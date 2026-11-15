@@ -87,3 +87,37 @@ Record `last_frame_received_at_monotonic`, `last_valid_hand_at_monotonic`, `last
 ## Acceptance condition
 
 A simulated or physical failure must result in a visible named state within a configurable detection window, truthful metrics, controlled recovery when the fault clears, no silent permanently frozen output, and continued operation of unaffected cameras. Physical reliability remains unverified until Windows hardware tests are documented.
+
+## Implemented mock supervisor (2026-11-15)
+
+The new EngineRuntime, not the old AppCore, implements the first reliability slice:
+
+- Stale threshold 500 ms since the latest accepted frame (or subscription before
+  the first frame); zero hands counts as fresh. All elapsed checks use injected
+  monotonic milliseconds, distinct from SDK microsecond timestamps.
+- Once stale/lost, clear pending data, mark hands/freshness false, and submit one
+  empty frame through the preserved legacy processor. Repeated ticks do not repeat
+  loss packets. Optional legacy orientation/velocity/normal loss quirks remain.
+- First targeted retry after 100 ms, failure delays 100/200/400/800/1000 ms capped
+  at 1000 ms; no retry spin. Successful subscription awaits actual fresh frames
+  before STREAMING. No jitter in deterministic foundation; tune on hardware later.
+- Service loss clears present/subscribed state, stops the source, and retries its
+  start seam with capped backoff. Only rediscovered devices become present again.
+- One pending frame per device; replace old with newest, count overwrites,
+  reject duplicate/regressing sequences and samples at/over stale age. This
+  bounds current pending storage, not the future LeapC worker queue.
+- Output attempts/success/errors count actual checked callback results. A tick
+  containing failures degrades output; recovery requires sends succeeding after
+  250 ms without further failures. No-hands/no sends cannot claim recovery.
+  Sender errors log at most once/second even if connected UDP alternates errors
+  and successes. Metrics never imply receiver acknowledgement.
+
+Tests inject service loss, missing inventory after restart, subscription failure,
+frame stalls, 100 reconnect cycles, mailbox overflow, duplicate/stale frames,
+normal no-hands and output failure/recovery. The process test independently decodes
+UDP during a two-camera stall. There is no real SDK/service/USB recovery yet.
+Automatic output socket recreation, manual restart commands, raw SDK result-code
+telemetry, measured FPS/latency, threaded poller supervision and a replay-file CLI
+are remaining work. A blocked provider poll cannot be interrupted by this
+single-thread foundation: the source contract requires bounded nonblocking poll;
+Phase 2 must enforce the real LeapC poll timeout/worker lifecycle.

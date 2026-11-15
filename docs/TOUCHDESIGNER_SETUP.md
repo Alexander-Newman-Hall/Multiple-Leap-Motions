@@ -4,7 +4,7 @@ The primary use case is **Hand Bridge and TouchDesigner on the same Windows PC**
 
 ## Connection steps
 
-1. Launch Hand Bridge headlessly with a profile whose OSC destination is `127.0.0.1` and a chosen UDP port. The existing repository's `ConfigManager.cpp` fallback is **9000**; saved configs or historical examples may use **7000** or another port. The receiver and sender must match.
+1. Launch Hand Bridge headlessly with a profile whose OSC destination is `127.0.0.1` and a chosen UDP port. The audited and retained fallback is **9000**; the original README shows a **7000** example. Valid saved settings override the fallback. The receiver and sender must match.
 2. In TouchDesigner, create **OSC In CHOP** for numeric channels, or **OSC In DAT** for inspecting entire OSC message addresses and argument payloads.
 3. Set the local listener/network port to the exact Hand Bridge sending port and enable receiving. Consult your installed TouchDesigner version's parameter names.
 4. Verify actual incoming addresses in OSC In DAT first. Example current C++ paths use lowercase handedness, e.g. `/leap/dev1/left/palm/tx` (see legacy serializer).
@@ -48,3 +48,17 @@ Do not restart all processes as the first diagnostic step if logs/counters can i
 ## Future optional channel version
 
 If a v2 OSC schema is implemented, explicitly label `/handbridge/v2/...` or another reviewed prefix and document exact schema alongside original legacy scheme. Keep legacy default and opt-in selection, and provide TD mappings so existing projects are not broken.
+
+## Current simulated smoke test
+
+Build the SDK-free target from the root README. Run
+`handbridge-engine --simulate --headless --port 9000 --scenario stall --duration-ms 5000`
+using its full build path. This emits `dev1/left` and `dev2/right` scalar messages.
+Camera A pauses at 200–900 ms: default pose channels zero once after the 500 ms
+stale timeout, B continues, then A recovers. The host prints simulated metrics;
+TouchDesigner In DAT/CHOP must independently confirm actual receipt.
+
+Cloud tests verify decoded loopback UDP, not TouchDesigner. No `.toe` receiver
+or physical Windows result is supplied yet. Optional orientation/velocity/normal
+retain historical loss behavior and can hold last values; see the protocol.
+The optional Qt controller and actual hardware adapter are not part of this build.

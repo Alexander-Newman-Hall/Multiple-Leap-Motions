@@ -1,6 +1,39 @@
 # Architecture — Hand Bridge 2.0
 
-**Status:** Proposed; Codex must reconcile this with the actual repository in Phase 0 and record ADRs for deviations.
+**Status:** Target architecture plus an implemented Phase 1 simulation slice.
+
+## Implemented boundary (2026-11-15)
+
+`handbridge-core` compiles the preserved raw-mm processor, aliases, legacy config,
+sorter and OSC sender without SDK/UI dependencies. `handbridge-runtime` owns
+`ITrackingSource`, deterministic `MockTrackingSource`, and `EngineRuntime`.
+`handbridge-engine` is a console host requiring `--simulate`; it reuses the same
+production processor and oscpack serialization tested by the golden receiver.
+No Qt/SDL/OpenGL/LeapC header or GUI object enters this data path.
+
+The initial runtime has a single owner thread. Nonblocking source polling emits
+owned events with serial, source frame ID, source timestamp (inside FrameData),
+and local monotonic arrival milliseconds. A latest-frame mailbox per serial
+bounds pending work; overwrites count as drops. Duplicate/older sequences and
+already stale samples do not refresh health. Up to 64 distinct device records
+bound transient inventory; persistent config capacity is separate.
+
+Per-device state records presence, subscription, fresh frames, visible hands,
+processed/input/drop counts, retries and transition reasons. Empty frames are
+healthy. Stale/device/service loss submits one empty legacy frame; a disappearing
+service clears device presence and requires rediscovery. Device recovery is
+independent with capped backoff. Service recovery uses the source start/stop seam;
+it is simulated, not an assumed LeapC implementation. No cross-camera matching.
+
+OSC uses a nonblocking checked native socket plus retained oscpack serialization.
+Output failures count separately and do not stop processing. The host reports
+transitions and final JSON; high-rate live telemetry and IPC are not implemented.
+No GUI exists to attach/detach, so only GUI absence is currently tested.
+
+Still proposed below: the real SDK adapter/polling worker and bounded inter-thread
+queues, native control process/IPC, processing settings/profile transactions,
+explicit v2 validity, diagnostics export and production packaging. The original
+ImGui path remains separate and retains its known lifecycle limitations.
 
 ## Context and process split
 

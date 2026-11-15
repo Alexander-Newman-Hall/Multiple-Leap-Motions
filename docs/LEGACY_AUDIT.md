@@ -1,77 +1,98 @@
-# Initial static repository audit — issues for Codex to verify
+# Phase 0 code audit — 2026-11-15
 
-**Repository:** https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions
-**Reference branch/commit observed 2026-11-15:** `master` at `054e578525a5d5202ea8f6eb417ce55ded7d61b8` (GitHub metadata). **Method:** static inspection of repository source and README. **NOT built or tested** as part of this planning kit.
+Audited input: `handbridge-v2` at `5f547181f6d512ab6a8d2146022227e26cec48d2`.
+Remote default `master` rechecked at `054e578525a5d5202ea8f6eb417ce55ded7d61b8`.
+The extra branch commit adds the specification kit, not an engine implementation.
+Work takes place on `codex/handbridge-phase0-reliability`; neither input branch is rewritten.
+Line references below refer to the audited input commit unless stated otherwise.
 
-## Source layout inventory
+## Actual executable path
 
-| Existing source | Role / concern |
-|---|---|
-| `src/main.cpp` | WinMain, Windows system-tray logic, SDL2/ImGui UI initialization and AppCore ownership. |
-| `src/app/AppCore.cpp` | Orchestrates frame queue, LeapInput, LeapSorter, DataProcessor, OscSender, UI callbacks. |
-| `src/pipeline/00_LeapConnection.cpp` | LeapC connection creation. Sets `eLeapConnectionConfig_MultiDeviceAware`. |
-| `src/pipeline/01_LeapPoller.cpp` | Device discovery/open, `LeapSubscribeEvents`, event polling, conversion from `LEAP_TRACKING_EVENT`. |
-| `src/core/LeapInput.cpp` | Poll worker, latest frame and `SpscQueue<FrameData>` push. |
-| `src/pipeline/02_LeapSorter.cpp` | Device-specific handedness filtering. |
-| `src/pipeline/03_DataProcessor.cpp` | Produces individual OSC scalar messages; raw mm positions, pinch/grab and optional fields. |
-| `src/pipeline/04_OscSender.cpp` | OSC UDP transport; `sendBundle` currently unimplemented stub. |
-| `src/core/ConfigManager.cpp` | Loads/saves settings, current default fallback port 9000, app data location. |
-| `src/core/DeviceAliasManager.cpp` | Persistent `devN` serial→alias mapping, suspected JSON schema inconsistency. |
-| `src/ui/MainAppWindow.cpp`, `UIController.cpp` | Legacy ImGui/SDL2 display and settings callbacks; UI state requires integration audit. |
-| `CMakeLists.txt`, `leapMotionApp.sln`, `leapMotionApp.vcxproj` | Separate build definitions; audit source target parity, absolute paths and dependency versions. |
-| `tests/` | Existing tests; some may be stale vs current interfaces; build them before refactoring. |
-| `build/` | Tracked generated build artifacts: should be removed from future version control only after clean restore/build has been established. |
+The Visual Studio application enters `WinMain` (`src/main.cpp:88`), constructs a
+`MainAppWindow` and `AppCore`, then drains frames in the SDL event/render loop
+(`src/main.cpp:349-390`). `AppCore` owns `LeapConnection`, `LeapInput`, `LeapSorter`,
+`DataProcessor`, and the `ITransportSink` implemented by `OscSender`
+(`src/app/AppCore.hpp:62-98`, `src/app/AppCore.cpp:53-212`).
 
-## Source-level findings (not confirmed field root causes)
+`LeapInput` creates one polling worker. The worker polls LeapC, copies SDK data
+into `FrameData`, and pushes a shared SPSC queue. The main UI thread consumes
+that queue (`src/core/LeapInput.cpp:39-77`, `src/app/AppCore.cpp:321-334`).
+The sorter selects handedness; the processor emits raw millimeter scalar OSC;
+oscpack serializes/sends one UDP datagram per scalar. Processing also calls the
+UI directly. Hiding a tray window does not establish an independent headless
+process; a blocked UI thread still blocks OSC processing.
 
-### A. Alias serialization mismatch
+## Component decisions
 
-`src/core/DeviceAliasManager.cpp::toJson()` places aliases under `deviceAliases`. Meanwhile, `src/core/ConfigManager.cpp::saveConfigToFile()` attempts to retrieve `deviceAliasManager.toJson()["device_aliases"]`, and load passes an object to `loadFromJson()` that looks for `deviceAliases` as an inner key. This mismatch is a likely configuration round-trip defect. Codex should reproduce with a unit test before making a fix. Unhandled `[]` behavior depends on JSON API and object constness; do not assume successful persistence.
+| Component | Decision | Evidence / reason |
+|---|---|---|
+| `HandData.hpp`, `FrameData.hpp` | Preserve and extend through an owned frame envelope | Already SDK independent; missing native hand/frame identity, arrival time and explicit validity domains. Preserve mm legacy values. |
+| `03_DataProcessor.*` | Preserve with golden tests | Existing output is the compatibility authority. Quirks include loss-only finger `exists=0` and optional orientation/velocity/normal not cleared on loss. |
+| `04_OscSender.*`, oscpack | Repair and preserve | Working scalar OSC implementation; noisy per-scalar logging, absent send metrics, raw-send stub and unimplemented bundles. |
+| `ConfigManager.*`, `DeviceAliasManager.*` | Repair before migration | Confirmed uninitialized first-run settings and alias key mismatch; keep legacy keys/default port, introduce v2 schema later with explicit migration. |
+| `02_LeapSorter.*` | Refactor behind tested headless selection | Uppercase-only matching conflicts with documented lowercase input; read path lacks assignment lock. `NONE` means pass-through in old code, not disabled. |
+| `LeapInput.*`, pipeline `00/01` | Preserve as hardware reference; replace ownership/recovery incrementally | Explicit multi-device subscriptions and owned conversion are useful; service/subscription/freshness health and retry lifecycle incomplete. Installed SDK required before adapter changes. |
+| `AppCore.*` | Refactor into headless runtime | Owns a UI reference and drains from UI loop; data path depends on rendering responsiveness. |
+| `src/core/LeapConnectionImpl.*`, `LeapDeviceManager.*` | Retain as reference; retire after parity | Alternate wrappers are compiled but the actual application uses pipeline connection/poller; avoid maintaining two competing hardware adapters. |
+| `src/ui/MainAppWindow.*`, `UIController.*`, renderer | Preserve legacy application; replace controller in Phase 3 | Actual ImGui UI remains reference. Qt process/IPC does not exist yet. Some controls have placeholder/disconnected behavior. |
+| `UIManager.*`, `MainAppWindow.hpp`, duplicated ImGui backends | Do not include in new runtime | Dead/duplicate definitions; `UIManager.cpp` has duplicate shutdown and nonexistent logger calls. |
+| DI/events and `AspectMapper` | Preserve only where used | Current AspectMapper is a stub, tests reference superseded APIs; do not make them domain dependencies. |
+| CMake / VS project | Repair CMake; preserve VS as historical reference | CMake differs from actual VS source list, requires UI/SDK for all tests and omits JSON dependency. |
+| Existing tests | Triage; keep working assertions, quarantine stale tests explicitly | Some tests call nonexistent APIs or test a local fake instead of production. Enumerate exclusions in build report. |
+| Tracked `build/` | Preserve historical files for now; ignore new outputs | 614 tracked generated files of 739 total tracked files at input. Never build into that historical directory. |
+| Original README | Preserve verbatim | Copy at `docs/legacy/README.md`; current README must distinguish shipped commands from plans. |
 
-### B. No complete service-level reconnection path
+## Confirmed defects and diagnostic priority
 
-`src/pipeline/01_LeapPoller.cpp` handles `eLeapEventType_ConnectionLost` by notifying `LeapInput`; the inspected path does not demonstrate full recreation of connection, device handles, serial enumeration and subscriptions. Reconnection should be proven by lifecycle tests and a Windows service-restart test. The original reported 'UI runs but output stops' MAY be caused by service loss, but this is not established.
+1. **UI blocks output:** queue consumption is on the same thread as rendering and
+   `TrackPopupMenu` (`src/main.cpp:369`, `:484`). This is a demonstrated coupling,
+   not proof it caused the reported installation failure.
+2. **Stale pose survives device loss:** `AppCore::handleDeviceLost` only notifies
+   the UI (`src/app/AppCore.cpp:309-313`). No empty frame reaches the processor;
+   pose channels can remain held at the receiver until another frame arrives.
+3. **Failed subscription appears connected:** `LeapPoller.cpp:199-228` keeps a
+   device after `LeapSubscribeEvents` fails. No retry state distinguishes it.
+4. **Service loss has no supervised path:** poller notifies connection loss,
+   while AppCore wires device callbacks but not service callbacks. Do not assume
+   reopening the whole connection is always required by LeapC; verify exact SDK.
+5. **First-run configuration is undefined:** constructor initializes gains only
+   (`ConfigManager.cpp:35-39`); primitive port/flags remain indeterminate if load
+   fails. Config load fallbacks and processor defaults establish repair defaults.
+6. **Aliases do not round-trip:** serializer writes `deviceAliases`, save reads
+   `device_aliases`, and loader expects a different wrapper (`DeviceAliasManager.cpp:47-79`,
+   `ConfigManager.cpp:93-95`, `:159`). A saved null map cannot recover old aliases.
+7. **Dropped frames are silent:** queue push failure is logged only under
+   `VERBOSE_LEAP_LOGGING` (`LeapInput.cpp:59-65`), with no unconditional counter.
+8. **Hot-path overhead:** every scalar logs in AppCore and sender
+   (`AppCore.cpp:103-109`, `04_OscSender.cpp:108-114`). Impact requires measurement.
 
-### C. Silent or poorly visible queue drops
+Unproven field hypotheses: USB/power interruption, Hyperion service failure,
+poll error, queue starvation, sender failure, receiver/port mismatch, and UI
+blocking. The reported real-camera silent OSC stoppage has **not** been reproduced
+or declared fixed. New metrics/fault tests establish a way to distinguish stages.
 
-`src/core/LeapInput.cpp` uses `SpscQueue<FrameData>`; `try_push` failure is only reported when verbose Leap logging is enabled. The dropped-frame counter should be unconditional and visible. Confirm number of actual poll threads/producers before retaining the SPSC model.
+## Verified SDK constraints and limits
 
-### D. High-frequency logging in the OSC path
+The official current multi-device example confirms multi-device-aware connection
+configuration, explicit device subscriptions and `device_id` routing. Official
+function documentation says opening the connection is nonblocking; the first
+poll establishes service communication. Event pointers last only until the next
+poll/close, and concurrent polling is prohibited. The current converter copies
+tracking values before the next poll, which should be preserved.
 
-`src/app/AppCore.cpp` logs per OSC data message in its `DataProcessor` callback; `src/pipeline/04_OscSender.cpp` loops over individual messages with console output. This may cause overhead under two-camera use and worsen queue backlog. Measure costs with debug logging off and high-rate synthetic streams.
+No LeapC development headers/libraries or physical devices are installed here.
+Public documentation verification is not exact installed-SDK verification.
+No proprietary SDK binary was downloaded, vendored or redistributed.
 
-### E. Bundle transport is not implemented
+## Evidence and bounded implementation order
 
-`src/pipeline/04_OscSender.cpp::sendBundle` is explicitly a stub. Add an efficient bounded OSC bundle implementation behind an **optional** compatibility-aware switch after golden tests; keep working scalar sends until tested in TouchDesigner.
+- [Tracking/runtime/UI audit and official API evidence](reports/TRACKING_AUDIT.md)
+- [Build, dependency and test inventory](reports/BUILD_AUDIT.md)
+- [Configuration evidence and regressions](reports/CONFIG_AUDIT.md)
+- [OSC evidence and golden fixture scope](reports/OSC_AUDIT.md)
 
-### F. Data identity / validity gaps
-
-`src/core/FrameData.hpp` stores `deviceId`, `timestamp`, hands, but no source frame sequence. `src/core/HandData.hpp` stores handedness, skeleton/confidence but not clearly the native `LEAP_HAND` ID. Preserve IDs and validity so smoothing state and future processing can reset correctly on re-acquisition.
-
-### G. Duplicate/ambiguous handedness paths
-
-`src/pipeline/02_LeapSorter.cpp` filters by hand assignments, while `src/pipeline/03_DataProcessor.cpp` independently queries an alias manager's hand-assignment mode. `src/core/DeviceAliasManager.cpp::getAssignedHand` includes TODO behavior. Audit which path actually takes precedence and consolidate one authoritative filter behavior with tests.
-
-### H. Legacy configuration and outputs need measured baseline
-
-`src/core/ConfigManager.cpp` uses `osc_port` default 9000. Some human-facing instructions have shown 7000. `src/pipeline/03_DataProcessor.cpp` produces lowercase hand type `left`/`right` from LeapPoller, addresses `/leap/{alias}/{hand}/...`, one float per message, and raw positions in mm. Preserve existing actual deployed behavior, including cases where original sends zero on missing hands; capture fixtures first.
-
-### I. GUI runtime coupling and possible disconnected controls
-
-`src/main.cpp` constructs UI callbacks including placeholders and `AppCore` with `MainAppWindow&`. `AppCore.cpp` sends frames to UI. The runtime/GUI separation is therefore incomplete. Determine exactly which UI controls are wired, not just drawn, and why visual state may appear stale. The new engine must not depend on UI lifetime or event loop.
-
-### J. Build/test inconsistency
-
-`CMakeLists.txt` targets C++17 in the original snapshot. The repository also has a Visual Studio `.vcxproj` and checked-in `build/` directory. Reconcile source/dependency targets, remove hard-coded local paths where present, and ensure tests compile against actual current interfaces. Do not delete generated tracked files until migration branch has clean reproducible builds.
-
-## Field diagnosis priority
-
-1. Make a deterministic mock/replay build and add stage-boundary counters.
-2. Reproduce a stall by injecting poll errors, service loss, device loss, queue fill, processing failure and UDP failures separately.
-3. Observe which metric stops first when real cameras fail; avoid premature 'fixed' claims.
-4. Add recovery and verify that it restores stream from a known failure without affecting the other device.
-5. Compare real OSC packets with golden fixture and TouchDesigner receiver observations.
-
-## Evidence standard
-
-Each claim in this document is a static code observation or test hypothesis. Codex must reread exact files at pinned commit, update line numbers and affected paths, run appropriate tests, and record whether the hypothesis is confirmed, rejected, or still unknown.
+First freeze scalar OSC/config behavior with executable tests, repair the SDK-free
+CMake path and config defects, then introduce a headless two-source vertical slice
+with stale invalidation, isolated retries and stage counters. Preserve the real
+adapter for Phase 2, where exact SDK compilation and physical evidence are required.
+Qt/IPC, processing, bundling and versioned profiles remain later work.

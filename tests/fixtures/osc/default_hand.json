@@ -1,0 +1,117 @@
+[
+  {
+    "address": "/leap/dev1/left/palm/tx",
+    "type": ",f",
+    "value": 10
+  },
+  {
+    "address": "/leap/dev1/left/palm/ty",
+    "type": ",f",
+    "value": 20
+  },
+  {
+    "address": "/leap/dev1/left/palm/tz",
+    "type": ",f",
+    "value": -30
+  },
+  {
+    "address": "/leap/dev1/left/wrist/tx",
+    "type": ",f",
+    "value": 40
+  },
+  {
+    "address": "/leap/dev1/left/wrist/ty",
+    "type": ",f",
+    "value": 50
+  },
+  {
+    "address": "/leap/dev1/left/wrist/tz",
+    "type": ",f",
+    "value": 60
+  },
+  {
+    "address": "/leap/dev1/left/pinchStrength",
+    "type": ",f",
+    "value": 0.25
+  },
+  {
+    "address": "/leap/dev1/left/grabStrength",
+    "type": ",f",
+    "value": 0.75
+  },
+  {
+    "address": "/leap/dev1/left/finger/thumb/tx",
+    "type": ",f",
+    "value": 100
+  },
+  {
+    "address": "/leap/dev1/left/finger/thumb/ty",
+    "type": ",f",
+    "value": 200
+  },
+  {
+    "address": "/leap/dev1/left/finger/thumb/tz",
+    "type": ",f",
+    "value": 300
+  },
+  {
+    "address": "/leap/dev1/left/finger/index/tx",
+    "type": ",f",
+    "value": 101
+  },
+  {
+    "address": "/leap/dev1/left/finger/index/ty",
+    "type": ",f",
+    "value": 201
+  },
+  {
+    "address": "/leap/dev1/left/finger/index/tz",
+    "type": ",f",
+    "value": 301
+  },
+  {
+    "address": "/leap/dev1/left/finger/middle/tx",
+    "type": ",f",
+    "value": 102
+  },
+  {
+    "address": "/leap/dev1/left/finger/middle/ty",
+    "type": ",f",
+    "value": 202
+  },
+  {
+    "address": "/leap/dev1/left/finger/middle/tz",
+    "type": ",f",
+    "value": 302
+  },
+  {
+    "address": "/leap/dev1/left/finger/ring/tx",
+    "type": ",f",
+    "value": 103
+  },
+  {
+    "address": "/leap/dev1/left/finger/ring/ty",
+    "type": ",f",
+    "value": 203
+  },
+  {
+    "address": "/leap/dev1/left/finger/ring/tz",
+    "type": ",f",
+    "value": 303
+  },
+  {
+    "address": "/leap/dev1/left/finger/pinky/tx",
+    "type": ",f",
+    "value": 104
+  },
+  {
+    "address": "/leap/dev1/left/finger/pinky/ty",
+    "type": ",f",
+    "value": 204
+  },
+  {
+    "address": "/leap/dev1/left/finger/pinky/tz",
+    "type": ",f",
+    "value": 304
+  }
+]

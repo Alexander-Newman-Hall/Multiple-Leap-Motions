@@ -36,3 +36,26 @@
 ## Test reporting
 
 Every test report must include date, commit SHA, OS/toolchain/SDK versions (if used), command, pass/fail/skip counts and links to log artifacts. `SKIPPED: no hardware` is not equivalent to success. Update current state and session handoff docs after test runs.
+
+## Executable baseline (2026-11-15)
+
+Default CTest discovers 40 cases: 10 config, 7 aliases, 1 retained sorter,
+8 actual scalar OSC/UDP, 13 runtime/mock, and 1 Python process/UDP integration.
+Run the Debug/Release or Windows presets in root README. Python is an independent
+receiver/test harness only. The tests do not instantiate a fake hardware binary
+or count obsolete original tests as passing. Detailed exclusions/compile evidence
+and sanitizer commands are in [BUILD_AUDIT](reports/BUILD_AUDIT.md).
+
+Runtime tests inject monotonic time rather than sleeping: stale/no-hands,
+subscription failure and capped backoff, duplicate/old frames, mailbox overwrites,
+service re-enumeration inventory, 100 reattachments, no-send output-health rules
+and start/stop. The process test binds an ephemeral localhost receiver before
+launching the actual headless executable, parses padded OSC/network float bytes,
+checks B sends during A loss/recovery, actual config aliases/channels and CLI
+rejection. Physical Hyperion, USB, TouchDesigner and GUI lifecycle checks remain
+NOT RUN. Sanitizers cover project code/tests, not third-party dependencies.
+
+The actual broadcast-permission kernel regression is POSIX-only: Windows CI's UDP
+provider accepts that send, so the case skips on Windows. Windows readiness/closed
+socket failures and all decoded UDP/runtime/config tests still execute. Report
+39 passed + 1 platform-specific skip instead of claiming 40 Windows passes.

@@ -100,28 +100,28 @@ private:
     float lowSpeedThreshold_ = 80.0f; 
     float midSpeedThreshold_ = 240.0f;
     // Configuration storage
-    std::string oscIp;
-    int oscPort;
-    bool lowLatencyMode;
+    std::string oscIp = "127.0.0.1";
+    int oscPort = 9000;
+    bool lowLatencyMode = false;
     std::map<std::string, std::string> deviceHandAssignments;
     
     // Explicit boolean members for filters
-    bool sendPalm_;
-    bool sendWrist_;
-    bool sendThumb_;
-    bool sendIndex_;
-    bool sendMiddle_;
-    bool sendRing_;
-    bool sendPinky_;
-    bool sendPalmOrientation_;
-    bool sendPalmVelocity_;
-    bool sendPalmNormal_;
-    bool sendVisibleTime_;
-    bool sendFingerIsExtended_;
+    bool sendPalm_ = true;
+    bool sendWrist_ = true;
+    bool sendThumb_ = true;
+    bool sendIndex_ = true;
+    bool sendMiddle_ = true;
+    bool sendRing_ = true;
+    bool sendPinky_ = true;
+    bool sendPalmOrientation_ = false;
+    bool sendPalmVelocity_ = false;
+    bool sendPalmNormal_ = false;
+    bool sendVisibleTime_ = false;
+    bool sendFingerIsExtended_ = false;
 
     // Add members for pinch/grab
-    bool sendPinchStrength_;
-    bool sendGrabStrength_;
+    bool sendPinchStrength_ = true;
+    bool sendGrabStrength_ = true;
 
     // Serial-to-alias mapping
     DeviceAliasManager deviceAliasManager;
