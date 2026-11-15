@@ -1,0 +1,23 @@
+{
+    "osc_ip": "127.0.0.1",
+    "osc_port": 9000,
+    "low_latency_mode": false,
+    "device_aliases": {},
+    "hand_assignments": {},
+    "booleanSettings": {
+        "sendPalm": true,
+        "sendWrist": true,
+        "sendThumb": true,
+        "sendIndex": true,
+        "sendMiddle": true,
+        "sendRing": true,
+        "sendPinky": true,
+        "sendPinchStrength": true,
+        "sendGrabStrength": true,
+        "sendPalmOrientation": false,
+        "sendPalmVelocity": false,
+        "sendPalmNormal": false,
+        "sendVisibleTime": false,
+        "sendFingerIsExtended": false
+    }
+}
