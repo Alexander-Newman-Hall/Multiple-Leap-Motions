@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 
+option(HANDBRIDGE_BUILD_CONTROL "Build the optional native Qt controller and local IPC engine host" OFF)
 option(HANDBRIDGE_BUILD_LEGACY_WINDOWS "Build original Windows GUI/LeapC application (hardware unverified)" OFF)
 option(HANDBRIDGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer on GCC/Clang" OFF)
 set(LEAP_SDK_ROOT "$ENV{LEAP_SDK_ROOT}" CACHE PATH "Installed Ultraleap SDK root containing include/LeapC.h and lib/x64/LeapC.lib")
@@ -64,10 +65,18 @@ endif()
 
 add_library(handbridge-runtime STATIC
     src/runtime/MockTrackingSource.cpp
+    src/runtime/ControlSettings.cpp
+    src/runtime/Processing.cpp
     src/runtime/EngineRuntime.cpp)
 target_link_libraries(handbridge-runtime PUBLIC handbridge-core)
-add_executable(handbridge-engine src/runtime/engine_main.cpp)
-target_link_libraries(handbridge-engine PRIVATE handbridge-runtime)
+if(HANDBRIDGE_BUILD_CONTROL)
+    find_package(Qt6 6.8 REQUIRED COMPONENTS Core Network)
+    add_executable(handbridge-engine src/engine/qt_engine_main.cpp)
+    target_link_libraries(handbridge-engine PRIVATE handbridge-runtime Qt6::Core Qt6::Network)
+else()
+    add_executable(handbridge-engine src/runtime/engine_main.cpp)
+    target_link_libraries(handbridge-engine PRIVATE handbridge-runtime)
+endif()
 
 foreach(handbridge_target handbridge-core handbridge-runtime handbridge-engine)
     if(MSVC)
@@ -94,7 +103,7 @@ if(BUILD_TESTING)
     FetchContent_MakeAvailable(googletest)
     include(GoogleTest)
     # Explicit list: stale legacy tests are inventoried in BUILD_AUDIT.md.
-    foreach(handbridge_test test_ConfigManager test_DeviceAliasManager test_LeapSorter test_LegacyOscContract test_EngineRuntime)
+    foreach(handbridge_test test_ConfigManager test_DeviceAliasManager test_LeapSorter test_LegacyOscContract test_EngineRuntime test_ControlSettings test_Processing)
         add_executable(${handbridge_test} tests/${handbridge_test}.cpp)
         target_link_libraries(${handbridge_test} PRIVATE handbridge-runtime GTest::gtest_main)
         gtest_discover_tests(${handbridge_test} DISCOVERY_TIMEOUT 30)
@@ -107,4 +116,8 @@ endif()
 
 if(HANDBRIDGE_BUILD_LEGACY_WINDOWS)
     include(cmake/LegacyWindows.cmake)
+endif()
+
+if(HANDBRIDGE_BUILD_CONTROL)
+    include(cmake/NativeControl.cmake)
 endif()

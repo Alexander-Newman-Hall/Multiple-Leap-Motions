@@ -28,17 +28,33 @@
       "displayName": "Original GUI with locally installed SDK (unverified)",
       "inherits": "windows-core",
       "cacheVariables": { "HANDBRIDGE_BUILD_LEGACY_WINDOWS": "ON", "LEAP_SDK_ROOT": "$env{LEAP_SDK_ROOT}" }
+    },
+    {
+      "name": "control-debug",
+      "displayName": "Native Qt controller and SDK-free IPC engine",
+      "inherits": "core-debug",
+      "cacheVariables": { "HANDBRIDGE_BUILD_CONTROL": "ON" }
+    },
+    {
+      "name": "windows-control",
+      "displayName": "Native Qt controller and MSVC x64 IPC engine",
+      "inherits": "windows-core",
+      "cacheVariables": { "HANDBRIDGE_BUILD_CONTROL": "ON" }
     }
   ],
   "buildPresets": [
     { "name": "core-debug", "configurePreset": "core-debug" },
     { "name": "core-release", "configurePreset": "core-release" },
     { "name": "windows-core", "configurePreset": "windows-core", "configuration": "Debug" },
-    { "name": "windows-legacy", "configurePreset": "windows-legacy", "configuration": "Debug" }
+    { "name": "windows-legacy", "configurePreset": "windows-legacy", "configuration": "Debug" },
+    { "name": "control-debug", "configurePreset": "control-debug" },
+    { "name": "windows-control", "configurePreset": "windows-control", "configuration": "Debug" }
   ],
   "testPresets": [
     { "name": "core-debug", "configurePreset": "core-debug", "output": { "outputOnFailure": true } },
     { "name": "core-release", "configurePreset": "core-release", "output": { "outputOnFailure": true } },
-    { "name": "windows-core", "configurePreset": "windows-core", "configuration": "Debug", "output": { "outputOnFailure": true } }
+    { "name": "windows-core", "configurePreset": "windows-core", "configuration": "Debug", "output": { "outputOnFailure": true } },
+    { "name": "control-debug", "configurePreset": "control-debug", "output": { "outputOnFailure": true } },
+    { "name": "windows-control", "configurePreset": "windows-control", "configuration": "Debug", "output": { "outputOnFailure": true } }
   ]
 }

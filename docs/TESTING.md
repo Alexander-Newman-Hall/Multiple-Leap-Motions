@@ -59,3 +59,39 @@ The actual broadcast-permission kernel regression is POSIX-only: Windows CI's UD
 provider accepts that send, so the case skips on Windows. Windows readiness/closed
 socket failures and all decoded UDP/runtime/config tests still execute. Report
 39 passed + 1 platform-specific skip instead of claiming 40 Windows passes.
+
+## Native controller acceptance (implemented)
+
+The default Qt-free suite now has55 CTest entries. Optional control-debug /
+windows-control adds three QtTest bundles,58 CTest entries total: ControllerModel
+(9 scenarios+init/cleanup), actual native QML typing/clicks affecting UDP, and
+ControlIntegration (10 process/persistence behaviors+init/cleanup). UI tests use
+software/offscreen native Qt; they are not HTML/browser screenshots.
+
+Settings tests exercise real scalar output for channel/mute/hand/alias/rate,
+deadzone/time smoothing, transforms/units and opt-in hysteresis. Default legacy
+golden fixtures remain unchanged. Controller tests withhold acknowledgements and
+inject delayed/stale responses to verify editor truth. QML tests type a new port
+and click Apply directly, then observe actual packets on the new receiver and
+transmission stopping/resuming from the GUI switch. Integration closes/kills/
+reopens real GUI processes while engine PID and changed OSC values continue.
+
+Protocol tests cover20 batched frames, malformed/version/oversized input, unread
+client flood, duplicate engine (even alternate state directory), CAS, diagnostics
+redaction and actual profile/current/backup files. A production ConfigurationStore
+regression delivers an older save after a newer one and checks actual bytes stay
+unchanged. Initial discovery after restore advances revision and is not Saved.
+
+Final cloud58/58 PASS, no skips. A separate ASan/UBSan run passes56 entries with
+leak checking, covering project core/process/client model while excluding the two
+GUI bundles and third-party Qt instrumentation. Exact commands/results and final
+CI distinction: CURRENT_STATE, SESSION_HANDOFF and reports/GUI_BUILD.md. Windows
+retains the explicitly skipped POSIX-only kernel-denial case; no skip is hardware
+verification. Real SDK/USB/Hyperion/TouchDesigner/soak remain UNTESTED ON HARDWARE.
+
+
+Final source ebb3bd9 passes native Windows and Ubuntu CI on both push and PR.
+Windows adds three until-fail repetitions of the process bundle; all passed on
+both events. The applied-preview QML regression verifies unacknowledged units do
+not change live projection, and raw bypass remains mm even with inactive meter
+settings. Detailed retained logs/results: CURRENT_STATE and GUI_BUILD.

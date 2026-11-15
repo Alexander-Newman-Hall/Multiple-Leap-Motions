@@ -94,10 +94,10 @@ def main(executable):
         assert selected and all(address.startswith(("/leap/dev7/left/palm/", "/leap/dev8/right/palm/"))
                                 for address, _ in selected)
         assert config.read_bytes() == before, "Engine must not silently overwrite config"
-        config.write_text('{"schema_version":2,"osc":{"port":7000}}', encoding="utf-8")
+        config.write_text('{"schema_version":999,"osc":{"port":7000}}', encoding="utf-8")
         rejected = subprocess.run([executable, "--simulate", "--config", str(config)],
                                   capture_output=True, text=True, timeout=5)
-        assert rejected.returncode != 0, "Proposed v2 schema must not silently fall back"
+        assert rejected.returncode != 0, "Unknown future schema must not silently fall back"
 
     for arguments in ([], ["--simulate", "--port", "0"], ["--simulate", "--host", "bad-host"],
                       ["--simulate", "--unknown"], ["--simulate", "--duration-ms", "-1"]):

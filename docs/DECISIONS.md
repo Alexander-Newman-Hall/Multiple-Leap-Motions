@@ -66,3 +66,36 @@ reject versioned examples until migration exists. The new host reads explicit
 config without automatic saving. **Consequence:** no silent schema downgrade or
 installation rewrite; legacy save is still non-atomic, v2/backup/presets deferred.
 Evidence: CONFIG_AUDIT and configuration regression tests.
+
+## ADR-012 — User-approved native VST-style controller rebuild
+
+**Status:** Accepted by explicit user request, 2026-11-15. **Context:** The user
+requested a complete modern GUI and control over settings after reviewing the
+headless baseline. **Decision:** implement Qt6 Quick/QML with C++ controllers as
+a separate process, a QtCore/Network-only IPC host and typed engine settings. Use
+the existing deterministic source until real SDK integration is available. Knobs,
+toggles, profiles and output controls require engine validation/acknowledgements
+and packet-level effects; visual state alone is not sufficient. **Consequence:**
+Phase3 and a narrow processing/settings slice proceed before the physical Phase2
+gate by user authorization. Hardware claims remain blocked, original ImGui source
+and prior branches remain recoverable. No web frontend or window-owned tracking.
+
+## ADR-013 — Engine-authoritative settings and native process lifetime
+
+**Status:** Accepted, 2026-11-15. **Decision:** use strict typed schema2 with explicit
+legacy import, CAS revisions and acknowledgement, independent source/OSC worker,
+bounded same-user length-framed native IPC and QtQuick-only controller. Profiles
+use real atomic/backup storage with monotonic saved snapshots. **Consequence:**
+UI attach/kill/reopen and profile disk work cannot own/block tracking lifetime;
+tests must observe actual UDP. Default Qt-free build and legacy source remain
+available. No HTTP/WebSockets or process-owned GUI tracking loop.
+
+## ADR-014 — Real VST-style controls with explicit processing scope
+
+**Status:** Accepted, 2026-11-15. **Decision:** global positional filters/transforms
+and14 channel controls, per-device identity/mute/hand routing, separate optional
+gesture hysteresis channels. Default raw-mm legacy values stay unchanged. **Why:**
+the user requested modern tactile controls that affect output, not cosmetic sliders.
+**Consequence:** every exposed schema field maps to an engine behavior; advanced
+per-channel overrides/all-bone OSC/v2 remain unimplemented and are not presented
+as working controls. Coordinate/unit changes are explicit profile choices.

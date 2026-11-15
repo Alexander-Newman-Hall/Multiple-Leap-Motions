@@ -1,15 +1,15 @@
 # Continue locally on Windows
 
-The user paused cloud implementation on 2026-11-15 to continue on a Windows PC
-with physical cameras. Keep the cloud audit/tests and continue from the same
-branch; do not restart or overwrite original work.
+The user subsequently authorized a full native GUI rebuild in cloud. It is now
+implemented and mock/UDP tested. Continue its branch on the Windows PC for the
+real SDK adapter; do not discard the controller/audit/test work.
 
 ## Get the work
 
-Draft PR: https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/pull/1
+Draft PR: https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/pull/2
 
 ```powershell
-git clone --branch codex/handbridge-phase0-reliability https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions.git
+git clone --branch codex/handbridge-native-controller https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions.git
 cd Multiple-Leap-Motions
 ```
 
@@ -51,11 +51,20 @@ working on SDK integration. Do not copy SDK DLLs into git.
 > Use RAII, explicit multi-device subscriptions, one poll owner, bounded timeout,
 > owned frames and serial-based identity. Keep the simulated/OSC/config tests
 > passing. Then verify two real devices and actual TouchDesigner receipt with
-> the user's physical interaction, recording exact results or blockers. Do not
-> begin Qt/UI, fusion, advanced processing or packaging. Update current state,
+> the user's physical interaction, recording exact results or blockers. Preserve
+> the existing Qt controller/IPC/processing; do not add fusion or packaging. Update current state,
 > hardware results and handoff with one next task. A compile or simulator pass
 > must never be reported as a physical camera test.
 
 Human hand movement, unplug/replug and receiver observations must actually be
 performed on that PC. Follow HARDWARE_TEST_PLAN.md; label unperformed cases
 UNTESTED ON HARDWARE. The field silent-stall root cause remains unproven.
+
+## Build the new native controller first
+
+Install official Qt6.8.3 MSVC2022 x64 desktop development files; use root README's
+windows-control commands with CMAKE_PREFIX_PATH and Qt bin on PATH. The controller
+already implements modern VST-style settings and survives engine GUI detachment.
+Use handbridge-control.exe --demo to see it with mock cameras; this is not a real
+LeapC mode. Keep native UI/process and55 Qt-free tests passing when adding SDK
+support. Actual hardware still needs this local PC and human observations.

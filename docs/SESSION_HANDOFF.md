@@ -1,120 +1,105 @@
-# Session handoff — Phase 0 + first Phase 1 reliability slice
+# Session handoff — native VST-style controller
 
-Date: 2026-11-15. Environment: Linux cloud; no installed LeapC SDK or devices.
-Branch `codex/handbridge-phase0-reliability`.
-Base `handbridge-v2`: `5f547181f6d512ab6a8d2146022227e26cec48d2`.
-Preserved `master`: `054e578525a5d5202ea8f6eb417ce55ded7d61b8` (remote rechecked).
-Commits: audit `350249f`, config `36c8f9b`, OSC `c7e006e`; runtime/build `060ee47dd3897859504ac97c911a5a504754367a`;
-Windows test correction `a18132ba5cda80b1e9321bb7f3da8d3c08e61361`;
-CI JUnit path correction `61ca88295e77c3ae67b9aa4fbb45316961cf0bbe`.
-Draft PR https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/pull/1
-Final documentation-only checkpoint records observed CI and local instructions.
+Branch: `codex/handbridge-native-controller`.
+Base: `30cd5e359ea410b1ad07ffc91e970f2d95bfb522` (preserved prior foundation).
+Draft PR: https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/pull/2
+Latest application/UI: **`ebb3bd92ce04aa011cfdbaacbdce0adfc67beb1f`**.
+Earlier source checkpoints: portable settings `2de385f`, IPC/profile host `99622f2`,
+GUI `9f5260e`, diagnostics `5d1c4c2`, Windows test harness `8367fad`.
+The final follow-up changes only documentation. Prior Phase 1 handoff is archived
+at reports/PHASE1_HANDOFF.md. Original branches/source are untouched.
 
-## Changed files and behavior
+The user explicitly authorized a complete modern native GUI with real settings
+in this task, ahead of physical SDK work. GUI/processing scope is implemented;
+hardware adapter acceptance is still blocked on the local PC.
 
-- Audit: `docs/LEGACY_AUDIT.md`, `docs/reports/{TRACKING,CONFIG,OSC,BUILD}_AUDIT.md`,
-  original `docs/legacy/README.md`, original `cmake/legacy-original.cmake`.
-- Config: `src/core/ConfigManager.{cpp,h}`, `DeviceAliasManager.{cpp,hpp}`,
-  two corresponding regression tests and `configs/legacy-default.example.json`.
-  Source-backed defaults and aliases repaired; malformed/versioned inputs reject
-  transactionally; original valid port/keys preserved. Save not yet atomic.
-- OSC: `src/pipeline/03_DataProcessor.cpp` optional callbacks,
-  `04_OscSender.{cpp,hpp}` checked native nonblocking sockets/stats/locks,
-  portable `AppLogger.hpp`, removed scalar logs from `AppCore.cpp`;
-  three `tests/fixtures/osc/*.json`, `test_LegacyOscContract.cpp`.
-- Runtime: `src/runtime/{TrackingSource,MockTrackingSource,EngineRuntime}.*`,
-  `engine_main.cpp`, `tests/test_EngineRuntime.cpp`, `test_HeadlessUdp.py`.
-  Source events carry serial/frame identity, source and monotonic arrival clocks;
-  one pending frame/device, independent stale/retry, honest service/device/output
-  health. New executable requires `--simulate`; CLI never auto-saves legacy config.
-- Build: `CMakeLists.txt`, `CMakePresets.json`, `cmake/LegacyWindows.cmake`,
-  `.github/workflows/core-mock.yml`, `.gitignore`; SDK include spellings fixed in
-  pipeline `00_LeapConnection.cpp`/`01_LeapPoller.cpp`. No SDK API symbol changes.
-- Docs: root README/spec/plan; architecture/ADRs/protocol/config/TD/testing/
-  dependencies/reliability/operations/sources/workflow/changelog/current/handoff
-  and hardware result status. Original tracked `build/` is untouched.
+## Changed modules
 
-## Exact cloud commands and results
+- `src/runtime/ControlSettings.*`, `Processing.*`, `EngineRuntime.*`: strict
+  schema 2 plus legacy import; real OSC route/channel/mute/rate controls,
+  time-based filters/transforms/units, opt-in pinch/grab hysteresis, previews.
+- `src/engine/qt_engine_main.cpp`, `ConfigurationStore.hpp`, `src/ipc/Framing.hpp`:
+  independent worker, bounded same-user protocol/CAS/telemetry, atomic named /
+  startup profiles and backup ordering, redacted diagnostics.
+- `src/control/Controller.*`, `control_main.cpp`, twelve QML files: five native
+  pages, dials, acknowledged drafts/save state, detached engine launch, correct
+  live preview metadata, literal serial paths and locale-safe editors.
+- New settings/processing/model/QML/process tests; existing future-schema probe
+  changed to 999 because the Qt host now supports implemented schema 2.
+- Optional Qt CMake presets/targets and pinned native Windows/Linux workflow,
+  studio-default JSON, protocol/schema/build guides and actual native screenshots.
 
-Tool bootstrap (local ignored venv only):
+## Exact cloud commands
+
+Dependencies/tools live only under ignored work. Source `work/qt-env.sh` first.
 
 ```sh
-python3 -m venv work/tooling
-work/tooling/bin/python -m pip install cmake==3.31.6 ninja==1.11.1.4
-work/tooling/bin/cmake --preset core-debug -DCMAKE_MAKE_PROGRAM="$PWD/work/tooling/bin/ninja"
-work/tooling/bin/cmake --build --preset core-debug --parallel 2
-work/tooling/bin/ctest --preset core-debug --output-junit "$PWD/work/core-debug-results.xml"
+cmake --preset control-debug   -DCMAKE_MAKE_PROGRAM="$PWD/work/tooling/bin/ninja"   -DCMAKE_PREFIX_PATH="$PWD/work/qt/6.8.3/gcc_64;$PWD/work/qt-deps/usr"
+cmake --build --preset control-debug --parallel 2
+QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software  XDG_CACHE_HOME="$PWD/work/qt-user-cache" XDG_DATA_HOME="$PWD/work/qt-user-data"  XDG_CONFIG_HOME="$PWD/work/qt-user-config" XDG_RUNTIME_DIR="$PWD/work/qt-runtime"  ctest --preset control-debug --output-junit "$PWD/work/native-control-results.xml"
 ```
 
-**40/40 PASS**, zero skips, 3.76 s. Repeat with `core-release`: **40/40 PASS**,
-3.73 s. ASan+UBSan command in BUILD_AUDIT: **40/40 PASS**, 4.11 s, no diagnostics
-(project core/runtime/sender/tests instrumented, third-party libraries excluded).
-Config-only checkpoint: 17/17; OSC-only checkpoint: 8/8. The final 40 cases include
-13 mock/runtime and one real-process Python UDP test. No discarded obsolete tests
-are counted as passing; their actual compile failures are in BUILD_AUDIT.
+Final cloud: **58 passed, no failures/skips, 19.98 s**. Plain core: 55 passed.
+ASan/UBSan: 56 passed in 6.59 s with leak checking; project core/process/client /
+model instrumented, third-party libraries and two GUI bundles excluded. Full
+unsanitized GUI bundles passed separately. Exact sanitizer commands in GUI_BUILD.
+`ldd` confirms the host links Qt Core/Network only, never rendering libraries.
 
-Baseline original clean configure: FAIL at missing OpenGL; SDK/GUI compile not
-reached. Optional legacy target on Linux correctly rejects platform. Git diff
-whitespace checks pass; source/fixture tree unchanged after the final tests.
+All five native pages were rendered and inspected at 1360×860 with no QML errors;
+GUI and engine exited 0. Selected PNGs are in docs/screenshots. These are real
+native captures with a mock source and actual loopback UDP, not image mockups.
 
-## What is verified versus assumed
+## Acceptance evidence
 
-Verified CLOUD: actual preserved processor+serializer packets decoded independently;
-raw mm/lowercase/float/per-scalar/default/loss quirks; config round trip and rejection;
-two mocks independent across stale/disconnect/service/subscription failures;
-100 reconnect cycles; queue overwrite/duplicate/stale rejection; output failure
-visible/recoverable without stopping tracking; actual kernel send failure; GUI absent.
+Actual QML tests type a new OSC port then directly click Apply and observe the
+new UDP receiver; output enable stops/resumes packets. Preview units remain at
+engine values before ack and obey raw bypass after ack. Model tests cover delayed
+acknowledgements/conflicts, dirty notifications, nested/dotted serial editing,
+profile-load edit protection and reconnect state.
 
-Verified WINDOWS CI: MSVC19.44 Server2022 SDK-free configure/build and39 tests
-passed, one explicit POSIX-only kernel-error skip. Not verified: Windows AppData
-default path, real native kernel-error injection on Windows; installed LeapC ABI/API compilation; USB/Hyperion/two physical cameras;
-TouchDesigner receive; UI attach/kill/reopen; hardware soak/CPU/latency. No receiver
-acknowledgement is inferred from UDP send. Public official docs checked, installed
-headers unavailable; see TRACKING_AUDIT for exact links/hashes/constraints.
+Process tests cover GUI normal close/kill/reopen while engine/output survive,
+actual processing/alias/channel/rate effects, atomic profiles/restart/backups,
+stale persistence completions, startup discovery becoming unsaved, delayed local
+server, malformed/burst/unread clients, duplicate engine and redacted export.
+Integration now has ten behavior cases plus init/cleanup (twelve Qt checks).
+Windows adds an until-fail three-run gate; it fails on the first bad repetition.
 
-## Known bugs / blockers
+Retained Windows logs identified a test-helper startup/cleanup cascade. The
+independent client now uses bounded asynchronous connection and every failed
+startup owns cleanup. No production tracking fix is inferred, no output assertion
+was relaxed, and the original total connect bound stays five seconds. Final CI
+results are recorded below and in GUI_BUILD, including this history.
 
-- Real silent OSC loss root cause remains unknown, not declared fixed.
-- New runtime has no LeapC source; optional legacy GUI still has unaddressed
-  service/subscription/freshness/UI liveness limitations from the audit.
-- No recorded replay CLI, Qt/IPC, automatic socket recreation, full stage/FPS
-  metrics, v2 protocol/bundles, atomic config backup/presets or packaging yet.
-- Optional orientation/velocity/normal legacy values can remain held after loss;
-  preserve compatibility and use runtime freshness, explicit validity later.
-- Source poll must be bounded/nonblocking. Retry start is idempotent before service
-  acknowledgement; a real adapter must enforce resource/thread ownership.
+## Limits and next task
 
-## Single next Codex task and acceptance
+Simulation-only. Physical SDK/USB/Hyperion/two cameras/TouchDesigner and soak are
+UNTESTED ON HARDWARE. No fabricated native hand IDs, per-channel processing
+inheritance, full 3D/all-joint view, OSCv2/bundles or installer. Profiles can be
+applied before a persistence error; authoritative applied-but-unsaved state is
+returned. Closing the GUI deliberately leaves the detached engine alive; use
+foreground Ctrl-C or the OS process manager for explicit shutdown.
 
-**Implement P2.1 real LeapC ITrackingSource adapter/build seam on the installed
-Windows x64 SDK.** Start by recording exact SDK headers/service versions and
-comparing official APIs; do not invent symbols. Add RAII lifecycle with explicit
-subscriptions and owned frames routed by source device ID/serial. Enforce one
-poll owner and bounded timeout; retain the current mock/OSC suite. Build the new
-headless SDK target on the configured PC, then record two-device frames and OSC
-observations using HARDWARE_TEST_PLAN; absence of devices must be marked BLOCKED.
-Do not expand into GUI, fusion, processing or a full release in that task.
+**Single next task:** on the local Windows SDK machine, implement the real LeapC
+ITrackingSource adapter with exact headers/service versions, RAII, explicit
+subscriptions, one bounded poll owner and owned serial-tagged frames. Keep this
+controller and all mocks/goldens/UI tests, then record two-camera/recovery and
+actual TouchDesigner observations or BLOCKED. Do not redesign the GUI or add
+fusion/packaging in that task. Setup: WINDOWS_LOCAL_HANDOFF.md.
 
-## Final CI evidence and user-directed pause
 
-User requested continuing on a local system with cameras; **no further cloud
-implementation is planned**. Open the branch locally and follow
-[WINDOWS_LOCAL_HANDOFF](WINDOWS_LOCAL_HANDOFF.md), including a copyable next prompt.
-No need to discard the cloud work or re-audit from scratch; verify current refs.
+## Final native source CI — ebb3bd9
 
-[Run43767212081](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43767212081)
-at a18132b: Ubuntu40/40 PASS; Windows MSVC19.44 configure/build PASS,39 PASS +1
-POSIX-specific skip,0 failures,4.30s. Initial run43766927335 built successfully but
-failed the broadcast-denial test because Windows accepted that send. The test
-assumption was corrected explicitly; no production code changed.
+Tested application/UI: `ebb3bd92ce04aa011cfdbaacbdce0adfc67beb1f`.
+[PR native run 43773045258](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43773045258):
+Ubuntu 58 passed, no skips/failures (20.32 s). Windows Server 2022 / MSVC
+19.44.35230: 57 passed + one expected POSIX-only skip, zero failures (32.43 s).
+The Windows integration bundle passed three additional until-fail repetitions:
+19.97 / 19.95 / 20.02 s, all twelve Qt checks passing each time.
 
-[Run43767314985](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43767314985)
-at61ca882 changes only CI XML output path; Ubuntu PASS, Windows rerun in progress
-when handoff recorded. Its source/tests match the passing previous run. Both
-LastTest.log and JUnit XML are now targeted by the upload step; check the resulting
-artifact. Final docs-only commit may trigger another identical source build.
-
-Root final local Debug rerun after Windows test guard:40/40 PASS,3.73s. Release
-and ASan+UBSan40/40 results refer to060ee47; the only subsequent C++ change is a
-Windows-only test skip, leaving Linux compiled behavior unchanged. No hardware,
-SDK adapter, GUI lifecycle, physical receiver or deployment test is claimed.
+The independent [push run 43773039247](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43773039247)
+also passed on both platforms: Ubuntu 58 passed; Windows 57 passed + the same
+expected skip, then three more passing integration repetitions. This verifies
+the final applied-preview metadata regression as well as the corrected harness.
+No source/runtime assertions were relaxed, no case was retried until success,
+and no hardware result is inferred. The final handoff commit changes documentation only; application and test
+source are identical to the tested commit above.

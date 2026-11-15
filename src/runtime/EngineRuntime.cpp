@@ -15,39 +15,137 @@ const char* stateName(DeviceState state) {
 }
 EngineRuntime::EngineRuntime(ITrackingSource& source, ConfigManager& config, Output output,
                              RuntimeOptions options, Log log)
-    : source_(source), config_(config), output_(std::move(output)), options_(options), log_(std::move(log)),
-      processor_(config.getDeviceAliasManager(), [this](const OscMessage& message) {
-          ++outputStatus_.attempts; outputStatus_.lastAttemptMs = lastTickMs_;
-          bool success = false;
-          try { success = output_(message); } catch (const std::exception&) {}
-          if (success) {
-              ++outputStatus_.successes; outputStatus_.lastSuccessMs = lastTickMs_;
-
-          } else {
-              ++outputStatus_.errors;
-
-          }
-
-      }, [](const FrameData&) {}, nullptr) {
+    : source_(source), config_(config), output_(std::move(output)), options_(options), log_(std::move(log)) {
     if (!output_ || !options.staleMs || !options.retryInitialMs || options.retryMaxMs < options.retryInitialMs)
         throw std::invalid_argument("invalid runtime options/output");
-    for (const auto& [serial, assignment] : config.getAllDefaultHandAssignments()) {
-        auto filter = assignment;
-        std::transform(filter.begin(), filter.end(), filter.begin(), [](unsigned char c) { return char(std::tolower(c)); });
-        if (!filter.empty() && filter != "left" && filter != "right" && filter != "both" &&
-            filter != "none" && filter != "disabled")
-            throw std::invalid_argument("invalid hand assignment for " + serial);
+    applySettings(ControlSettings::fromLegacy(config));
+}
+void EngineRuntime::emitOutput(const OscMessage& message) {
+    if (!settings_.osc.enabled) return;
+    ++outputStatus_.attempts; outputStatus_.lastAttemptMs = lastTickMs_;
+    bool success = false;
+    try { success = output_(message); } catch (const std::exception&) {}
+    if (success) { ++outputStatus_.successes; outputStatus_.lastSuccessMs = lastTickMs_; }
+    else { ++outputStatus_.errors; lastOutputFailureMs_ = lastTickMs_; }
+}
+void EngineRuntime::clearOutput(const std::string& serial) {
+    FrameData lost; lost.deviceId = serial;
+    if (processor_) processor_->processData(serial, lost);
+    const auto alias = config_.getDeviceAliasManager().getOrAssignAlias(serial);
+    for (const auto& message : processing_.gestures(lost, alias)) emitOutput(message);
+    processing_.reset(serial);
+    emittedHands_.erase(serial); lastOutputMs_.erase(serial);
+}
+void EngineRuntime::applySettings(const ControlSettings& requested) {
+    const auto previousErrors = outputStatus_.errors;
+    ControlSettings next = requested;
+    // Profiles may omit physical identities. Preserve active bindings, never
+    // silently assign a running camera another camera's OSC address.
+    for (const auto& [serial, status] : status_) {
+        if (!next.devices.contains(serial)) {
+            const auto existing = settings_.devices.find(serial);
+            next.devices[serial] = existing == settings_.devices.end()
+                ? DeviceSettings{status.alias,true,"both"} : existing->second;
+        }
     }
-    processor_.setFilterSettings(config.isSendPalmEnabled(), config.isSendWristEnabled(),
-        config.isSendThumbEnabled(), config.isSendIndexEnabled(), config.isSendMiddleEnabled(),
-        config.isSendRingEnabled(), config.isSendPinkyEnabled(), config.isSendPalmOrientationEnabled(),
-        config.isSendPalmVelocityEnabled(), config.isSendPalmNormalEnabled(), config.isSendVisibleTimeEnabled(),
-        config.isSendFingerIsExtendedEnabled(), config.isSendPinchStrengthEnabled(), config.isSendGrabStrengthEnabled());
+    next.validate();
+    nlohmann::json aliases = nlohmann::json::object();
+    std::map<std::string,std::string> assignments;
+    for (const auto& [serial, device] : next.devices) {
+        aliases[serial] = device.alias;
+        assignments[serial] = device.enabled ? device.handFilter : "disabled";
+    }
+    DeviceAliasManager candidateAliases;
+    candidateAliases.loadFromJson({{"deviceAliases",aliases}});
+    auto nextProcessor = std::make_unique<DataProcessor>(config_.getDeviceAliasManager(),
+        [this](const OscMessage& message) { emitOutput(message); }, [](const FrameData&) {}, nullptr);
+    const auto& c = next.channels;
+    nextProcessor->setFilterSettings(c.sendPalm,c.sendWrist,c.sendThumb,c.sendIndex,c.sendMiddle,c.sendRing,c.sendPinky,
+        c.sendPalmOrientation,c.sendPalmVelocity,c.sendPalmNormal,c.sendVisibleTime,c.sendFingerIsExtended,
+        c.sendPinchStrength,c.sendGrabStrength);
+    // All validation/allocation above precedes observable changes. Routing/mute
+    // changes clear old addresses through the old sender before the host swaps it.
+    const bool globalRoutingChanged = settings_.osc.enabled != next.osc.enabled ||
+        settings_.osc.host != next.osc.host || settings_.osc.port != next.osc.port ||
+        settings_.toJson().at("channels") != next.toJson().at("channels");
+    for (const auto& [serial, status] : status_) {
+        (void)status;
+        const auto oldDevice = settings_.devices.find(serial);
+        const auto newDevice = next.devices.find(serial);
+        const bool routingChanged = oldDevice == settings_.devices.end() || newDevice == next.devices.end() ||
+            oldDevice->second.alias != newDevice->second.alias || oldDevice->second.enabled != newDevice->second.enabled ||
+            oldDevice->second.handFilter != newDevice->second.handFilter;
+        if (globalRoutingChanged || routingChanged || (settings_.processing.gesturesEnabled && !next.processing.gesturesEnabled))
+            clearOutput(serial);
+        else if (settings_.processing.gesturesEnabled) {
+            FrameData empty; empty.deviceId = serial;
+            for (const auto& message : processing_.gestures(empty,status.alias)) emitOutput(message);
+        }
+    }
+    config_.getDeviceAliasManager().loadFromJson({{"deviceAliases",aliases}});
+    config_.setAllDefaultHandAssignments(assignments);
+    config_.setOscIp(next.osc.host); config_.setOscPort(next.osc.port);
+    config_.setSendPalmEnabled(c.sendPalm); config_.setSendWristEnabled(c.sendWrist);
+    config_.setSendThumbEnabled(c.sendThumb); config_.setSendIndexEnabled(c.sendIndex);
+    config_.setSendMiddleEnabled(c.sendMiddle); config_.setSendRingEnabled(c.sendRing); config_.setSendPinkyEnabled(c.sendPinky);
+    config_.setSendPalmOrientationEnabled(c.sendPalmOrientation); config_.setSendPalmVelocityEnabled(c.sendPalmVelocity);
+    config_.setSendPalmNormalEnabled(c.sendPalmNormal); config_.setSendVisibleTimeEnabled(c.sendVisibleTime);
+    config_.setSendFingerIsExtendedEnabled(c.sendFingerIsExtended); config_.setSendPinchStrengthEnabled(c.sendPinchStrength);
+    config_.setSendGrabStrengthEnabled(c.sendGrabStrength);
+    settings_ = std::move(next);
+    if (!processor_) processor_ = std::move(nextProcessor);
+    else {
+        const auto& active = settings_.channels;
+        processor_->setFilterSettings(active.sendPalm,active.sendWrist,active.sendThumb,active.sendIndex,active.sendMiddle,active.sendRing,active.sendPinky,
+            active.sendPalmOrientation,active.sendPalmVelocity,active.sendPalmNormal,active.sendVisibleTime,active.sendFingerIsExtended,
+            active.sendPinchStrength,active.sendGrabStrength);
+    }
+    processing_.setSettings(settings_.processing);
+    lastOutputMs_.clear(); previews_.clear();
+    for (auto& [serial, status] : status_) status.alias = settings_.devices.at(serial).alias;
+    updateOutputHealth(previousErrors);
+}
+void EngineRuntime::processFrame(const std::string& serial, FrameData frame, Millis arrivalMs, Millis now) {
+    FrameData processed = processing_.process(selected(frame),arrivalMs);
+    previews_[serial] = {std::move(frame),processed,arrivalMs};
+    if (!settings_.osc.enabled) return;
+    std::set<std::string> current;
+    for (const auto& hand : processed.hands) current.insert(hand.handType);
+    const auto& previous = emittedHands_[serial];
+    const bool lostHand = std::any_of(previous.begin(),previous.end(),[&](const auto& hand) { return !current.contains(hand); });
+    const auto last = lastOutputMs_.find(serial);
+    const bool due = settings_.osc.rateHz == 0 || last == lastOutputMs_.end() ||
+        double(now-last->second)*settings_.osc.rateHz >= 1000;
+    // No-hands/loss is never delayed behind an output frequency limiter.
+    if (!due && !lostHand) return;
+    processor_->processData(serial,processed);
+    for (const auto& message : processing_.gestures(processed,status_.at(serial).alias)) emitOutput(message);
+    emittedHands_[serial] = std::move(current); lastOutputMs_[serial] = now;
+}
+bool EngineRuntime::restartDevice(const std::string& serial, Millis now) {
+    if (now < lastTickMs_) throw std::invalid_argument("monotonic time moved backwards");
+    const auto found = status_.find(serial);
+    if (!running_ || !serviceConnected_ || found == status_.end() || !found->second.present) return false;
+    lastTickMs_ = now;
+    const auto previousErrors = outputStatus_.errors;
+    invalidate(serial);
+    auto& status = found->second;
+    auto& pending = pending_.at(serial);
+    status.subscribed = false; ++status.reconnectAttempts;
+    pending.lastFrameId.reset(); pending.activityMs = now; pending.retryMs = options_.retryInitialMs;
+    pending.nextRetryMs = now + options_.retryInitialMs;
+    const bool restored = source_.restartDevice(serial,now);
+    status.subscribed = restored;
+    transition(serial,restored ? DeviceState::Subscribed : DeviceState::Recovering,
+        restored ? "manual_restart_subscribed" : "manual_restart_failed",now);
+    updateOutputHealth(previousErrors);
+    return restored;
 }
 EngineRuntime::~EngineRuntime() { stop(); }
 void EngineRuntime::start(Millis now) {
     if (running_) return;
-    status_.clear(); pending_.clear(); outputStatus_ = {}; lastOutputFailureMs_.reset();
+    status_.clear(); pending_.clear(); previews_.clear(); processing_.reset();
+    emittedHands_.clear(); lastOutputMs_.clear(); outputStatus_ = {}; lastOutputFailureMs_.reset();
     running_ = true; serviceConnected_ = false; lastTickMs_ = now;
     serviceBackoffMs_ = options_.retryInitialMs;
     serviceRetryMs_ = now + serviceBackoffMs_;
@@ -63,16 +161,18 @@ void EngineRuntime::invalidate(const std::string& serial) {
     auto& status = status_.at(serial);
     pending_.at(serial).frame.reset();
     status.framesFresh = status.handsVisible = false;
-    FrameData lost; lost.deviceId = serial;
-    processor_.processData(serial, lost); // Existing legacy once-per-hand loss packet contract.
+    clearOutput(serial);
+    FrameData empty; empty.deviceId = serial;
+    previews_[serial] = {empty,empty,lastTickMs_};
 }
 FrameData EngineRuntime::selected(FrameData frame) const {
-    auto filter = config_.getDefaultHandAssignment(frame.deviceId);
-    std::transform(filter.begin(), filter.end(), filter.begin(), [](unsigned char c) { return char(std::tolower(c)); });
-    // Legacy NONE/empty means unassigned/pass-through; disabled is explicit in this host.
+    const auto device = settings_.devices.find(frame.deviceId);
+    if (device != settings_.devices.end() && !device->second.enabled) { frame.hands.clear(); return frame; }
+    auto filter = device == settings_.devices.end() ? config_.getDefaultHandAssignment(frame.deviceId) : device->second.handFilter;
+    std::transform(filter.begin(),filter.end(),filter.begin(),[](unsigned char c) { return char(std::tolower(c)); });
     if (filter == "disabled") frame.hands.clear();
     else if (filter == "left" || filter == "right")
-        std::erase_if(frame.hands, [&](const HandData& hand) { return hand.handType != filter; });
+        std::erase_if(frame.hands,[&](const HandData& hand) { return hand.handType != filter; });
     return frame;
 }
 void EngineRuntime::event(const TrackingEvent& input, Millis now) {
@@ -94,6 +194,12 @@ void EngineRuntime::event(const TrackingEvent& input, Millis now) {
     if (!status_.contains(input.serial)) {
         if (input.kind != TrackingEventKind::DeviceConnected || status_.size() >= 64) return;
         status_[input.serial].alias = config_.getDeviceAliasManager().getOrAssignAlias(input.serial);
+        if (!settings_.devices.contains(input.serial)) {
+            auto hand = config_.getDefaultHandAssignment(input.serial);
+            std::transform(hand.begin(),hand.end(),hand.begin(),[](unsigned char c) { return char(std::tolower(c)); });
+            if (hand.empty() || hand == "none") hand = "both";
+            settings_.devices[input.serial] = {status_.at(input.serial).alias,true,hand};
+        }
         pending_[input.serial].retryMs = options_.retryInitialMs;
     }
     auto& status = status_.at(input.serial);
@@ -159,10 +265,11 @@ void EngineRuntime::tick(Millis now) {
     for (auto& [serial, status] : status_) {
         auto& pending = pending_.at(serial);
         if (pending.frame) {
+            const auto arrivalMs = pending.frame->arrivalMs;
             auto frame = std::move(pending.frame->frame); pending.frame.reset();
             frame.deviceId = serial;
             status.handsVisible = !frame.hands.empty(); status.framesFresh = true;
-            processor_.processData(serial, selected(std::move(frame))); ++status.framesProcessed;
+            processFrame(serial,std::move(frame),arrivalMs,now); ++status.framesProcessed;
             transition(serial, DeviceState::Streaming, "frames_fresh", now);
         }
         if (status.present && status.subscribed && now - pending.activityMs >= options_.staleMs) {

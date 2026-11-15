@@ -5,7 +5,11 @@
 Actual targets now: `handbridge-core`, `handbridge-runtime`, and simulation-only
 `handbridge-engine`; optional `leapMotionApp` is the original GUI with an explicit
 installed SDK root, UNVERIFIED ON WINDOWS. The target classes below describe the
-later architecture; there is no hardware-backed new engine or Qt target yet.
+later architecture. Optional native targets now exist: handbridge-control-client
+(QtCore/Network C++model), handbridge-control (QtQuick/QML) and a QtCore/Network-only
+handbridge-engine entrypoint when HANDBRIDGE_BUILD_CONTROL=ON. Both engine modes
+remain simulation-only. Qt6.8.3 was built/tested in cloud; QtTest is test-only.
+Commands, exact package/tool/action pins and licensing boundary are in GUI_BUILD.
 
 | Component | Purpose | Version / license / action |
 |---|---|---|
@@ -21,7 +25,7 @@ later architecture; there is no hardware-backed new engine or Qt target yet.
 | GitHub Actions Windows runner | CI smoke/unit builds | Can build mock targets; SDK-integrated path depends on legally available binaries. |
 | TouchDesigner | OSC receiver | Physical Windows validation only, not a cloud CI prerequisite. |
 
-## Build target classes
+## Planned target classes (not current hardware support)
 
 1. `handbridge-domain` / processing / osc: build on a standard C++ runner without LeapC or Qt UI.
 2. `handbridge-engine-mock`: runnable with simulated devices, no proprietary SDK, no Qt GUI.

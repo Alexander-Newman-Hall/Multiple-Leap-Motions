@@ -1,6 +1,38 @@
 # Native control application — UI/UX specification
 
-**Status:** Product design specification; implementation and screenshots are pending. The UI is a native Windows application written with Qt 6 Qt Quick/QML and C++ state models. It is **not** a web application. The separate C++ tracking/OSC engine remains functional without this program.
+**Status:** Native Qt6 Quick/QML controller implemented on branch
+codex/handbridge-native-controller; actual cloud-native screenshots and test
+evidence are recorded in CURRENT_STATE. Hardware integration remains untested.
+The requirements below still include later features, not all shipped controls.
+
+## Implemented controller
+
+Five pages share a matte charcoal VST-style frame, mint/violet signal accents,
+editable rotary controls, keyboard navigation and engine-backed health. Global
+Apply/Revert separates draft editing, acknowledged application, rejection and
+persisted profile state. Views do not own the engine.
+
+Overview shows two independent live camera tiles, measured frame/packet rates,
+frame age/drop counts and raw/processed measured palm/wrist/tip previews. Devices
+controls aliases, per-camera mute and handedness plus actual restart. Processing
+controls bypass, smoothing/deadzone, scale/XYZ rotation/offset/units and optional
+pinch/grab hysteresis. OSC Output controls target, enable/rate and all14 supported
+channel flags. Profiles & Diagnostics saves/loads applied settings, exports
+redacted diagnostics and displays real bounded logs.
+
+Direct typing then clicking Apply commits valid focused editors. Numeric parsing
+uses an explicit consistent locale. Dotted serials are literal identifiers.
+Editor controls disable during transactions and backend prevents lost edits during
+profile loads. Offline views are labeled/disconnected, with simulator start or
+reconnect; no activity is fabricated. All current editable schema fields are
+represented; full per-channel processing overrides, full skeletal/3D renderer,
+OSC bundles/v2, installer and real SDK source remain future work.
+
+See CONFIG_SCHEMA.md and CONTROL_PROTOCOL.md for exact implemented behavior.
+
+---
+
+**Target specification:** The UI is a native Windows application written with Qt 6 Qt Quick/QML and C++ state models. It is **not** a web application. The separate C++ tracking/OSC engine remains functional without this program.
 
 ## Product experience
 
