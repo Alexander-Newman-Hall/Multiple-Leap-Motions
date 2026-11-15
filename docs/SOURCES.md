@@ -41,3 +41,12 @@ and inspected; exact URLs, hashes and observed API constraints are in
 available in cloud. This verifies public documentation only, not a particular
 installed Hyperion version or hardware/API compilation. Native UDP error behavior
 was checked against the pinned oscpack sources and kernel error tests; see OSC_AUDIT.
+
+
+Native-controller verification uses official Qt6.8.3 C++ headers/libraries and
+[QLocalServer](https://doc.qt.io/qt-6/qlocalserver.html),
+[QSaveFile](https://doc.qt.io/qt-6/qsavefile.html) and
+[QtQuick](https://doc.qt.io/qt-6/qtquick-index.html) documentation, fetched and
+inspected. Local IPC/schema/ownership limits are in CONTROL_PROTOCOL.md;
+exact development package/action pins in reports/GUI_BUILD.md. No new Ultraleap
+API was invented or hardware test inferred in this GUI task.

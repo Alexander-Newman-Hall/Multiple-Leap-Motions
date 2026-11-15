@@ -28,7 +28,8 @@ if(BUILD_TESTING)
     add_executable(test_Controller tests/test_Controller.cpp)
     set_target_properties(test_Controller PROPERTIES AUTOMOC ON)
     target_link_libraries(test_Controller PRIVATE handbridge-control-client Qt6::Test)
-    add_test(NAME ControllerModel COMMAND test_Controller)
+    add_test(NAME ControllerModel COMMAND test_Controller
+        -o "${CMAKE_CURRENT_BINARY_DIR}/qt-controller.txt,txt")
     set_tests_properties(ControllerModel PROPERTIES TIMEOUT 30)
 
     add_executable(test_ControlUi tests/test_ControlUi.cpp)
@@ -39,7 +40,8 @@ if(BUILD_TESTING)
         TEST_QML_PATH="${CMAKE_CURRENT_SOURCE_DIR}/src/control/qml/Main.qml"
         TEST_ENGINE_PATH="$<TARGET_FILE:handbridge-engine>")
     add_dependencies(test_ControlUi handbridge-engine)
-    add_test(NAME ControlUi COMMAND test_ControlUi)
+    add_test(NAME ControlUi COMMAND test_ControlUi
+        -o "${CMAKE_CURRENT_BINARY_DIR}/qt-control-ui.txt,txt")
     set_tests_properties(ControlUi PROPERTIES TIMEOUT 60
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 
@@ -51,7 +53,8 @@ if(BUILD_TESTING)
         TEST_ENGINE_PATH="$<TARGET_FILE:handbridge-engine>"
         TEST_CONTROL_PATH="$<TARGET_FILE:handbridge-control>")
     add_dependencies(test_ControlIntegration handbridge-engine handbridge-control)
-    add_test(NAME ControlIntegration COMMAND test_ControlIntegration)
+    add_test(NAME ControlIntegration COMMAND test_ControlIntegration
+        -o "${CMAKE_CURRENT_BINARY_DIR}/qt-control-integration.txt,txt")
     set_tests_properties(ControlIntegration PROPERTIES
         TIMEOUT 90
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")

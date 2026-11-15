@@ -53,6 +53,14 @@ jobs:
         run: cmake --build --preset ${{ matrix.preset }} --parallel 2
       - name: Core, processing, local IPC and detached UI tests
         run: ctest --preset ${{ matrix.preset }} --output-junit "${{ github.workspace }}/native-control-results.xml"
+      - name: Print native Qt test diagnostics
+        if: always()
+        shell: python
+        run: |
+          from pathlib import Path
+          for path in sorted(Path("out/build/${{ matrix.preset }}").glob("qt-*.txt")):
+              print(path.name)
+              print(path.read_text(encoding="utf-8", errors="replace"))
       - name: Upload test evidence (not a hardware release)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -61,4 +69,5 @@ jobs:
           path: |
             native-control-results.xml
             out/build/${{ matrix.preset }}/Testing/Temporary/LastTest.log
+            out/build/${{ matrix.preset }}/qt-*.txt
           if-no-files-found: warn

@@ -2,7 +2,23 @@
 
 This file tracks **implemented** changes to the application. Do not list planned features as shipped. Keep dates/versions and commits with each entry.
 
-## Unreleased — Phase 0 audit / Phase 1 simulation, 2026-11-15
+## Unreleased — native controller rebuild, 2026-11-15
+
+- Added a separate native Qt6 Quick/QML VST-style controller with5 functional
+  pages, editable rotary controls, engine-backed device/channel/processing/OSC
+  settings, acknowledged Apply/Saved states, profiles and diagnostics.
+- Added strict schema2/legacy import, actual time-based filters/transforms/units,
+  optional pinch/grab hysteresis channels and per-device routing/mute/restart.
+- Added bounded same-user local IPC and an independent engine worker; GUI close /
+  kill/reopen does not stop observed mock UDP output. Engine QtCore/Network only.
+- Added atomic named/current profiles/backups, revision conflict and delayed-save
+  safeguards, measured telemetry and redacted exports.
+- Native cloud58/58 tests pass; targeted sanitizer56/56 pass. Actual native PNGs
+  reviewed; Windows CI and physical boundaries recorded in CURRENT_STATE.
+- Preserved original sources/branches, default raw-mm scalar OSC/9000 and old
+  goldens. New source remains simulation-only; no hardware/release claim.
+
+## Phase 0 audit / Phase 1 simulation, 2026-11-15
 
 - Added code-level inventory, baseline failure evidence, original README/CMake
   copies, pinned C++20 SDK-free CMake presets and Windows/Linux CI.

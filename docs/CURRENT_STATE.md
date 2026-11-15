@@ -61,3 +61,15 @@ Build the real LeapC ITrackingSource adapter on the local Windows SDK machine,
 using exact installed headers/service versions and this unchanged controller/IPC
 boundary. Verify two cameras, USB/service recovery and actual TouchDesigner OSC,
 recording real results or BLOCKED. Do not infer hardware success from these mocks.
+
+## First native CI observation and diagnostic follow-up
+
+GUI source commit9f5260ec60b017e1a4c6ba67845e6158fd987a2b is in
+[draft PR2](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/pull/2).
+Native run43770816953: Ubuntu58/58PASS; Windows MSVC19.44 configure/build and
+actualQML-control test PASS, but ControlIntegration failed (56pass/1fail/1expected
+POSIXskip of58). Its QtTest stdout was empty on Windows, including passing bundles.
+A diagnostic-only follow-up writes explicit QtTest text logs and retains them in
+CI artifacts. No production code, test skip or acceptance bounds changed; exact
+Windows cause is being investigated before claiming native Windows complete.
+Final source sanitizer rerun56/56PASS,6.59s,leakchecking enabled,0diagnostics.

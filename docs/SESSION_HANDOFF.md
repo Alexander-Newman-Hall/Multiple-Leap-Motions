@@ -73,3 +73,12 @@ service versions; RAII handles/subscriptions, one bounded poll owner, owned fram
 and stable serials. Keep mocks/goldens/native UI tests green, then record actual
 two-camera, unplug/service recovery and TouchDesigner observations. Mark unavailable
 physical steps BLOCKED. Do not rewrite the GUI again or add fusion/packaging.
+
+## CI checkpoint
+
+Code9f5260ec60b017e1a4c6ba67845e6158fd987a2b; draftPR2.
+Native run43770816953 Ubuntu58/58PASS; WindowsMSVC19.44buildPASS and actualQMLport
+Apply/UDP testPASS, but processControlIntegrationfailed50.15s with emptyQtTest
+stdout. Counts56pass/1fail/1POSIXskip of58. Explicitper-bundleQtTestfilelogging
+is added toCTest/CIartifacts for diagnosis; productionunchanged andtestnot skipped.
+RootfinalASan/UBSan56/56PASS6.59s withsameGUIsource,leakcheckenabled.
