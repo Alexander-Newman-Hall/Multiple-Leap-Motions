@@ -1,6 +1,11 @@
 # Dependencies, build targets and licensing ledger
 
-**Status:** Draft. Codex must reconcile this with the installed SDK, original lockfiles and the actual Windows CI configuration before pinning versions.
+**Status:** SDK-free dependencies pinned and built in cloud; Windows SDK/Qt licensing and hardware validation remain pending. Exact revisions, archive SHA-256 checks and baseline build blockers are recorded in [BUILD_AUDIT](reports/BUILD_AUDIT.md). CMake 3.24+ / C++20; CI tools CMake 3.31.6 and Ninja wheel 1.11.1.4. JSON v3.11.3 (MIT), oscpack 3e7e3a1 (MIT), GoogleTest v1.15.2 (BSD-3-Clause, tests only). Fetches go to ignored build directories. No proprietary SDK binaries are fetched.
+
+Actual targets now: `handbridge-core`, `handbridge-runtime`, and simulation-only
+`handbridge-engine`; optional `leapMotionApp` is the original GUI with an explicit
+installed SDK root, UNVERIFIED ON WINDOWS. The target classes below describe the
+later architecture; there is no hardware-backed new engine or Qt target yet.
 
 | Component | Purpose | Version / license / action |
 |---|---|---|

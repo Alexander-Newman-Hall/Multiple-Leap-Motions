@@ -1,6 +1,14 @@
 # Operations runbook — headless deployment and troubleshooting
 
-**This document describes intended version 2 operations.** CLI flags and filenames are proposals until Codex implements and documents them with verified builds.
+**Current implemented operations:** `handbridge-engine --simulate [--headless]
+[--config legacy.json] [--host 127.0.0.1] [--port 9000] [--duration-ms N]
+[--scenario normal|stall]`, plus `--help` and `--version`. The process requires
+`--simulate`, runs until Ctrl-C when duration is absent/zero, reads without
+saving config, and prints transitions to stderr/final JSON to stdout. Exit 1 is
+startup/config/argument failure; exit 2 reports observed send errors; exit 0 does
+not prove a receiver exists. No status IPC or GUI exists yet. Use the build paths
+in root README. Everything else below describes intended operations and must not
+be treated as implemented.
 
 ## Planned launch models
 

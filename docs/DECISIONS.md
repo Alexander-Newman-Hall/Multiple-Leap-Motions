@@ -35,3 +35,34 @@ Status vocabulary: `Accepted`, `Proposed`, `Superseded`. Codex should append a s
 - **Alternatives:** Options considered
 - **Consequences:** Product, technical, build and documentation effects
 - **Evidence:** Source/test references and date
+
+## ADR-009 — Add a tested vertical slice alongside the legacy application
+
+**Status:** Accepted for Phase 0/1, 2026-11-15. **Context:** the live application
+consumes frames from the UI event loop, CMake cannot configure without graphics,
+and hardware SDK headers are unavailable in cloud. **Decision:** preserve legacy
+source/build definition and README; compile existing processor/config/OSC with a
+new small headless source/supervisor seam and two-camera mock. Use one owner thread
+and one latest-frame mailbox per serial initially. **Consequence:** deterministic
+CI and rollback without claiming the hardware adapter was replaced. Qt/IPC and
+real polling remain later gates. Evidence: LEGACY_AUDIT and EngineRuntime tests.
+
+## ADR-010 — Preserve oscpack serialization; check native UDP results
+
+**Status:** Accepted, 2026-11-15. **Context:** inspected upstream oscpack Send
+ignores native send return values on both platforms. **Decision:** retain its OSC
+serializer and scalar packets, replace the sender socket wrapper with checked
+nonblocking Windows/POSIX RAII sockets, and count OS errors. **Alternatives:**
+patching vendored SDK-independent oscpack socket code adds dependency maintenance;
+rewriting serialization adds parity risk. **Consequence:** honest send metrics;
+OS acceptance still does not imply TouchDesigner receipt. Golden tests decode
+actual UDP independently and a kernel permission error verifies failure reporting.
+
+## ADR-011 — Repair legacy configuration before introducing v2
+
+**Status:** Accepted, 2026-11-15. **Decision:** preserve keys and valid saved ports,
+normalize observed alias wrappers, validate full candidates before applying, and
+reject versioned examples until migration exists. The new host reads explicit
+config without automatic saving. **Consequence:** no silent schema downgrade or
+installation rewrite; legacy save is still non-atomic, v2/backup/presets deferred.
+Evidence: CONFIG_AUDIT and configuration regression tests.

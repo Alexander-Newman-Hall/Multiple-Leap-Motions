@@ -32,3 +32,12 @@ These links are documentation starting points. Codex must verify installed SDK v
 ## Snapshot caveat
 
 This specification package is a design/review artifact. Individual source-code findings were read statically. All hardware behavior and build status remain unverified until a tested Windows commit records evidence.
+
+## 2026-11-15 verification
+
+Official Hyperion, LeapC guide/functions and multi-device pages fetched over HTTPS
+and inspected; exact URLs, hashes and observed API constraints are in
+[TRACKING_AUDIT](reports/TRACKING_AUDIT.md). No installed LeapC SDK headers are
+available in cloud. This verifies public documentation only, not a particular
+installed Hyperion version or hardware/API compilation. Native UDP error behavior
+was checked against the pinned oscpack sources and kernel error tests; see OSC_AUDIT.

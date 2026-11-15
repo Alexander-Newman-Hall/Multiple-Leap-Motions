@@ -54,3 +54,13 @@ Every physical hardware report must contain: commit SHA, Windows version, SDK/se
 A new Codex session starts by saying in its internal plan: **"Read current state, handoff, decisions, latest CI and test results; do not trust prior conversational assumptions."** On completion it updates these source files. The docs stay small and current; archived reports and design history live under `docs/reports/` or committed PRs.
 
 See `docs/SESSION_HANDOFF.md` and `docs/CURRENT_STATE.md` templates. The cloud task may not directly access Windows physical hardware. Never say "verified on hardware" if it merely obtained GitHub Actions green tests.
+
+## Current handoff entry point
+
+The kit is already in `handbridge-v2`; do not copy planning files over current
+state. The implementation branch is `codex/handbridge-phase0-reliability`.
+Use SDK-free `windows-core` for CI/PC verification first. `windows-legacy` is an
+unverified original GUI target, not a hardware mode of the new engine. Next work
+must compile a real ITrackingSource adapter against the exact installed SDK;
+physical results remain separate from cloud/mock and CI results. Current source
+and command evidence is in SESSION_HANDOFF and reports/BUILD_AUDIT.
