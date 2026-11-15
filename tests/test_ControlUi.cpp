@@ -58,6 +58,25 @@ private slots:
             QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier, center.toPoint());
             return true;
         };
+
+        // Live preview metadata describes acknowledged engine values, never an
+        // unapplied unit/bypass draft. Raw bypass remains millimetres even if a
+        // saved inactive transform prefers metres.
+        auto preview = findVisual(window->contentItem(), QStringLiteral("coordinatePreview"));
+        QVERIFY(preview);
+        QCOMPARE(preview->property("units").toString(), QStringLiteral("mm"));
+        controller.setSetting(QStringLiteral("processing.bypass"), false);
+        controller.setSetting(QStringLiteral("processing.output_units"), QStringLiteral("m"));
+        QCOMPARE(preview->property("units").toString(), QStringLiteral("mm"));
+        QVERIFY(click("applyButton"));
+        QTRY_COMPARE_WITH_TIMEOUT(preview->property("units").toString(), QStringLiteral("m"), 5000);
+        QTRY_VERIFY_WITH_TIMEOUT(!controller.busy(), 5000);
+        controller.setSetting(QStringLiteral("processing.bypass"), true);
+        QCOMPARE(preview->property("units").toString(), QStringLiteral("m"));
+        QVERIFY(click("applyButton"));
+        QTRY_COMPARE_WITH_TIMEOUT(preview->property("units").toString(), QStringLiteral("mm"), 5000);
+        QTRY_VERIFY_WITH_TIMEOUT(!controller.busy(), 5000);
+
         QTRY_VERIFY_WITH_TIMEOUT(click("navOsc"), 3000);
         QTest::qWait(100);
 
@@ -72,6 +91,7 @@ private slots:
         QVERIFY2(click("applyButton"), "Apply must accept the active text editor's change");
         QTRY_COMPARE_WITH_TIMEOUT(controller.config().value(QStringLiteral("osc")).toMap()
                                  .value(QStringLiteral("port")).toInt(), int(movedReceiver.localPort()), 5000);
+        QTRY_VERIFY_WITH_TIMEOUT(!controller.busy(), 5000);
         QTRY_VERIFY_WITH_TIMEOUT(movedReceiver.hasPendingDatagrams(), 2000);
 
         QVERIFY2(click("outputEnabled"), "The real OSC enable control must be clickable");

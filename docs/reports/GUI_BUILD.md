@@ -238,3 +238,19 @@ failure cleanup/diagnostics. The Windows workflow will run an additional
 `--repeat until-fail:3` Integration check after the full suite: any failed attempt
 fails the step, unlike retry-until-pass. Final outcome must be recorded after that
 change, and no test is skipped or timeout inflated to hide the discrepancy.
+
+## Windows integration harness correction and repeat gate
+
+The test client's connection bootstrap now pumps asynchronous QLocalSocket state
+and retries incomplete attempts cleanly instead of interleaving20ms blocking
+waitForConnected calls with Windows named pipes. The5s overall deadline is
+unchanged. Failed starts stop their child process and retain stage/process/socket
+and request diagnostics, preventing an initial failure from cascading into later
+fixtures. A delayed real local server regression exercises retry after the first
+connection attempt. This changes test infrastructure, not engine/controller code.
+
+Local complete suite after the correction: **58/58 PASS,0 failures/skips,19.87s**;
+Integration now has10 behavior cases/12 QtTest checks, PASS12.13s. Windows native
+CI adds an explicit post-suite `ctest -R '^ControlIntegration$' --repeat
+until-fail:3`; any failure stops/fails the step. Repeat JUnit output is uploaded.
+The next Windows run is required before claiming the mixed prior CI is resolved.

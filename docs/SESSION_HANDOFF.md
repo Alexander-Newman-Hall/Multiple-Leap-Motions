@@ -112,3 +112,15 @@ bounded retries, owns failed-start cleanup and includes stage diagnostics plus a
 real late-server test. No output tolerance, test skip or total connect bound was
 changed. Local58/58PASS19.87s; Windows until-fail three-run integration gate added.
 Observe its result before describing the platform checks as stable.
+
+## Preview truth and Windows stability checkpoint
+
+At harness8367fad, Windows native full suite passed and the integration bundle
+passed another three until-fail repetitions (four consecutive process-suite passes,
+no retries-until-pass). Run43772576976 job132991553046: full57pass+1expectedskip;
+repetitions23.74/20.84/20.51s allpass. Harness failure isolation now verified.
+
+A final small QML correction makes live preview units/mode follow applied engine
+config instead of unsent drafts. Raw bypass always labels/projects mm. Actual QML
+regression covers before/after acknowledgement and bypass. Local58/58PASS19.98s.
+Runtime/OSC sources unchanged; latest GUI commit/CI will be pinned in final notes.

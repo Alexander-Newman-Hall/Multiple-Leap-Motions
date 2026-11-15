@@ -102,3 +102,12 @@ stages. A real delayed-server regression was added. Original total5s connect
 bound and output assertions are unchanged. Local58/58PASS,19.87s. Windows CI now
 runs the integration bundle three times using until-fail, never until-pass.
 Final Windows stability results will be recorded before completion.
+
+## Live preview metadata correction
+
+The Overview preview now reads acknowledged engine processing settings rather
+than the editor draft. It remains in mm during raw bypass even if inactive
+processed-unit settings prefer meters. A native QML regression verifies units
+stay unchanged before Apply, change after acknowledgement, and return to raw mm
+when bypass is applied. No OSC/runtime processing behavior changed. Full local
+58/58 PASS, 19.98 s, zero failures/skips; final native CI follows this small UI fix.

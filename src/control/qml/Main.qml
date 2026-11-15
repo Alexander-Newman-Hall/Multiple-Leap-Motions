@@ -28,6 +28,9 @@ ApplicationWindow {
     readonly property var deviceRows: controller.devices || []
     readonly property var output: controller.status.output || ({})
     readonly property bool processingBypass: setting("processing.bypass", true)
+    readonly property var appliedProcessing: controller.config.processing || ({})
+    readonly property bool appliedBypass: appliedProcessing.bypass !== false
+    readonly property string appliedPreviewUnits: appliedBypass ? "mm" : (appliedProcessing.output_units || "mm")
     function setting(path, fallback) {
         let object = controller.draft;
         const parts = path.split(".");
@@ -546,16 +549,17 @@ ApplicationWindow {
                                         Layout.fillWidth: true
                                     }
                                     SmallLabel {
-                                        text: previewProcessed ? setting("processing.output_units", "mm").toUpperCase() : "RAW MILLIMETERS"
+                                        text: previewProcessed ? appliedPreviewUnits.toUpperCase() : "RAW MILLIMETERS"
                                         font.pixelSize: 8
                                     }
                                 }
                                 PreviewCanvas {
+                                    objectName: "coordinatePreview"
                                     Layout.fillWidth: true
                                     Layout.fillHeight: true
                                     devices: deviceRows
                                     processed: previewProcessed
-                                    units: setting("processing.output_units", "mm")
+                                    units: appliedPreviewUnits
                                 }
                             }
                         }
@@ -594,8 +598,8 @@ ApplicationWindow {
                                     text: "PROCESSING"
                                 }
                                 Text {
-                                    text: processingBypass ? "Raw pass-through" : "Processed signal"
-                                    color: processingBypass ? "#acb8c7" : theme.violet
+                                    text: appliedBypass ? "Raw pass-through" : "Processed signal"
+                                    color: appliedBypass ? "#acb8c7" : theme.violet
                                     font.pixelSize: 12
                                 }
                                 Item {
