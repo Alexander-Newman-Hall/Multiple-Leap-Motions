@@ -1,0 +1,38 @@
+{
+  "schema_version": 2,
+  "profile_name": "two-cameras-local-touchdesigner",
+  "engine": {
+    "headless": true,
+    "telemetry_preview_hz": 20,
+    "logging_level": "info"
+  },
+  "osc": {
+    "enabled": true,
+    "host": "127.0.0.1",
+    "port": 9000,
+    "protocol_mode": "legacy_v1",
+    "bundles_enabled": false,
+    "send_rate_hz": 60,
+    "send_when_invalid": "legacy_compatibility"
+  },
+  "devices": {},
+  "data": {
+    "raw_passthrough": true,
+    "channels": {
+      "palm_position": true,
+      "wrist_position": true,
+      "finger_tips": ["thumb", "index", "middle", "ring", "pinky"],
+      "pinch_strength": true,
+      "grab_strength": true,
+      "palm_orientation": false,
+      "palm_velocity": false,
+      "palm_normal": false
+    },
+    "processing": {
+      "smoothing": {"enabled": false, "algorithm": "exponential", "time_constant_ms": 25},
+      "dead_zone": {"enabled": false, "distance_m": 0.001},
+      "output_scale": [1.0, 1.0, 1.0],
+      "output_offset_m": [0.0, 0.0, 0.0]
+    }
+  }
+}
