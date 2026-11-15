@@ -368,3 +368,6 @@ FodyWeavers.xsd
 /out/
 /CMakeUserPresets.json
 /core-mock-results.xml
+
+/native-control-results.xml
+/aqtinstall.log

@@ -1,6 +1,6 @@
 # Architecture — Hand Bridge 2.0
 
-**Status:** Target architecture plus an implemented Phase 1 simulation slice.
+**Status:** Phase1 core plus native controller/local IPC/settings slice implemented; hardware adapter remains pending.
 
 ## Implemented boundary (2026-11-15)
 
@@ -129,3 +129,20 @@ Use `QLocalServer`/`QLocalSocket` (Qt Network) or an alternative documented in `
 - Optional fixed device-to-world transformations for a rigid 3D-printed camera frame.
 - Future providers, handoff, fusion, shared memory only through explicit ADR and after base product passes reliability tests.
 - Transport adapters can be added later, but OSC remains the release-default output.
+
+## Implemented native controller boundary
+
+With HANDBRIDGE_BUILD_CONTROL=ON, handbridge-engine uses QtCore/Network for local
+control only. A dedicated std::jthread owns source/runtime/processing/sender;
+bounded32-command work and immutable atomic snapshots connect it to the IPC thread.
+QLocalServer parsing, sampled telemetry and QSaveFile profile I/O do not execute
+on the tracking worker. The host links neither QtGui nor QtQuick. The separate
+handbridge-control process owns the QtQuick scene and C++ draft/ack model; it can
+exit or crash while the worker continues. Default Qt-free host is still built
+when the option is off.
+
+Settings are validated plain C++ values; the runtime applies a whole candidate at
+a frame boundary. Socket destination readiness is checked before committing.
+Raw observations and processed preview frames remain separate. Source identity
+still lacks native hand IDs until the real adapter is built. User-approved GUI
+work changes milestone order; it does not validate USB/Hyperion behavior.

@@ -117,3 +117,7 @@ endif()
 if(HANDBRIDGE_BUILD_LEGACY_WINDOWS)
     include(cmake/LegacyWindows.cmake)
 endif()
+
+if(HANDBRIDGE_BUILD_CONTROL)
+    include(cmake/NativeControl.cmake)
+endif()
