@@ -66,7 +66,7 @@ Confirmed source defects/limitations:
 
 **CLOUD Linux:** `PATH="$PWD/work/tooling/bin:$PATH" cmake --build --preset core-debug --target test_LegacyOscContract -j 4 && out/build/core-debug/test_LegacyOscContract` — completed successfully; **8/8 tests passed**, 4 ms reported by GTest. Actual packet tests decode 23 default, 39 all-enabled and 28 disappearance native UDP datagrams, plus independent second-device output/reacquisition. Native broadcast error reported `connect: Permission denied`, with no packets sent and one counted failed attempt. This verifies a real Linux OS failure, not Windows error behavior.
 
-Physical Windows Hyperion, two USB devices, TouchDesigner receipt, Windows socket failures and hardware soak remain **NOT RUN**.
+Physical Windows Hyperion, two USB devices, TouchDesigner receipt, Windows native kernel-error injection and hardware soak remain **NOT RUN**. The SDK-free Windows socket/packet/readiness tests are recorded in final CURRENT_STATE.
 
 ### Observed Windows portability result
 

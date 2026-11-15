@@ -63,6 +63,6 @@ g++ -std=c++20 -Wall -Wextra -Wpedantic -pthread -Isrc \
 ./work/config-tests --gtest_output=xml:work/config-tests.xml
 ```
 
-One inherited warning remains: unused `alias` parameter in the `getAssignedHand` placeholder. Integrated build/test evidence is recorded in `docs/CURRENT_STATE.md` and `docs/SESSION_HANDOFF.md`. Windows default-path APIs and Windows file behavior are **UNTESTED ON WINDOWS**. SDK hardware tracking and TouchDesigner receipt are **UNTESTED ON HARDWARE**.
+One inherited warning remains: unused `alias` parameter in the `getAssignedHand` placeholder. Integrated build/test evidence is recorded in `docs/CURRENT_STATE.md` and `docs/SESSION_HANDOFF.md`. Windows default-path APIs are **UNTESTED ON WINDOWS**. Explicit-path file/alias regressions pass Windows CI; see final CURRENT_STATE. SDK hardware tracking and TouchDesigner receipt are **UNTESTED ON HARDWARE**.
 
 Next configuration task after the reliability baseline: introduce an explicit versioned schema/migrator with atomic backup writes and presets, preserving these legacy fixtures and safe rejection behavior. This is deferred behind the project's single next recommended task in the session handoff.

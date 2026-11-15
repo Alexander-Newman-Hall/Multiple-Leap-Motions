@@ -90,7 +90,7 @@ No SDK binaries are downloaded, committed or redistributed.
 - [Authoritative specification](PROJECT_SPEC.md), [phased plan](PLANS.md), [agent instructions](AGENTS.md)
 - [Code audit](docs/LEGACY_AUDIT.md), [architecture](docs/ARCHITECTURE.md), [decisions](docs/DECISIONS.md)
 - [Reliability](docs/RELIABILITY.md), [testing](docs/TESTING.md), [operations](docs/OPERATIONS_RUNBOOK.md)
-- [Current state](docs/CURRENT_STATE.md), [session handoff / next task](docs/SESSION_HANDOFF.md)
+- [Current state](docs/CURRENT_STATE.md), [session handoff / next task](docs/SESSION_HANDOFF.md), [continue on your Windows PC](docs/WINDOWS_LOCAL_HANDOFF.md)
 - [Cloud ↔ Windows workflow](docs/HYBRID_WORKFLOW.md), [physical results](docs/HARDWARE_TEST_RESULTS.md)
 
 Do not build into the historically tracked `build/` directory. New generated

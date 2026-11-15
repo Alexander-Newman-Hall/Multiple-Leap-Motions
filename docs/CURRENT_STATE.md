@@ -4,9 +4,14 @@ Branch: `codex/handbridge-phase0-reliability`, based on `handbridge-v2`
 `5f547181f6d512ab6a8d2146022227e26cec48d2`. Original remote `master` rechecked
 at `054e578525a5d5202ea8f6eb417ce55ded7d61b8`; both input branches preserved.
 Commits so far: audit `350249f`, config `36c8f9b`, OSC `c7e006e`.
-Runtime/build commit is the next checkpoint, subject
-`feat: add tested headless simulation and isolated recovery foundation`.
-Final handoff will record its exact SHA and observed CI run.
+Runtime/build: `060ee47dd3897859504ac97c911a5a504754367a`.
+Windows test correction: `a18132ba5cda80b1e9321bb7f3da8d3c08e61361`.
+CI report-path correction: `61ca88295e77c3ae67b9aa4fbb45316961cf0bbe`.
+Draft [PR1](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/pull/1).
+Final documentation checkpoint adds this observed evidence and local handoff.
+
+**User steering:** stop cloud implementation here; continue hardware integration
+on the user's local Windows PC. See [local setup and next prompt](WINDOWS_LOCAL_HANDOFF.md).
 
 ## Delivered scope and gates
 
@@ -18,7 +23,7 @@ Final handoff will record its exact SHA and observed CI run.
   per-device latest mailbox/counters, stale/loss invalidation, capped targeted
   retry and service rediscovery, checked OS UDP sends and golden compatibility.
   Default remains loopback:9000, raw mm, lowercase hands and scalar float packets.
-- **Phase 1 broader gate IN PROGRESS:** Windows CI execution pending publication;
+- **Phase 1 automated mock gate PASS:** SDK-free Windows/Linux CI observed passing;
   replay-file CLI, FPS/latency/stage metrics, automatic output socket recreation,
   threaded poll worker and full versioned/atomic configuration are deferred.
 - **Phase 2 BLOCKED ON INSTALLED SDK/HARDWARE:** no actual ITrackingSource LeapC
@@ -39,7 +44,8 @@ Ninja wheel1.11.1.4. Same final source tree tested in each configuration:
 | CLOUD ASan+UBSan Debug configure/build/CTest | 40/40 PASS, zero skips; 4.11 s, no sanitizer diagnostics |
 | CLOUD independently decoded actual UDP | PASS: goldens, A stall/clear/recovery while B continues, config aliases/channels |
 | CLOUD actual kernel send denial | PASS: no false sent packet; error counted |
-| WINDOWS CI | CONFIGURED, NOT YET OBSERVED at this checkpoint |
+| WINDOWS CI Server2022/MSVC19.44 | configure/build PASS; 39 tests PASS + 1 POSIX-only skip, zero failures (4.30 s) |
+| Ubuntu24.04 CI | configure/build PASS; 40/40 PASS |
 | Windows original SDK application | NOT BUILT; explicit SDK path target available, unverified |
 | Physical Hyperion/two cameras/USB/service/TouchDesigner/soak | UNTESTED ON HARDWARE |
 | Qt UI attach/close/crash/reopen | NOT RUN, no controller yet |
@@ -69,20 +75,17 @@ Keep the mock/golden suite green. Compile on a configured Windows x64 SDK PC,
 then record two-device discovery/frame/OSC and loss evidence; mark physical work
 BLOCKED if the machine/devices are unavailable. Do not start GUI/processing work.
 
-## First observed Windows CI and portability correction
+## Observed CI evidence
 
-Runtime/build source commit: `060ee47dd3897859504ac97c911a5a504754367a`.
-Draft PR: https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/pull/1
-Run https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43766927335:
-Ubuntu PASS40/40. Windows Server2022/MSVC19.44 build PASS; tests39 passed/1 failed
-because the broadcast-permission test assumed POSIX kernel rejection. The Windows
-provider actually accepted the send; this is a test assumption, not evidence of
-incorrect checked-send results. The native-permission test is now explicitly
-POSIX-only and skips on Windows; closed-socket/readiness failure and actual packet
-receiver tests still run there. Next CI run will establish final Windows counts.
-No physical hardware test was performed.
+[Run43767212081](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43767212081)
+tested a18132b: Windows and Ubuntu jobs completed successfully. Windows had one
+explicit POSIX kernel-denial skip; all remaining tests passed, including the real
+headless-process UDP receiver. Initial run43766927335 exposed that test's invalid
+cross-platform assumption (39 pass/1 fail); no production defect was established.
+The correction skips only that OS-specific denial case, not other transport tests.
 
-CI artifact correction: the workflow now writes JUnit XML to an absolute workspace
-path so the existing artifact step includes both XML and LastTest.log. This is
-build/report plumbing only; runtime source remains060ee47, Windows test correction
-a18132b. Final rerun is pending.
+[Run43767314985](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43767314985)
+for CI XML artifact-path correction61ca882: Ubuntu job PASS, Windows rerun still
+in progress at this handoff. Runtime and test sources are identical to the already
+passing a18132b run. Final documentation-only commits may trigger another run;
+check Actions on the local PC. Neither CI run uses physical Ultraleap hardware.

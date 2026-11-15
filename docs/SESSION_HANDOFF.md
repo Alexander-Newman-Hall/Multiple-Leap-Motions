@@ -4,9 +4,11 @@ Date: 2026-11-15. Environment: Linux cloud; no installed LeapC SDK or devices.
 Branch `codex/handbridge-phase0-reliability`.
 Base `handbridge-v2`: `5f547181f6d512ab6a8d2146022227e26cec48d2`.
 Preserved `master`: `054e578525a5d5202ea8f6eb417ce55ded7d61b8` (remote rechecked).
-Commits: audit `350249f`, config `36c8f9b`, OSC `c7e006e`; runtime/build checkpoint
-subject `feat: add tested headless simulation and isolated recovery foundation`.
-A documentation-only follow-up will pin that SHA and actual CI outcome.
+Commits: audit `350249f`, config `36c8f9b`, OSC `c7e006e`; runtime/build `060ee47dd3897859504ac97c911a5a504754367a`;
+Windows test correction `a18132ba5cda80b1e9321bb7f3da8d3c08e61361`;
+CI JUnit path correction `61ca88295e77c3ae67b9aa4fbb45316961cf0bbe`.
+Draft PR https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/pull/1
+Final documentation-only checkpoint records observed CI and local instructions.
 
 ## Changed files and behavior
 
@@ -63,8 +65,9 @@ two mocks independent across stale/disconnect/service/subscription failures;
 100 reconnect cycles; queue overwrite/duplicate/stale rejection; output failure
 visible/recoverable without stopping tracking; actual kernel send failure; GUI absent.
 
-Not verified: Windows native socket/path/compiler behavior until CI result is
-observed; installed LeapC ABI/API compilation; USB/Hyperion/two physical cameras;
+Verified WINDOWS CI: MSVC19.44 Server2022 SDK-free configure/build and39 tests
+passed, one explicit POSIX-only kernel-error skip. Not verified: Windows AppData
+default path, real native kernel-error injection on Windows; installed LeapC ABI/API compilation; USB/Hyperion/two physical cameras;
 TouchDesigner receive; UI attach/kill/reopen; hardware soak/CPU/latency. No receiver
 acknowledgement is inferred from UDP send. Public official docs checked, installed
 headers unavailable; see TRACKING_AUDIT for exact links/hashes/constraints.
@@ -92,19 +95,26 @@ headless SDK target on the configured PC, then record two-device frames and OSC
 observations using HARDWARE_TEST_PLAN; absence of devices must be marked BLOCKED.
 Do not expand into GUI, fusion, processing or a full release in that task.
 
-## First observed Windows CI and portability correction
+## Final CI evidence and user-directed pause
 
-Runtime/build source commit: `060ee47dd3897859504ac97c911a5a504754367a`.
-Draft PR: https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/pull/1
-Run https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43766927335:
-Ubuntu PASS40/40. Windows Server2022/MSVC19.44 build PASS; tests39 passed/1 failed
-because the broadcast-permission test assumed POSIX kernel rejection. The Windows
-provider actually accepted the send; this is a test assumption, not evidence of
-incorrect checked-send results. The native-permission test is now explicitly
-POSIX-only and skips on Windows; closed-socket/readiness failure and actual packet
-receiver tests still run there. Next CI run will establish final Windows counts.
-No physical hardware test was performed.
+User requested continuing on a local system with cameras; **no further cloud
+implementation is planned**. Open the branch locally and follow
+[WINDOWS_LOCAL_HANDOFF](WINDOWS_LOCAL_HANDOFF.md), including a copyable next prompt.
+No need to discard the cloud work or re-audit from scratch; verify current refs.
 
-CI report-path follow-up: JUnit output uses an absolute workspace path; the first
-run uploaded LastTest.log but placed relative XML in the binary tree. No runtime
-source change; next run validates artifact collection too.
+[Run43767212081](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43767212081)
+at a18132b: Ubuntu40/40 PASS; Windows MSVC19.44 configure/build PASS,39 PASS +1
+POSIX-specific skip,0 failures,4.30s. Initial run43766927335 built successfully but
+failed the broadcast-denial test because Windows accepted that send. The test
+assumption was corrected explicitly; no production code changed.
+
+[Run43767314985](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43767314985)
+at61ca882 changes only CI XML output path; Ubuntu PASS, Windows rerun in progress
+when handoff recorded. Its source/tests match the passing previous run. Both
+LastTest.log and JUnit XML are now targeted by the upload step; check the resulting
+artifact. Final docs-only commit may trigger another identical source build.
+
+Root final local Debug rerun after Windows test guard:40/40 PASS,3.73s. Release
+and ASan+UBSan40/40 results refer to060ee47; the only subsequent C++ change is a
+Windows-only test skip, leaving Linux compiled behavior unchanged. No hardware,
+SDK adapter, GUI lifecycle, physical receiver or deployment test is claimed.

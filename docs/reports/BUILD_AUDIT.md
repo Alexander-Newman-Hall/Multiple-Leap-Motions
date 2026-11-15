@@ -18,7 +18,7 @@ Observed 2026-11-15 from `handbridge-v2` commit `5f547181f6d512ab6a8d2146022227e
 | `pipeline/00_LeapConnection.cpp`:4; `01_LeapPoller.cpp`:120 in baseline | Relative `../../LeapSDK/include/LeapC.h` bypasses SDK include path. | Root repairs include spelling only; actual SDK API compilation remains unverified. |
 | `git ls-files build` | 614 tracked generated files, 7.5 MiB; generated cache records machine-specific locations. | Leave tracked artifacts untouched this task; ignore fresh `/out`, `/work`, `/build` output. Separate cleanup after baseline acceptance. |
 
-The Visual Studio live source list includes AppCore/UIController but also obsolete `LeapConnectionImpl`/`LeapDeviceManager` paths; CMake differed materially. New `leapMotionApp` is an **optional legacy GUI target**, not the new SDK-backed headless adapter. SDK/Windows compilation is NOT RUN.
+The Visual Studio live source list includes AppCore/UIController but also obsolete `LeapConnectionImpl`/`LeapDeviceManager` paths; CMake differed materially. New `leapMotionApp` is an **optional legacy GUI target**, not the new SDK-backed headless adapter. Original GUI/SDK compilation is NOT RUN; the new SDK-free Windows host is separately validated below.
 
 ## Tests retained and tests deferred
 
@@ -82,7 +82,7 @@ work/tooling/bin/cmake --build --preset core-debug --parallel 2
 work/tooling/bin/ctest --preset core-debug
 ```
 
-Latest passing results and exact commit are recorded centrally in `CURRENT_STATE.md` / `SESSION_HANDOFF.md` after integration. Windows CI is configured for Windows Server 2022 / VS2022 x64 and Ubuntu 24.04, with pinned CMake/Ninja/Actions revisions. **Workflow created, NOT RUN until branch published and GitHub execution observed.** It builds only the SDK-free simulated engine.
+Latest passing results and exact commit are recorded centrally in `CURRENT_STATE.md` / `SESSION_HANDOFF.md` after integration. Windows CI is configured for Windows Server 2022 / VS2022 x64 and Ubuntu 24.04, with pinned CMake/Ninja/Actions revisions. **Windows/Ubuntu SDK-free workflow execution now observed; final evidence below and in CURRENT_STATE.** It builds only the SDK-free simulated engine.
 
 Windows local SDK path (PowerShell in VS2022 development environment):
 
@@ -119,9 +119,9 @@ work/tooling/bin/ctest --test-dir out/build/core-sanitized --output-on-failure \
 
 - `HANDBRIDGE_BUILD_LEGACY_WINDOWS=ON` on Linux: expected configure rejection, `The original LeapC application requires Windows x64; use an SDK-free core preset here.` This checks platform diagnostics only.
 - Static syntax checks of preserved stale tests actually run with GCC14/C++20 and fetched JSON/GTest headers: `test_DataProcessor.cpp` rejected private `sendPalm_` access; `test_DataProcessor_HandPresence.cpp` rejected nonexistent `getVizState`; `TestLeapDataRouter.cpp` failed missing header. Logs ignored under `work/*.syntax.log`. These failures are the recorded baseline, not hidden passing tests.
-- GitHub Actions checkout/setup-python/upload-artifact SHA pins verified against tags using `git ls-remote`; workflow execution itself remains NOT RUN.
+- GitHub Actions checkout/setup-python/upload-artifact SHA pins verified against tags using `git ls-remote`; initial workflow execution was pending at that checkpoint; observed results follow below.
 
-Windows compiler, Hyperion SDK/service, physical USB devices, TouchDesigner receipt and hardware soak tests remain **NOT RUN / UNTESTED ON HARDWARE**.
+Original SDK application, Hyperion SDK/service, physical USB devices, TouchDesigner receipt and hardware soak remain **NOT RUN / UNTESTED ON HARDWARE**. SDK-free Windows compiler results are recorded below.
 
 ## Final integration rerun
 
@@ -139,3 +139,10 @@ OS-specific test on Windows; no production code changed. JUnit output now uses a
 absolute workspace path so both XML and LastTest.log are retained by the artifact
 step (relative CTest output was placed under the binary directory). Final CI run
 and exact source SHA are recorded in CURRENT_STATE/SESSION_HANDOFF.
+
+Observed final source/test CI at a18132b, run43767212081: Ubuntu job PASS40/40;
+Windows Server2022 / MSVC19.44 configure/build PASS,39 passed +1 explicit POSIX-only
+skip,0 failures,4.30s. Kernel permission denial is only validated on Linux; Windows
+UDP/closed-socket/readiness/config/runtime/process tests remain active. Run43767314985
+for the XML path-only change61ca882 had Ubuntu PASS and Windows in progress at
+handoff. No actual hardware/SDK/TouchDesigner test is implied by these results.
