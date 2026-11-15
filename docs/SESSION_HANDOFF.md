@@ -1,4 +1,4 @@
-# Session handoff — configuration checkpoint
+# Session handoff — OSC checkpoint
 
 Date: 2026-11-15. Branch `codex/handbridge-phase0-reliability`.
 Base `5f547181f6d512ab6a8d2146022227e26cec48d2`; audit `350249f`.
@@ -25,3 +25,15 @@ does not establish Windows file-path or physical tracking behavior.
 Single next task within this session: freeze actual scalar OSC bytes/loss quirks
 and integrate the isolated mock runtime/build. Physical Windows SDK, cameras and
 TouchDesigner remain UNTESTED ON HARDWARE; no field stall fix is claimed.
+
+## OSC checkpoint
+
+Commit subject `fix: retain scalar OSC parity and report native UDP errors`.
+Changes: portable AppLogger; callback guards in preserved processor; checked native
+sender and stats; AppCore hot-path logging removal; test_LegacyOscContract and
+three full fixtures; OSC audit/protocol/TouchDesigner docs. Test command:
+`out/build/core-debug/test_LegacyOscContract` — **8/8 PASS**, no skips.
+Loopback parser validates real bytes; native broadcast-permission failure reports
+zero sent packets. No broadcast packet is emitted. Native Windows branch NOT RUN.
+Original known optional orientation/velocity/normal loss behavior is preserved.
+The new headless runtime/build integration follows separately.
