@@ -52,6 +52,7 @@ See LEAPC_SETUP.md and reports/LEAPC_SDK_AUDIT.md.
 | First Windows Release run43777007955 |SDK extraction failed before compile; corrected Windows-native include filters; rerun pending |
 | Windows real client DLL load/version/API |Pending corrected Release workflow |
 | Extracted Windows ZIP, no developer PATH |Pending Release workflow |
+| Actual SDK client with no service/cameras |Bounded offline-host smoke added; Windows execution pending |
 | Physical cameras/Hyperion recovery/USB/TouchDesigner |**UNTESTED ON HARDWARE** |
 
 Native command: cmake --build out/build/leapc-control --parallel2, followed by

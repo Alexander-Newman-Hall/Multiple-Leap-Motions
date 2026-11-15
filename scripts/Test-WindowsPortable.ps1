@@ -136,6 +136,23 @@ try {
             throw "UTF-8 library path/version did not round-trip: $($probe.stdout)"
         }
         $records.Add([ordered]@{ check = 'Actual SDK absolute path with spaces/Unicode'; result = 'PASS'; probe = $sdk })
+        # Exercise genuine SDK Create/Open/Poll/retry/cleanup with the tracking
+        # service intentionally absent. This is still not a hardware test.
+        $offlineEndpoint = 'handbridge-sdk-offline-' + [guid]::NewGuid().ToString('N')
+        $offline = Wait-CleanProcess (Start-CleanProcess 'handbridge-engine.exe' @('--headless',
+            '--leapc-library', $ExternalLeapCLibrary, '--endpoint', $offlineEndpoint,
+            '--state-dir', (Join-Path $runDirectory 'sdk-no-service-state'), '--port', "$port", '--duration-ms', '3600')) 15000
+        if ($offline.exit -ne 0) { throw "Real SDK offline-host lifecycle failed: $($offline.stderr)" }
+        $offlineSummary = ($offline.stdout.Trim() -split '\r?\n')[-1] | ConvertFrom-Json
+        if ($offlineSummary.source -cne 'leapc' -or $offlineSummary.simulated -or $offlineSummary.hardware_verified -or
+            $offlineSummary.service_connected -or $offlineSummary.tracking.library_version -cne $ExpectedLeapCVersion -or
+            $offlineSummary.tracking.connection_attempts -lt 1 -or @($offlineSummary.devices.PSObject.Properties).Count -ne 0 -or
+            $offlineSummary.output.packets_sent -ne 0 -or [string]::IsNullOrWhiteSpace($offlineSummary.tracking.last_error)) {
+            throw "Genuine SDK offline state claimed an invalid health/frame/output result: $($offline.stdout)"
+        }
+        if ($udp.Available -ne 0) { throw 'Real SDK without the service unexpectedly produced OSC datagrams.' }
+        $records.Add([ordered]@{ check = 'Genuine SDK offline Create/Open/Poll/recovery/cleanup without service';
+            result = 'PASS'; duration_ms = 3600; deadline_ms = 15000; summary = $offlineSummary })
     }
     $endpoint = 'handbridge-package-' + [guid]::NewGuid().ToString('N')
     $engine = Start-CleanProcess 'handbridge-engine.exe' @('--simulate', '--headless', '--endpoint', $endpoint,

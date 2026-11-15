@@ -78,6 +78,9 @@ developer search settings and uses the actual Windows platform plugin. It verifi
   loads no QtGui/Quick/QML libraries.
 - The real external LeapC development DLL loads with its expected version and
   required exports; missing/invalid runtime diagnostics remain actionable.
+- A bounded real-client run opens/polls/cleans up the actual SDK with no installed
+  tracking service or cameras. It reports the real provider and recovery errors,
+  never invents devices/frames or sends a synthetic pose.
 - Real UDP packets continue through GUI normal close, kill and reopen.
 - Overview/processing render real native PNG captures; logs and manifest checks
   are retained as workflow evidence.

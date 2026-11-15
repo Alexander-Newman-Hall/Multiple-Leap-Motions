@@ -76,6 +76,9 @@ First Windows run43777007955 failed before configuration: innoextract uses nativ
 backslashes in Windows include filters, so POSIX filters selected zero files.
 The helper now uses native Windows filters; seven offline helper regressions
 pass without changing any expected SDK hash. Windows rerun is required.
+The extracted-package smoke also exercises real SDK Create/Open/Poll/Cleanup
+with no service/cameras for3600ms, bounded externally to15s, and requires truthful
+unconnected/no-device/no-OSC state. This is pending Windows execution.
 
 ## Boundaries / single next task
 
