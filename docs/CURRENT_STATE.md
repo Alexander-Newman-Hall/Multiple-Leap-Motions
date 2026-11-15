@@ -3,7 +3,8 @@
 Branch: `codex/handbridge-leapc-release`, based on the preserved native-controller
 branch at `3825ecd0d7acf35be6a8a7d164ebef01bd25d790`.
 The original master/handbridge-v2 and prior feature branches are untouched.
-This checkpoint accompanies the adapter implementation; final source commits and
+Adapter implementation commit: `5550359`. This checkpoint accompanies Release
+packaging; final source commits and
 Windows workflow results will be recorded after the Release deployment gate runs.
 
 ## Implemented in this increment

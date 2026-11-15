@@ -3,7 +3,7 @@
 Task branch: `codex/handbridge-leapc-release`.
 Starting commit: `3825ecd0d7acf35be6a8a7d164ebef01bd25d790` on preserved
 codex/handbridge-native-controller. This checkpoint accompanies the adapter
-commit; final exact source SHA and Windows workflow evidence follow after CI.
+commit (`5550359`); final package source SHA and Windows workflow evidence follow after CI.
 Original master054e578, handbridge-v2 5f54718 and previous feature branches are
 preserved. User explicitly authorized both SDK integration and portable packaging,
 then clarified that latest Hyperionv6 is mandatory.

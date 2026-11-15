@@ -8,8 +8,9 @@ per-camera routing, all supported channel switches, OSC settings, profiles and
 live diagnostics. It connects to a separate engine; closing or crashing the
 window leaves tracking/OSC running.
 
-**Current new engine source is simulation-only.** The real LeapC adapter, USB /
-Hyperion recovery and TouchDesigner receipt remain **UNTESTED ON HARDWARE**.
+The engine has an optional **real LeapC adapter** and an explicit simulator.
+It compiles against a genuine official SDK header; physical two-camera tracking,
+USB / Hyperion recovery and TouchDesigner receipt remain **UNTESTED ON HARDWARE**.
 The original ImGui application/source/README remain available for rollback;
 master and handbridge-v2 are unchanged. Read [current state](docs/CURRENT_STATE.md)
 for exact verified builds and remaining work.
@@ -44,7 +45,10 @@ ctest --preset control-debug
 to reconnect. To run the engine explicitly, launch the matching handbridge-engine
 with `--simulate`; Ctrl-C shuts down a foreground host. A detached host can be
 stopped explicitly using your OS process manager; closing the GUI intentionally
-does not stop it. These are developer builds, not a packaged hardware release.
+does not stop it. These Debug commands are for development. A separate Windows
+Release ZIP includes both executables, Qt/plugins and the app-local Microsoft
+runtime; see [Windows Release instructions](docs/WINDOWS_RELEASE.md). Ultraleap's
+runtime remains an external installation; no SDK binaries belong in that ZIP.
 
 ## What the interface controls
 
@@ -63,7 +67,8 @@ Edits are local until **Apply** receives an engine acknowledgement. **Applied**
 and **Saved** are different; save a named profile to restore its applied snapshot
 on restart. Current processing/channel controls are global, device routing is
 per-camera. Per-channel processing overrides, full 3D/all-joint preview, bundles /
-OSCv2, installer and real hardware source remain future work.
+OSCv2 and an installer remain future work. The real source requires an SDK-enabled
+build and a compatible installed x64 LeapC runtime.
 
 Default output remains **127.0.0.1:9000**, one float32 per legacy address/datagram,
 lowercase hands and raw millimeters. Smoothing/transforms are bypassed by default.
@@ -91,11 +96,28 @@ handbridge.example.json is a design artifact, not the implemented schema.
 
 ## Continue with real cameras locally
 
-Follow [Windows local handoff](docs/WINDOWS_LOCAL_HANDOFF.md). Install the official
-compatible Ultraleap SDK/runtime; set LEAP_SDK_ROOT to its include/LeapC.h and
-lib/x64/LeapC.lib root. The optional windows-legacy preset is the original GUI
-reference, not a real-device mode of the new engine. No SDK binary is downloaded,
-vendored or redistributed. Hardware integration is the next focused task.
+Follow [LeapC setup](docs/LEAPC_SETUP.md) and the [Windows handoff](docs/WINDOWS_LOCAL_HANDOFF.md).
+The SDK is absent from this repository. A development helper retrieves a
+hash-verified SDK from the official **Hyperion 6.2.0 Windows installer** into
+ignored work/, without running the installer. Its LeapC client is **6.2.0.0**.
+It does not establish which SDK is installed on your PC.
+Use your installed SDK's exact header when available. Build with
+`HANDBRIDGE_WITH_LEAPC=ON` and `LEAP_SDK_ROOT`; the optional windows-legacy preset
+still means the original GUI, independently of the new adapter.
+
+The engine defaults to real tracking in an SDK-enabled build; `--simulate`
+explicitly selects synthetic cameras. Check the runtime before connecting cameras:
+
+```powershell
+.\handbridge-engine.exe --check-leapc --leapc-library "C:\absolute\path\LeapC.dll"
+```
+
+This reports the loaded DLL path/version and verifies required API exports. It
+does not open a service connection or prove camera/TouchDesigner operation. The
+client and connected tracking service must each report **6.2.0 or newer 6.x**;
+older or unknown versions are rejected. The GUI's **Start engine** action
+performs the same asynchronous check before starting
+the independent engine; **Start simulator** remains separate.
 
 ## Documentation
 
