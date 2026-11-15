@@ -1,0 +1,52 @@
+{
+  "schema_version": 2,
+  "osc": {
+    "enabled": true,
+    "host": "127.0.0.1",
+    "port": 9000,
+    "rate_hz": 0
+  },
+  "channels": {
+    "sendPalm": true,
+    "sendWrist": true,
+    "sendThumb": true,
+    "sendIndex": true,
+    "sendMiddle": true,
+    "sendRing": true,
+    "sendPinky": true,
+    "sendPinchStrength": true,
+    "sendGrabStrength": true,
+    "sendPalmOrientation": false,
+    "sendPalmVelocity": false,
+    "sendPalmNormal": false,
+    "sendVisibleTime": false,
+    "sendFingerIsExtended": false
+  },
+  "processing": {
+    "bypass": true,
+    "smoothing_ms": 0,
+    "deadzone_mm": 0,
+    "scale": [
+      1,
+      1,
+      1
+    ],
+    "offset_mm": [
+      0,
+      0,
+      0
+    ],
+    "rotation_deg": [
+      0,
+      0,
+      0
+    ],
+    "output_units": "mm",
+    "gestures_enabled": false,
+    "pinch_enter": 0.8,
+    "pinch_exit": 0.6,
+    "grab_enter": 0.8,
+    "grab_exit": 0.6
+  },
+  "devices": {}
+}

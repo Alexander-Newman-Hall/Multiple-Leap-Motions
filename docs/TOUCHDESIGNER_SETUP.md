@@ -62,3 +62,18 @@ Cloud tests verify decoded loopback UDP, not TouchDesigner. No `.toe` receiver
 or physical Windows result is supplied yet. Optional orientation/velocity/normal
 retain historical loss behavior and can hold last values; see the protocol.
 The optional Qt controller and actual hardware adapter are not part of this build.
+
+## Native controller workflow
+
+Build windows-control with Qt6.8.3 and run handbridge-control.exe --demo to start
+an independent simulated engine. In OSC Output choose loopback and the actual TD
+listener port, select channels, then Apply. Engine acknowledgement is required;
+Editing and Applied-but-unsaved are distinct. Save a named profile to restore
+its applied settings on engine restart. Closing the controller leaves OSC active;
+reopening reconnects to the running engine.
+
+Processing defaults to raw mm. If you explicitly disable bypass and select meters
+or transforms, update TD's expected scaling. Optional pinchActive/grabActive are
+separate thresholded flags; native pinch/grabStrength is unchanged. Test the real
+OSC In DAT/CHOP; none of the cloud GUI/UDP tests establish TouchDesigner receipt.
+The real LeapC adapter is still pending local Windows hardware work.

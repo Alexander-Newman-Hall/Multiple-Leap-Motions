@@ -25,3 +25,10 @@ real processing controls. FilesControlSettings/Processing/EngineRuntime cpp/hpp,
 two new testfiles andportable CMake additions. SDK-free configure/build+CTest
 55/55PASS,zero skipped,3.76s onLinux/GCC14. This establishes real parameter effects
 before GUI commit; no hardware result. XMLwork/controller-core-results.xml.
+
+
+IPC milestone commit subject: feat: add independent native engine control and
+atomic profiles. Sources src/engine/*, src/ipc/Framing.hpp andQtCorehostbuildseam;
+config/protocol docs +studioexample. ExistingHeadlessUdp futureversionprobe999
+supports bothplainlegacyandQtversionedhost. Actualworktreeengineprocess/UDP
+acceptance passed, pendingfinalfullregressionrun documentedatcompletion.

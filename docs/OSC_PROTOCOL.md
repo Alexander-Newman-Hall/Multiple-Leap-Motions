@@ -86,3 +86,30 @@ not establish receipt. Sender errors are rate-limited in logs. The transport use
 oscpack serialization with a checked native UDP socket because upstream oscpack's
 Send ignores native return values. Destination changes recreate the socket;
 automatic sender reset/backoff remains future work, not a claimed feature.
+
+## Native controller processing and settings (implemented)
+
+The Qt controller uses configuration schema2, while OSC remains legacy scalar
+messages. Default raw bypass, millimeters, address case, 9000 fallback and goldens
+are unchanged. Channel toggles, per-device mute/filter/alias, global send enable,
+destination and rate are engine settings, applied only after validation/ack.
+Routing changes clear the old enabled pose addresses before changing aliases or
+muting. Loss messages bypass output rate limiting. A successful OS send is still
+not receipt; use TouchDesigner to verify the receiver.
+
+Turning raw bypass off explicitly enables time-based positional smoothing,
+deadzone and scale→Euler XYZ rotation→offset→unit conversion. Velocity gets no
+position offset; normal/orientation rotate consistently. Units may explicitly be
+changed to meters; adjust TouchDesigner scaling for that selected profile. These
+are opt-in value changes at the same legacy addresses, not a new OSC protocol.
+
+Optional gestures_enabled adds two scalar float0/1 addresses per selected hand:
+`/leap/{alias}/{hand}/pinchActive` and `grabActive`. Enter/exit thresholds use
+hysteresis; loss resets once. Native pinchStrength/grabStrength are preserved.
+No smoothing/gesture motion is synthesized after tracking disappears. This
+controller's processing scope is global; per-channel overrides and all-bone/v2
+output remain future work. Full order/bounds: CONFIG_SCHEMA.md.
+
+Controller shutdown/crash leaves the QtCore/Network engine and OSC worker alive.
+Raw/processed point previews and measured telemetry travel over sampled local IPC;
+the GUI never carries the tracking stream used to send packets. See CONTROL_PROTOCOL.md.

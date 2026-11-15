@@ -31,3 +31,10 @@ mute/rate/channels/alias/handrouting, timebasedfilters/transformunits, optional
 gesturehysteresis and raw/processedpreview implemented. Final SDK-free Debug
 CTest55/55PASS,0skips,3.76s (work/controller-core-results.xml). Legacygoldens
 unchanged. GUI/IPC/native tests are under final integration separately.
+
+
+IPC checkpoint: QtCore/Networkhost +independentstd::jthreadworker, bounded sameuser
+protocol/CAS, atomicprofilesandstartupbackups, measuredtelemetry and diagnostics
+implemented. Actualnative integrationworktree58CTestentriespassed before final
+persistence/layout regressions; final results will supersede thischeckpoint.
+Engine ldd verifiesQtCore/Networkonly. GUI sources commit separately next.
