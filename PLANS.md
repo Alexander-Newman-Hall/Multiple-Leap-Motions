@@ -13,9 +13,20 @@ LeapC adapter and Qt/IPC are not implemented. This is not completion of all P1
 capabilities or the hardware gate. Acceptance evidence belongs in the living
 state/handoff, not inferred from these checkboxes.
 
-The next task is a narrow P2.1 installed-SDK adapter compile/ownership seam plus
-Windows evidence; retain the tested mock contract and block physical claims
-until hardware results exist. Do not skip ahead to GUI or processing features.
+## User-approved controller rebuild — active task
+
+The user explicitly requested a complete modern native GUI rebuild with a VST
+feel and working settings, after the initial pause for local hardware work. This
+instruction authorizes Phase 3 and the minimum Phase 4 settings/processing needed
+by its controls using the tested mock source now. Phase 2 remains BLOCKED ON
+INSTALLED SDK/HARDWARE; the GUI must clearly label simulated tracking. Original
+branches/UI stay recoverable. This changes task order, not hardware acceptance.
+
+Bounded increments: (1) validated engine settings and real processing effects;
+(2) same-user native IPC, atomic profiles, independent engine lifecycle;
+(3) Qt Quick controller with five functional pages and VST-style controls;
+(4) packet/process/UI lifecycle tests, screenshots, Windows/Linux build evidence
+and handoff. No fusion, web frontend, real-camera claim or SDK API invention.
 
 ## P0: Baseline and evidence (start here)
 

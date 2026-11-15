@@ -66,3 +66,16 @@ reject versioned examples until migration exists. The new host reads explicit
 config without automatic saving. **Consequence:** no silent schema downgrade or
 installation rewrite; legacy save is still non-atomic, v2/backup/presets deferred.
 Evidence: CONFIG_AUDIT and configuration regression tests.
+
+## ADR-012 — User-approved native VST-style controller rebuild
+
+**Status:** Accepted by explicit user request, 2026-11-15. **Context:** The user
+requested a complete modern GUI and control over settings after reviewing the
+headless baseline. **Decision:** implement Qt6 Quick/QML with C++ controllers as
+a separate process, a QtCore/Network-only IPC host and typed engine settings. Use
+the existing deterministic source until real SDK integration is available. Knobs,
+toggles, profiles and output controls require engine validation/acknowledgements
+and packet-level effects; visual state alone is not sufficient. **Consequence:**
+Phase3 and a narrow processing/settings slice proceed before the physical Phase2
+gate by user authorization. Hardware claims remain blocked, original ImGui source
+and prior branches remain recoverable. No web frontend or window-owned tracking.
