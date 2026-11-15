@@ -22,6 +22,11 @@ by its controls using the tested mock source now. Phase 2 remains BLOCKED ON
 INSTALLED SDK/HARDWARE; the GUI must clearly label simulated tracking. Original
 branches/UI stay recoverable. This changes task order, not hardware acceptance.
 
+Delivered: portable settings `2de385f`, native IPC/profile host `99622f2`,
+VST-style Qt controller `9f5260e`; green Windows/Ubuntu CI at `5d1c4c2`.
+Actual results and remaining hardware gate are in CURRENT_STATE/SESSION_HANDOFF.
+The next task returns to the local installed-SDK adapter; preserve this controller.
+
 Bounded increments: (1) validated engine settings and real processing effects;
 (2) same-user native IPC, atomic profiles, independent engine lifecycle;
 (3) Qt Quick controller with five functional pages and VST-style controls;

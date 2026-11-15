@@ -2,8 +2,10 @@
 
 Branch codex/handbridge-native-controller. Base30cd5e359ea410b1ad07ffc91e970f2d95bfb522.
 Original master/handbridge-v2 and prior dev branch remain preserved.
-Scope91e59b8; portable settings2de385f; independent engine IPC99622f2; tested GUI
-commit is next. Final docs will pin its SHA and observed CI. Prior handoff archived
+Scope `91e59b8`; portable settings `2de385f`; independent engine IPC `99622f2`;
+native GUI `9f5260ec60b017e1a4c6ba67845e6158fd987a2b`; CI logging
+`5d1c4c2149e2fad092f9603b730e9f0334fa8653`. Final follow-up is documentation only.
+Draft PR: https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/pull/2. Prior handoff archived
 at reports/PHASE1_HANDOFF.md. The user explicitly authorized this modern native
 GUI and real-settings slice ahead of physical adapter validation.
 
@@ -56,8 +58,8 @@ No runtime image/SDK/hardware result is inferred from any of these tests.
 
 ## Verification boundary and blockers
 
-CLOUDnative and mock/UDP behavior verified. New Windows Qt CI is configured and
-awaits observed execution; physical Windows SDK compile, USB/cameras/Hyperion,
+Cloud native and mock/UDP behavior is verified. Native Qt Windows/MSVC and Ubuntu
+CI passed at `5d1c4c2` as recorded below. Physical Windows SDK compile, USB/cameras/Hyperion,
 TouchDesigner receipt and hardware soak remain UNTESTED ON HARDWARE.
 New host still requires--simulate. No native hand IDs fabricated. No per-channel
 processing overrides, full3D/all-joint view, OSCv2/bundles or release packaging.
@@ -74,11 +76,28 @@ and stable serials. Keep mocks/goldens/native UI tests green, then record actual
 two-camera, unplug/service recovery and TouchDesigner observations. Mark unavailable
 physical steps BLOCKED. Do not rewrite the GUI again or add fusion/packaging.
 
-## CI checkpoint
+## Final observed CI and residual uncertainty
 
-Code9f5260ec60b017e1a4c6ba67845e6158fd987a2b; draftPR2.
-Native run43770816953 Ubuntu58/58PASS; WindowsMSVC19.44buildPASS and actualQMLport
-Apply/UDP testPASS, but processControlIntegrationfailed50.15s with emptyQtTest
-stdout. Counts56pass/1fail/1POSIXskip of58. Explicitper-bundleQtTestfilelogging
-is added toCTest/CIartifacts for diagnosis; productionunchanged andtestnot skipped.
-RootfinalASan/UBSan56/56PASS6.59s withsameGUIsource,leakcheckenabled.
+At `5d1c4c2`, native run 43771500930:
+https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43771500930
+
+- Ubuntu: 58 passed, no failures/skips, 18.83 s.
+- Windows Server 2022 / MSVC 19.44.35230: 57 passed, one expected POSIX-only skip,
+  no failures, 35.03 s. All actual QML, GUI lifetime, profile/backup, settings and
+  bounded client process checks passed. The integration bundle has nine behavior
+  cases plus init/cleanup; none was disabled.
+
+Qt-free run 43771500901: Ubuntu 55 passed; Windows 54 passed plus the same one
+expected skip. Both jobs succeeded. Explicit native QtTest text logs, CTest log
+and JUnit reports are retained by Actions.
+
+Initial Windows run 43770816953 at GUI code `9f5260e` built but its broader process
+bundle failed with empty stdout. No application or test behavior changed after
+that failure; only file diagnostics were added. The rerun passed, so the original
+cause remains unknown. Do not claim a product bug fixed or quietly suppress a
+recurrence. Preserve CI logs and reproduce that case on the Windows PC if needed.
+
+Final source ASan/UBSan rerun: 56 passed, 6.59 s, leak checking enabled, no errors.
+The full unsanitized GUI suite passed separately; exclusions are documented above.
+No real LeapC/USB/Hyperion/TouchDesigner test has run. Next task remains the local
+installed-SDK adapter with actual two-camera observations, preserving this GUI.

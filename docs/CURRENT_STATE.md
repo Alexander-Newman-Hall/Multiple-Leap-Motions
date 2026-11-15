@@ -3,8 +3,11 @@
 Branch: `codex/handbridge-native-controller`; base:
 `30cd5e359ea410b1ad07ffc91e970f2d95bfb522` on preserved prior development branch.
 Original master/handbridge-v2 and the legacy ImGui source remain unchanged.
-New commits: approved scope `91e59b8`, portable settings `2de385f`, native IPC /
-profiles `99622f2`; GUI commit follows this tested checkpoint. Hardware is still
+Commits: approved scope `91e59b8`, portable settings `2de385f`, native IPC/profiles
+`99622f2`, native GUI `9f5260ec60b017e1a4c6ba67845e6158fd987a2b`, diagnostic
+logging `5d1c4c2149e2fad092f9603b730e9f0334fa8653`.
+Draft [PR #2](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/pull/2)
+is stacked on the preserved prior foundation. Final follow-up changes docs only. Hardware is still
 UNTESTED ON HARDWARE. User explicitly authorized this GUI/processing slice now.
 
 ## Implemented
@@ -36,7 +39,9 @@ CLOUD Debian13/GCC14.2/Qt6.8.3/CMake3.31.6:
 | Process integration bundle |9 behaviors +init/cleanup =11 checks,10.84s; includes actual GUI close/kill/reopen, persistence ordering/startup restore, malformed/slow clients and redaction |
 | Native visual review |All5 pages captured at1360x860, each controller exit0, no QML warnings, engine exit0; processing knobs fit default window |
 | Engine dependency boundary |ldd shows QtCore/Network only; no QtGui/Quick/Widgets |
-| New native Windows/Linux CI |Configured, execution pending publication |
+| Native Ubuntu CI | 58 passed, zero failures/skips, 18.83 s |
+| Native Windows CI / MSVC 19.44.35230 | 57 passed + 1 expected POSIX-only skip, zero failures, 35.03 s |
+| Qt-free Ubuntu / Windows CI | 55 passed / 54 passed + 1 expected skip, zero failures |
 | Physical Windows/SDK/USB/Hyperion/TouchDesigner |UNTESTED ON HARDWARE |
 
 Commands/pins/sanitizer exclusions: [GUI_BUILD](reports/GUI_BUILD.md).
@@ -62,14 +67,21 @@ using exact installed headers/service versions and this unchanged controller/IPC
 boundary. Verify two cameras, USB/service recovery and actual TouchDesigner OSC,
 recording real results or BLOCKED. Do not infer hardware success from these mocks.
 
-## First native CI observation and diagnostic follow-up
+## Observed CI and known transient result
 
-GUI source commit9f5260ec60b017e1a4c6ba67845e6158fd987a2b is in
-[draft PR2](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/pull/2).
-Native run43770816953: Ubuntu58/58PASS; Windows MSVC19.44 configure/build and
-actualQML-control test PASS, but ControlIntegration failed (56pass/1fail/1expected
-POSIXskip of58). Its QtTest stdout was empty on Windows, including passing bundles.
-A diagnostic-only follow-up writes explicit QtTest text logs and retains them in
-CI artifacts. No production code, test skip or acceptance bounds changed; exact
-Windows cause is being investigated before claiming native Windows complete.
-Final source sanitizer rerun56/56PASS,6.59s,leakchecking enabled,0diagnostics.
+At diagnostic commit `5d1c4c2`, [native Qt run 43771500930](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43771500930)
+and [Qt-free run 43771500901](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43771500901)
+completed successfully on Windows and Ubuntu. Windows actual QML typing/Apply/UDP,
+GUI close/kill/reopen, all profile persistence and malformed/slow-client cases
+passed. QtTest bundles retain explicit text logs in CI artifacts.
+
+The first native Windows run at `9f5260e` built and passed the direct QML test but
+failed the broader process bundle with empty stdout. The same application/test
+source passed after diagnostic-only file logging was added. The initial cause
+remains unknown and is not claimed fixed; keep the retained logs if it recurs.
+No test was skipped or acceptance threshold widened to obtain that pass. The one
+Windows skip is the previously documented POSIX kernel-permission test.
+
+Final source sanitizer rerun: 56 passed, zero failures/skips, 6.59 s with leak
+checking; no diagnostics. Exact instrumentation exclusions remain in GUI_BUILD.
+This is still simulator/IPC/OSC evidence, not hardware or TouchDesigner validation.

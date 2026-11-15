@@ -178,3 +178,47 @@ port typing/directApply and UDP switch checks passed; external-process bundle
 no stderr/QML warnings and exit0, followed by clean engine exit0. Selected PNGs
 in docs/screenshots are native output, not a design mockup. This supersedes the
 previous18.59/18.17s checkpoints; sanitizer scope remains separately stated.
+
+## First observed native CI checkpoint
+
+At source `9f5260e`, native Qt workflow run43770816953 configured and built on both
+Ubuntu24.04/GCC13.3 and Windows2022/MSVC19.44.35230. Ubuntu passed58/58 (19.02s).
+Windows passed core/process/model/actual QML interaction groups, skipped the one
+explicit POSIX kernel-denial case, and failed only ControlIntegration (50.15s);
+its default QtTest console output was empty in both Actions and LastTest.log.
+The Windows failure is not yet attributed to product or harness behavior.
+
+CTest now requests one explicit text-file logger per QtTest bundle (`qt-*.txt`),
+and native CI prints/uploads those diagnostics alongside JUnit and LastTest.log.
+Local ControllerModel confirmed that logger works and still passes11 checks.
+This is diagnostics only: no test was removed/skipped or timeout inflated, and no
+production change is inferred from missing output. Final rerun evidence belongs
+in CURRENT_STATE/SESSION_HANDOFF; physical hardware remains untested.
+
+## Observed native Windows/Linux CI pass
+
+Diagnostic-only commit `5d1c4c2149e2fad092f9603b730e9f0334fa8653`, native workflow
+[run43771500930](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43771500930):
+
+- Ubuntu24.04/GCC13.3: configure/build PASS,58/58 CTest entries PASS,0 skips,
+  18.83s. Model11 checks, native QML interaction3 checks, integration11 checks.
+- Windows Server2022/MSVC19.44.35230: configure/build PASS,57 CTest entries PASS
+  +1 explicit POSIX-only skip,0 failures,35.03s. Model11 checks PASS; actual native
+  QML typing/Apply/UDP3 checks PASS; all9 integration behaviors/11 QtTest checks
+  PASS, including controller close/kill/reopen, persistence and unread clients.
+- Qt text-file diagnostic logs were printed and included in uploaded artifacts.
+
+Production source is unchanged from9f5260e. The initial Windows Integration
+failure with missing console output was not reproduced; explicit logging made
+the successful checks inspectable. Its original cause remains unknown, so no
+production bug fix or hardware reliability claim is inferred from the rerun.
+Windows offscreen Qt reported a font-directory fallback warning; no Windows
+manual visual review or physical camera test was performed. Linux native images
+were separately rendered and inspected by root. Hardware/SDK/TouchDesigner
+acceptance remains pending on a local Windows PC.
+
+
+Final source sanitizer recheck by root: 56/56 passed in 6.59 s, zero failures/skips,
+ASan/UBSan and leak checking enabled. The latest normal native render/resource
+suite passed 58/58 in 18.42 s. Application source is `9f5260e`; green CI at
+`5d1c4c2` adds only explicit QtTest diagnostic file logging, not application fixes.
