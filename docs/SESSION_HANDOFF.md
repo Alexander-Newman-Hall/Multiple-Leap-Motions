@@ -72,6 +72,11 @@ LEAPC_SETUP.md. Windows real-DLL/portable gate is pending its first workflow run
 PowerShell syntax, helper argument/Unicode/PNG logic and Qt source checksums have
 passed locally. These checks do not establish a working Windows ZIP yet.
 
+First Windows run43777007955 failed before configuration: innoextract uses native
+backslashes in Windows include filters, so POSIX filters selected zero files.
+The helper now uses native Windows filters; seven offline helper regressions
+pass without changing any expected SDK hash. Windows rerun is required.
+
 ## Boundaries / single next task
 
 Physical Windows Hyperion6.2, two USB cameras, actual service restart/unplug,

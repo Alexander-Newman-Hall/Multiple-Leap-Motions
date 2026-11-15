@@ -60,5 +60,35 @@ class FetchSdkTests(unittest.TestCase):
         self.assertEqual(list(self.target.parent.glob("*.tmp")), [])
 
 
+    def test_include_filters_use_the_extractors_native_separator(self):
+        entries = [{"installer_path": "app/LeapSDK/include/LeapC.h"},
+                   {"installer_path": "app/LeapSDK/lib/x64/LeapC.dll"}]
+        for windows, expected in ((True, [r"app\LeapSDK\include\LeapC.h", r"app\LeapSDK\lib\x64\LeapC.dll"]),
+                                  (False, ["app/LeapSDK/include/LeapC.h", "app/LeapSDK/lib/x64/LeapC.dll"])):
+            with self.subTest(windows=windows):
+                command = FETCH.extraction_command(Path("tool"), self.destination, Path("installer.exe"), entries, windows)
+                includes = [command[index + 1] for index, value in enumerate(command) if value == "--include"]
+                self.assertEqual(includes, expected)
+                self.assertEqual(command[-1], "installer.exe")
+
+    def test_missing_extraction_diagnostics_include_only_metadata(self):
+        entry = dict(self.entry, installer_path="app/LeapSDK/include/LeapC.h")
+        text = FETCH.verification_failure(self.destination, entry)
+        self.assertIn("actual missing", text)
+        self.assertIn("extracted_file_count=0", text)
+        self.assertNotIn(self.payload.decode(), text)
+
+    def test_wrong_extracted_bytes_report_actual_size_and_hash(self):
+        entry = dict(self.entry, installer_path="app/LeapSDK/include/LeapC.h")
+        actual = FETCH.safe_path(self.destination, entry["installer_path"])
+        actual.parent.mkdir(parents=True)
+        actual.write_bytes(b"incorrect bytes")
+        text = FETCH.verification_failure(self.destination, entry)
+        self.assertIn("actual bytes=15", text)
+        self.assertIn(hashlib.sha256(b"incorrect bytes").hexdigest(), text)
+        self.assertIn("extracted_file_count=1", text)
+        self.assertNotIn("incorrect bytes", text)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -49,7 +49,8 @@ See LEAPC_SETUP.md and reports/LEAPC_SDK_AUDIT.md.
 | SDK-off native suite before additive service-version fields |61 passed, zero skips,20.33s |
 | Real Hyperion6.2 installer extraction/hash checks |PASS; not installed/executed |
 | PowerShell packaging parse/helper checks |PASS; actual Windows deployment pending |
-| Windows real client DLL load/version/API |Pending Release workflow |
+| First Windows Release run43777007955 |SDK extraction failed before compile; corrected Windows-native include filters; rerun pending |
+| Windows real client DLL load/version/API |Pending corrected Release workflow |
 | Extracted Windows ZIP, no developer PATH |Pending Release workflow |
 | Physical cameras/Hyperion recovery/USB/TouchDesigner |**UNTESTED ON HARDWARE** |
 

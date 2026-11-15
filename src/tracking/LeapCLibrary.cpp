@@ -1,4 +1,5 @@
 #include "LeapCLibrary.hpp"
+#include <cstddef>
 #include <stdexcept>
 #ifdef _WIN32
 #include <windows.h>

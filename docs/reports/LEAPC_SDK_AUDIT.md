@@ -186,3 +186,27 @@ Adapter, native Windows compile/DLL load and release smoke results belong in the
 implementation/build reports. Physical Windows two-camera tracking, USB hotplug,
 service restart and TouchDesigner receipt remain **UNTESTED ON HARDWARE** until
 actually performed on the target PC.
+
+## First Windows CI fetch failure and correction
+
+Windows Release run `43777007955`, job `133005467975`, verified both installer
+and extractor downloads but failed before any Windows compilation:
+`extracted Hyperion SDK file failed verification: include/LeapC.h`.
+The extractor returned success in approximately 114 ms and produced no selected
+files. This was a helper portability defect, not evidence of changed SDK bytes.
+
+Upstream innoextract 1.9 source establishes the cause:
+`src/setup/filename.hpp:35` uses backslash as `path_sep` on Windows and slash on
+Linux; `src/cli/extract.cpp:283` compares include filters literally against those
+native output paths; `src/cli/main.cpp:355` forwards the supplied filters without
+normalizing them. The helper supplied slash-separated include filters on both
+platforms, so Windows selected zero files and still returned exit 0.
+
+The helper now builds Windows filters using `PureWindowsPath` and retains POSIX
+filters on Linux. It still verifies every expected size/hash without relaxing
+any SDK digest. Failure diagnostics now distinguish missing files from wrong
+bytes and report only expected/actual size/hash and a bounded file-name/size
+inventory, never SDK contents. Three regressions cover separator conversion,
+missing-file diagnostics and actual size/hash diagnostics: **7/7 helper tests
+PASS** in cloud. Native Windows extraction/build remains pending the corrected
+CI run; the failed run did not compile or test the Windows application.

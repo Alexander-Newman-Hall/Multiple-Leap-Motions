@@ -11,7 +11,7 @@ import argparse
 import hashlib
 import json
 import os
-from pathlib import Path, PurePosixPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 import platform
 import shutil
 import subprocess
@@ -114,6 +114,35 @@ def extractor(entry: dict, cache: Path, windows: bool) -> Path:
     return executable
 
 
+
+def extraction_command(tool: Path, staging: Path, installer: Path,
+                       entries: list[dict], windows: bool) -> list[str]:
+    command = [str(tool), "--extract", "--silent", "--output-dir", str(staging)]
+    for entry in entries:
+        safe_path(staging, entry["installer_path"])
+        # innoextract 1.9 matches filters against native output separators. It
+        # does not normalize CLI --include values: forward slashes select no
+        # files on Windows while the extractor still returns success.
+        relative = PurePosixPath(entry["installer_path"])
+        include = str(PureWindowsPath(*relative.parts)) if windows else relative.as_posix()
+        command += ["--include", include]
+    command.append(str(installer))
+    return command
+
+
+def verification_failure(staging: Path, entry: dict) -> str:
+    path = safe_path(staging, entry["installer_path"])
+    actual = "missing"
+    if path.is_file():
+        actual = f"bytes={path.stat().st_size}, sha256={hashlib.sha256(path.read_bytes()).hexdigest()}"
+    files = sorted(path for path in staging.rglob("*") if path.is_file())
+    inventory = [{"path": path.relative_to(staging).as_posix(), "bytes": path.stat().st_size}
+                 for path in files[:16]]
+    return (f"extracted Hyperion SDK file failed verification: {entry['path']}; "
+            f"expected bytes={entry['bytes']}, sha256={entry['sha256']}; actual {actual}; "
+            f"extracted_file_count={len(files)}; file_metadata={json.dumps(inventory)}")
+
+
 def acquire(manifest: dict, destination: Path, cache: Path, header_only: bool) -> None:
     selected = [entry for entry in manifest["files"] if not header_only or entry["kind"] != "binary"]
     if all(matches(safe_path(destination, entry["path"]), entry) for entry in selected):
@@ -129,16 +158,12 @@ def acquire(manifest: dict, destination: Path, cache: Path, header_only: bool) -
     installer = safe_path(cache, manifest["installer"]["path"])
     with tempfile.TemporaryDirectory(prefix="hyperion-6.2-extract-", dir=cache) as directory:
         staging = Path(directory)
-        command = [str(tool), "--extract", "--silent", "--output-dir", str(staging)]
-        for entry in selected:
-            safe_path(staging, entry["installer_path"])
-            command += ["--include", entry["installer_path"]]
-        command.append(str(installer))
+        command = extraction_command(tool, staging, installer, selected, windows)
         subprocess.run(command, check=True, timeout=300)
         # Verify every selected file before touching the existing SDK output.
         for entry in selected:
             if not matches(safe_path(staging, entry["installer_path"]), entry):
-                raise ValueError(f"extracted Hyperion SDK file failed verification: {entry['path']}")
+                raise ValueError(verification_failure(staging, entry))
         for entry in selected:
             target = safe_path(destination, entry["path"])
             target.parent.mkdir(parents=True, exist_ok=True)
