@@ -23,7 +23,8 @@ INSTALLED SDK/HARDWARE; the GUI must clearly label simulated tracking. Original
 branches/UI stay recoverable. This changes task order, not hardware acceptance.
 
 Delivered: portable settings `2de385f`, native IPC/profile host `99622f2`,
-VST-style Qt controller `9f5260e`; green Windows/Ubuntu CI at `5d1c4c2`.
+VST-style Qt controller `9f5260e`, applied-preview correction `ebb3bd9`; final green
+Windows/Ubuntu native CI at `ebb3bd9`, including repeated Windows lifecycle checks.
 Actual results and remaining hardware gate are in CURRENT_STATE/SESSION_HANDOFF.
 The next task returns to the local installed-SDK adapter; preserve this controller.
 

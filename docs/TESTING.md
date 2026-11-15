@@ -65,7 +65,7 @@ socket failures and all decoded UDP/runtime/config tests still execute. Report
 The default Qt-free suite now has55 CTest entries. Optional control-debug /
 windows-control adds three QtTest bundles,58 CTest entries total: ControllerModel
 (9 scenarios+init/cleanup), actual native QML typing/clicks affecting UDP, and
-ControlIntegration (9 process/persistence behaviors+init/cleanup). UI tests use
+ControlIntegration (10 process/persistence behaviors+init/cleanup). UI tests use
 software/offscreen native Qt; they are not HTML/browser screenshots.
 
 Settings tests exercise real scalar output for channel/mute/hand/alias/rate,
@@ -88,3 +88,10 @@ GUI bundles and third-party Qt instrumentation. Exact commands/results and final
 CI distinction: CURRENT_STATE, SESSION_HANDOFF and reports/GUI_BUILD.md. Windows
 retains the explicitly skipped POSIX-only kernel-denial case; no skip is hardware
 verification. Real SDK/USB/Hyperion/TouchDesigner/soak remain UNTESTED ON HARDWARE.
+
+
+Final source ebb3bd9 passes native Windows and Ubuntu CI on both push and PR.
+Windows adds three until-fail repetitions of the process bundle; all passed on
+both events. The applied-preview QML regression verifies unacknowledged units do
+not change live projection, and raw bypass remains mm even with inactive meter
+settings. Detailed retained logs/results: CURRENT_STATE and GUI_BUILD.

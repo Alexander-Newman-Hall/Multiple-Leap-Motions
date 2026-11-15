@@ -254,3 +254,27 @@ Integration now has10 behavior cases/12 QtTest checks, PASS12.13s. Windows nativ
 CI adds an explicit post-suite `ctest -R '^ControlIntegration$' --repeat
 until-fail:3`; any failure stops/fails the step. Repeat JUnit output is uploaded.
 The next Windows run is required before claiming the mixed prior CI is resolved.
+
+## Final source gate — all native jobs and Windows repetitions passed
+
+Final application/UI/harness source: `ebb3bd92ce04aa011cfdbaacbdce0adfc67beb1f`.
+The last application change makes preview units follow acknowledged engine config
+(and raw bypass remain millimeters), with actual QML regression coverage. No
+runtime/OSC behavior changed after the stable8367 harness checkpoint.
+
+| Event / native workflow | Linux GCC13.3 | Windows MSVC19.44.35230 | Additional Windows Integration gate |
+|---|---|---|---|
+| [PR run43773045258](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43773045258) |58/58 PASS,20.32s|57 PASS +1 documented POSIX-only skip,0 failures,32.43s|3/3 consecutive PASS:19.97/19.95/20.02s|
+| [Push run43773039247](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43773039247) |58/58 PASS,20.54s|57 PASS +1 documented POSIX-only skip,0 failures,36.81s|3/3 consecutive PASS:21.17/21.21/21.15s|
+
+Each Windows Integration invocation reports12 passed QtTest checks (10 behavior
+cases plus init/cleanup),0 failures/skips. Controller model11 and actual native
+QML interaction3 checks passed, including typed port/apply/UDP and acknowledged
+preview-unit behavior. `until-fail` stops on any failure; no retry-until-pass,
+increased bounds or omitted integration case was used. Both event types were
+checked because earlier source had different PR/push outcomes.
+
+This final gate supersedes the earlier mixed-run blocker. It verifies the native
+controller, mock engine and actual local UDP/IPC behavior on CI Windows, not
+physical Ultraleap hardware, USB recovery, Hyperion or TouchDesigner receipt.
+Those remain UNTESTED ON HARDWARE and require the local Windows handoff.
