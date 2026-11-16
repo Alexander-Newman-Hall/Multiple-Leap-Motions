@@ -1,6 +1,8 @@
-# Current state — Hyperion 6 adapter and Windows portable preview
+# Current state — Windows preview and macOS planning
 
-Branch: `codex/handbridge-leapc-release`.
+Current planning branch: `codex/handbridge-macos-plan`, based on Windows handoff
+`2c1ce8e72980c0ef4d59efa474e19df30c2666a2`.
+Preserved Windows release branch: `codex/handbridge-leapc-release`.
 Draft [PR #3](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/pull/3)
 is stacked on the preserved native-controller branch.
 Validated application/packager source: **`c8596f20b35bb0e4d09446933c543f689417f36c`**.
@@ -67,7 +69,17 @@ OSC bundles/v2, per-channel inheritance, full 3 D/all-joint preview, installer o
 automatic startup. Legacy optional orientation/velocity/normal loss quirks remain
 in OSC_PROTOCOL. The original field silent-stall root cause remains unproven.
 
-**Next task:** on the local Windows Hyperion 6.2 PC, run the two-camera acceptance
-checklist, record actual versions/TouchDesigner receipt/unplug/service recovery and
-GUI close/reopen behavior, then fix only observed failures. Use
-WINDOWS_LOCAL_HANDOFF.md and HARDWARE_TEST_RESULTS.md; mark blocked cases honestly.
+## macOS planning checkpoint — 2026-11-16
+
+Added [MACOS_PORT_PLAN](MACOS_PORT_PLAN.md): six bounded milestones, source-level
+port inventory, official support evidence, compiler/IPC risks, acceptance gates
+and a copyable next-chat prompt. This task changes documents only; no Mac build,
+SDK load, hardware check or package was performed. Documentation links and source
+change boundaries are checked; prior test counts above are historical verified
+Windows/Linux results, not new tests from this planning task.
+
+**Single next Mac task:** run M0 in local Mac Codex: inspect the actual Mac SDK /
+toolchain, compile/link feature probes and build a minimal bounded SDK diagnostic.
+Two-camera support remains unverified until M1 physical observations. Keep Windows
+physical acceptance open separately, using WINDOWS_LOCAL_HANDOFF and
+HARDWARE_TEST_RESULTS; do not replace either platform's missing evidence with mocks.
