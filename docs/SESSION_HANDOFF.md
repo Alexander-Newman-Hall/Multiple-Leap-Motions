@@ -74,7 +74,7 @@ attempts, reported handshake error/zero devices/zero OSC, and exited within the
 15 s deadline. Extracted ZIP passed 16 native Windows checks with only Windows
 system paths, including app-local module paths, actual PNG render, GUI close/
 kill/reopen and continuing UDP. Independent download checked checksum/header hash,
-source revision, clean manifest and SDK exclusion. Full evidence: reports/HYPERION 6_RELEASE.md.
+source revision, clean manifest and SDK exclusion. Full evidence: reports/HYPERION6_RELEASE.md.
 
 ## Download / first local use
 

@@ -48,7 +48,7 @@ inside it. Instructions: WINDOWS_RELEASE.md and LEAPC_SETUP.md.
 Package manifest records a **clean** source checkout and the exact 6.2 header hash:
 `27d512f953bc7dcf2d52475e5e771519b9905bc4d9a88641b1877c2897641765`.
 The published ZIP/checksum/manifest were independently downloaded and inspected.
-[Detailed report](reports/HYPERION 6_RELEASE.md) includes commands, CI links, SDK
+[Detailed report](reports/HYPERION6_RELEASE.md) includes commands, CI links, SDK
 provenance, scope limits and the two corrected setup/provenance defects. Actual
 Windows captures: [Overview](screenshots/windows-overview.png),
 [Processing](screenshots/windows-processing.png).
