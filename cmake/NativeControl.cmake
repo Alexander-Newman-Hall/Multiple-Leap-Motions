@@ -28,6 +28,7 @@ if(BUILD_TESTING)
     add_executable(test_Controller tests/test_Controller.cpp)
     set_target_properties(test_Controller PROPERTIES AUTOMOC ON)
     target_link_libraries(test_Controller PRIVATE handbridge-control-client Qt6::Test)
+    add_dependencies(test_Controller handbridge-engine)
     add_test(NAME ControllerModel COMMAND test_Controller
         -o "${CMAKE_CURRENT_BINARY_DIR}/qt-controller.txt,txt")
     set_tests_properties(ControllerModel PROPERTIES TIMEOUT 30)

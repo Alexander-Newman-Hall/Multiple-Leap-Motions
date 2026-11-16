@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <cstdint>
+#include <optional>
 
 struct Vector3 {
     float x = 0, y = 0, z = 0;
@@ -51,6 +52,9 @@ struct FingerData {
 };
 
 struct HandData {
+    // Device-local SDK identity; absent in legacy/synthetic fixtures. Never a
+    // cross-camera identity and never used to change the legacy OSC addresses.
+    std::optional<std::uint32_t> nativeHandId;
     std::string handType; // "left" or "right"
     PalmData palm;
     ArmData arm;

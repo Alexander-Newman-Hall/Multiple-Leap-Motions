@@ -1,0 +1,42 @@
+Hand Bridge 2.0 — Windows x64 developer preview
+
+This package dynamically links the unmodified official Qt 6.8.3 libraries from
+qtbase and qtdeclarative under LGPL 3, with applicable Qt exceptions. Qt copyright
+belongs to The Qt Company and the respective contributors. Applicable LGPL/GPL
+and exception text is in licenses/. Exact corresponding Qt source archives,
+including third-party source/license notices, are in corresponding-source/.
+Qt source: https://download.qt.io/archive/qt/6.8/6.8.3/submodules/
+Qt source build instructions: https://doc.qt.io/qt-6.8/build-sources.html
+
+You may replace the dynamically linked Qt libraries with compatible modified
+versions for your own use. This application imposes no signature/hash enforcement
+on those libraries. Reverse engineering for debugging modifications to the Qt
+libraries is not prohibited. File hashes are diagnostic checksums, not a loading
+restriction. Qt is provided without warranty; see the included license terms.
+The source archives include the Qt components' additional third-party licenses.
+
+nlohmann/json 3.11.3 (commit 9cca280a4d0ccf0c08f47a99aa71d1b0e52f8d03),
+Copyright Niels Lohmann; MIT license reproduced in licenses/nlohmann-json-MIT.txt.
+oscpack (commit 3e7e3a102e316d75fe176885a6dd08f216f2eac0),
+Copyright Ross Bencina; MIT license reproduced in licenses/oscpack-MIT.txt.
+GoogleTest is used for tests and is not included in this portable package.
+
+Microsoft Visual C++ Release runtime files are copied exclusively from the
+Visual Studio 2022 Redistributable x64/Microsoft.VC143.CRT directory. Copyright
+Microsoft Corporation. These are Microsoft distributable files governed by the
+applicable Microsoft Visual Studio license, not by Qt's or the application's
+license. No debug CRT is included. Windows system libraries are not bundled.
+https://learn.microsoft.com/visualstudio/releases/2022/redistribution
+https://learn.microsoft.com/cpp/windows/redistributing-visual-cpp-files
+
+Ultraleap LeapC.dll, SDK headers/libraries, tracking service and camera firmware
+are NOT included. Obtain the supported official runtime/SDK from Ultraleap under
+its terms. The real adapter loads an absolute installed LeapC.dll path; use
+--leapc-library when auto-discovery does not find your installation. This package
+does not grant redistribution rights to Ultraleap's components.
+
+The repository has not declared a general open-source license for the Hand
+Bridge application. These dependency notices do not grant additional rights to
+the application. Preserve the application's copyright notices and repository
+history. Physical cameras, Hyperion, USB recovery and TouchDesigner receipt remain
+UNTESTED ON HARDWARE until recorded in the hardware acceptance checklist.

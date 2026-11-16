@@ -1,123 +1,139 @@
-# Reliability, reconnection, and silent-output-stall diagnosis
+# Reliability, recovery, and silent-output-stall diagnosis
 
-**Background:** The original owner reports a real-world failure: the program continues running, but tracking data stops reaching TouchDesigner. The exact cause is UNKNOWN. Treat this as the highest-priority investigation, not as proven to be USB, driver, threads, sender, or service.
+**Current scope:** the headless runtime now has a real LeapC adapter compiled
+against the official Hyperion 6.2 SDK, alongside the deterministic simulator.
+Injected-API tests execute production adapter code with genuine SDK declarations;
+they do not execute the SDK binary or prove camera behavior. Physical Windows,
+USB, service-recovery and TouchDesigner checks remain **UNTESTED ON HARDWARE**.
+The original reported field stall's root cause remains unknown.
 
-## Diagnostic principle
+## Distinguish each boundary
 
-Instrument boundaries independently. The system can be operational at one boundary and broken at the next:
+Track service connection, per-device discovery/open/subscription, fresh tracking
+frames, visible hands, processing activity, and OSC socket/send results separately.
+A connected service does not prove a camera is subscribed. A successful subscribe
+call does not prove frames are fresh. Fresh frames with no hands are healthy.
+A successful OS UDP send does not prove TouchDesigner received anything.
 
-1. Ultraleap Tracking Service connected (or error/reconnecting)
-2. Per-device USB/reference discovered and opened
-3. Per-device LeapC event subscription active
-4. `LeapPollConnection` produces tracking events
-5. Frames converted/enqueued successfully (and frame IDs progressing)
-6. Frames consumed/processed successfully
-7. OSC messages serialized and UDP sends attempted successfully
-8. TouchDesigner actually receives and interprets them (separate receiver-side observation)
+The Qt controller reads engine telemetry through local IPC. Tracking and OSC run
+on their own engine worker; rendering, client disconnects and profile disk writes
+do not own that worker. Closing or crashing the GUI must not stop the engine.
+The native GUI shows real and simulated provider modes separately; the simulator
+is selected explicitly, never substituted for an unavailable hardware provider.
 
-**Never infer successful receipt from UDP socket validity or successful send.** Normal no-hands tracking frames must count as healthy frame activity even if no positions are being emitted.
+## Verified SDK contract and version policy
 
-## Lifecycle state machine (per service and each device)
+The current target is Hyperion **6.2.0 or newer within 6.x**. The dynamic loader
+checks the real client library using `LeapGetVersion(ClientLibrary)`. After an
+actual SDK connection event, the tracking owner queries `ServerLibrary` and checks
+its version before emitting `ServiceConnected` or enumerating devices. Missing,
+unknown, older, or different-major versions cannot become a healthy service state.
+Client DLL metadata, API client version and connected service version are distinct
+facts. See [SDK setup](LEAPC_SETUP.md) and [SDK audit](reports/LEAPC_SDK_AUDIT.md).
 
-Service:
-`Stopped -> Starting -> Connected -> Recovering -> Connected` or `Fatal/Disabled`.
+`LeapOpenConnection` is asynchronous; enumeration waits for the SDK connection
+event. Multi-device awareness is requested at creation, each device is explicitly
+subscribed, and tracking events are routed by `message.device_id`. Device events
+carry their ID inside `device_event.device.id`. SDK event pointers expire on the
+next poll/close, so all hand observations are copied before polling again.
 
-Device:
-`Absent -> Discovered -> Open -> Subscribing -> Streaming -> Stale/Recovering -> Streaming`, with `Disabled`, `Removed`, `Error` explicit branches.
+The exact 6.2 header says a service-lost event can take up to **five seconds** of
+polling without another service transaction. The application frame watchdog is
+separate: stale data must not stay live while waiting for that notification.
+Do not interpret the 500 ms frame threshold as an SDK service-loss guarantee.
 
-- Record the cause, timestamp and SDK result code on every transition.
-- Classify retryable versus nonretryable failures; use bounded exponential backoff with jitter, a maximum interval and retry counters. Do not spin at 1ms in a permanent error state.
-- On device removal: mark invalid immediately, unsubscribe/close if safe, clear stale hand state, re-enumerate for future reconnection. Device handles are not portable between service reconnections.
-- On service loss: unwind subscriptions/handles and recreate service connection according to exact SDK lifecycle documentation, then rediscover/reopen/resubscribe devices. Single-device restoration must not silently suppress the other.
-- If a stream goes stale while a device remains connected: collect evidence first (poll error? no frames? queue blocked? CPU?), attempt targeted recovery before full service reset.
-- A watchdog must not classify absence of HANDS as a stall; it should examine arrival of FRAME messages independently of hand visibility. Investigate whether idle frame behavior varies by SDK/device.
-- Implement a manual retry/restart command, but rate-limit it and report actual result.
+## Implemented lifecycle and limits
 
-## Timer and status recommendations (tunable, not asserted SDK requirements)
+The source owns the connection and opened handles; its start, poll and restart
+operations run on one owner thread. Stop/cleanup must not overlap SDK calls.
+Subscriptions and owned device handles are released before closing/destroying the
+connection. Borrowed SDK device references are never treated as owned handles.
 
-Suggested initial stale threshold: 500 ms of no frame events, adjustable and calibrated against measured device behavior. Slow warning at 250 ms can help during tests. Maximum reconnect backoff e.g. 10 s after exponential retries; document actual values chosen. Do not hard-code without validation. Use monotonic local clock for elapsed durations; retain source timestamps and distinguish clock domains.
+- `LeapPollConnection` timeout is **0 ms** (documented immediate return), with at
+  most **eight SDK messages per source poll**. A connection that never acknowledges
+  the service is torn down after a **three-second handshake deadline** and retried
+  through the runtime's bounded schedule.
+- Discovery uses two-pass list and serial queries with bounded storage. The source
+  retains initially failed opens/serial queries for capped retries, and refreshes
+  enumeration every **1000 ms**. Failed subscriptions remain visibly different
+  from successful ones; the runtime supervises identified-device retries.
+- Device loss removes only that device's resources/output state. Re-enumeration
+  restores serial identity after transient SDK IDs change. Duplicate device events
+  do not create duplicate streams; duplicate serials retain one owner. Service
+  loss releases all handles and requires discovery in the new service session.
+- Manual and stale recovery of a subscribed device actually unsubscribe/close and
+  reopen/resubscribe that device. The unaffected camera is not restarted.
+- Runtime stale detection is **500 ms** since the latest accepted frame, or since
+  subscription before the first frame. Empty-hand frames refresh liveness.
+  First targeted retry follows after **100 ms**; failure delays are
+  **100/200/400/800/1000 ms**, capped at 1000 ms. The deterministic schedule has no
+  jitter. Successful subscription still waits for fresh frames before STREAMING.
+- One pending frame per serial replaces older pending work and counts overwrites.
+  Duplicate/regressing frame IDs and already stale samples do not refresh health.
+  Source `tracking_frame_id` and SDK microsecond timestamp are preserved separately
+  from local monotonic arrival milliseconds. Native hand IDs are retained.
+- A change between known native hand IDs resets only that hand's positional
+  smoothing/dead-zone and gesture hysteresis, even without an empty frame. Other
+  hands/devices keep their own state. Unknown legacy/simulated IDs keep the prior
+  behavior. Loss, restart and processing-setting changes also reset filter state.
 
-Record `last_frame_received_at_monotonic`, `last_valid_hand_at_monotonic`, `last_polled_at`, `last_output_attempt`, and `last_output_success`. The last two describe sender calls only.
+These bounds are application policy, not measured USB/service recovery latency or
+hard real-time guarantees. Other SDK calls and Windows scheduling still require
+physical measurement. No system tracking service is restarted automatically.
 
-## Concurrency rules
+## Output and stale-pose behavior
 
-- LeapC poll thread does the minimum callback work: safely copy data and enqueue; never write logging per scalar value and never invoke UI rendering.
-- Check ownership: the original `SpscQueue` is **single-producer/single-consumer**. If future architecture adds multiple poll threads, either use per-device SPSC queues or replace it with an appropriately designed MPSC queue. Do not assume SPSC supports multiple producers.
-- Queue metrics include attempted/enqueued/dropped/consumed counts, high-water mark and oldest frame age.
-- On overflow: count drops unconditionally; expose to GUI and logs with rate limiting; document whether newest replaces oldest or newest is discarded.
-- C++ ownership must prevent use-after-free during device removal, callback dispatch and process shutdown. Use RAII for SDK handles and thread joins.
-- A slow GUI, blocked file write or unreachable OSC destination cannot block the tracking poll loop.
-- Bound diagnostic logs and metrics so long-running installations cannot fill the disk.
+Stale/device/service loss clears pending data and freshness/hand visibility, then
+submits one empty frame through the retained legacy processor. Repeated stale
+polls do not repeat the loss transition. Default legacy pose channels zero once;
+optional orientation/velocity/normal keep their historical loss quirks. Zero is
+not a general validity signal and explicit OSC v2 validity is not implemented.
+See [OSC contract](OSC_PROTOCOL.md).
 
-## OSC validity on hand loss
+The checked nonblocking sender counts actual OS attempts/successes/bytes/errors.
+Output health degrades on failure; recovery requires another successful send after
+250 ms without further errors. Silence alone cannot claim recovery. Error logging
+is bounded, including connected-UDP platforms that alternate errors and successes.
+Manual output reset recreates the socket. Automatic socket recreation/backoff and
+receiver acknowledgements are not implemented; correct a bad destination and
+verify reception independently. Device enabled/disabled currently controls output
+routing, not physical USB power or upstream SDK streaming.
 
-- Legacy output previously emits zeros when a hand that was present disappears. Preserve this within the compatibility profile until measured/verified.
-- Add explicit validity/presence channels in opt-in v2 mode, so a real hand position `[0,0,0]` is distinguishable from no hand.
-- On device loss or service restart, emit an unambiguous loss transition and clear stale processing state; no indefinite frozen pose.
-- Test missing-hand transitions, device disappearance and output disable separately.
+## Evidence and remaining acceptance
 
-## Fault-injection matrix
+The current genuine-SDK-type suite has **21 passing injected adapter tests**:
+connection/subscription ordering, owned frame copies, empty frames, device/service
+loss, failed opens/info/subscriptions, duplicates/ref reuse, bounded polling,
+handshake failure, real targeted restart, runtime loss/stale integration and
+server-version rejection/acceptance. Full-suite results are in CURRENT_STATE.
 
-| Fault | Inject in mock/CI | Require on Windows |
+| Failure or check | Automated evidence | Physical Windows result |
 |---|---|---|
-| No hands, frames still arrive | Yes | Yes |
-| One device disconnects | Yes | Yes (physical unplug) |
-| One device reconnects | Yes | Yes |
-| Service connection lost | Yes | Yes (service stop/restart where safe) |
-| Subscription fails | Yes | At least observe error handling |
-| Poll returns non-timeout error | Yes | Error log only if encountered |
-| Queue reaches capacity | Yes | Stress simulation |
-| OSC target port changed | Yes | Receive on alternate TouchDesigner port |
-| UI process crashes | Yes | Yes |
-| App killed/restarted | Yes | Yes |
-| Data processing throws/blocks | Yes | Stress test |
-| Device sends duplicate/older frame ID | Yes | If reproducible |
+| Empty hands, fresh frames | Simulator and injected SDK events | NOT RUN |
+| One device loss/reconnect; other device continues | Production adapter/runtime injection | NOT RUN |
+| Service loss, fresh references and aliases | Production adapter/runtime injection | NOT RUN |
+| Failed open/serial/subscription and non-timeout poll errors | Injected SDK result codes | NOT RUN |
+| Mailbox overwrite and stale/duplicate frames | Deterministic runtime tests | NOT RUN |
+| GUI close/kill/reopen, real loopback OSC continues | Separate-process integration | NOT RUN with cameras |
+| Config/routing/processing/profile changes affect UDP | Actual simulated-process receiver tests | NOT RUN in TouchDesigner |
+| Client DLL exports/version; no service installed | Windows software/probe gate; see current results | Not a camera test |
+| Blocked SDK call, hardware soak/CPU/latency | Not established by injected tests | NOT RUN |
 
-## Bug report template
+Recorded replay, automatic output supervision, complete processing-stage stall
+supervision and physical soak measurements remain future work. A successful
+Windows compile, DLL probe, packaged-app smoke or simulated frame run cannot pass
+these physical gates.
 
-- Version, commit, build profile, Windows build and Ultraleap service/SDK version
-- Device models, firmware/serial (redact when shared), USB port/controller/hub details
-- Number of devices and time since startup; CPU/memory/USB power conditions
-- Local timestamps and pipeline stage counters before/after incident
-- `service_state`, `device_state`, `last_frame_age_ms`, `frames_in`, `queue_drops`, `frames_processed`, `osc_packets_sent`, `osc_send_errors`
-- Whether TouchDesigner OSC In CHOP/DAT observed packets; check UDP destination and listener settings
-- Whether hardware restart, app restart or just UI restart restored output
-- Attached sanitized bounded logs/diagnostic bundle
+## Incident capture
 
-## Acceptance condition
+Record commit/package hash, Windows/Qt versions, client/API/service versions,
+provider mode, controller models, redacted serials, USB topology, active profile,
+OSC destination and TouchDesigner build. Capture per-device frame IDs/ages,
+subscription/recovery reasons, input/processed/drop counts and reconnect attempts;
+output attempts/errors and actual receiver observations. Export bounded redacted
+logs before targeted recovery. Record which action restored output. Distinguish
+confirmed source behavior from hypotheses about USB, Hyperion, scheduling or TD.
 
-A simulated or physical failure must result in a visible named state within a configurable detection window, truthful metrics, controlled recovery when the fault clears, no silent permanently frozen output, and continued operation of unaffected cameras. Physical reliability remains unverified until Windows hardware tests are documented.
-
-## Implemented mock supervisor (2026-11-15)
-
-The new EngineRuntime, not the old AppCore, implements the first reliability slice:
-
-- Stale threshold 500 ms since the latest accepted frame (or subscription before
-  the first frame); zero hands counts as fresh. All elapsed checks use injected
-  monotonic milliseconds, distinct from SDK microsecond timestamps.
-- Once stale/lost, clear pending data, mark hands/freshness false, and submit one
-  empty frame through the preserved legacy processor. Repeated ticks do not repeat
-  loss packets. Optional legacy orientation/velocity/normal loss quirks remain.
-- First targeted retry after 100 ms, failure delays 100/200/400/800/1000 ms capped
-  at 1000 ms; no retry spin. Successful subscription awaits actual fresh frames
-  before STREAMING. No jitter in deterministic foundation; tune on hardware later.
-- Service loss clears present/subscribed state, stops the source, and retries its
-  start seam with capped backoff. Only rediscovered devices become present again.
-- One pending frame per device; replace old with newest, count overwrites,
-  reject duplicate/regressing sequences and samples at/over stale age. This
-  bounds current pending storage, not the future LeapC worker queue.
-- Output attempts/success/errors count actual checked callback results. A tick
-  containing failures degrades output; recovery requires sends succeeding after
-  250 ms without further failures. No-hands/no sends cannot claim recovery.
-  Sender errors log at most once/second even if connected UDP alternates errors
-  and successes. Metrics never imply receiver acknowledgement.
-
-Tests inject service loss, missing inventory after restart, subscription failure,
-frame stalls, 100 reconnect cycles, mailbox overflow, duplicate/stale frames,
-normal no-hands and output failure/recovery. The process test independently decodes
-UDP during a two-camera stall. There is no real SDK/service/USB recovery yet.
-Automatic output socket recreation, manual restart commands, raw SDK result-code
-telemetry, measured FPS/latency, threaded poller supervision and a replay-file CLI
-are remaining work. A blocked provider poll cannot be interrupted by this
-single-thread foundation: the source contract requires bounded nonblocking poll;
-Phase 2 must enforce the real LeapC poll timeout/worker lifecycle.
+Use [the physical acceptance plan](HARDWARE_TEST_PLAN.md) and record results in
+HARDWARE_TEST_RESULTS.md. No physical reliability milestone is complete until the
+corresponding evidence has actually been collected.

@@ -1,105 +1,109 @@
-# Session handoff — native VST-style controller
+# Session handoff — Hyperion 6 adapter / Windows Release preview
 
-Branch: `codex/handbridge-native-controller`.
-Base: `30cd5e359ea410b1ad07ffc91e970f2d95bfb522` (preserved prior foundation).
-Draft PR: https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/pull/2
-Latest application/UI: **`ebb3bd92ce04aa011cfdbaacbdce0adfc67beb1f`**.
-Earlier source checkpoints: portable settings `2de385f`, IPC/profile host `99622f2`,
-GUI `9f5260e`, diagnostics `5d1c4c2`, Windows test harness `8367fad`.
-The final follow-up changes only documentation. Prior Phase 1 handoff is archived
-at reports/PHASE1_HANDOFF.md. Original branches/source are untouched.
+Branch: `codex/handbridge-leapc-release`.
+Draft review: https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/pull/3.
+Validated source: **`c8596f20b35bb0e4d09446933c543f689417f36c`**. Final handoff is docs/screenshots only.
+Started at controller `3825ecd`; all prior branches and original ImGui source remain
+recoverable. User authorized the adapter and package, then explicitly required
+latest Hyperion v6. Do not regress to the older Unreal-plugin 5.30 research SDK.
 
-The user explicitly authorized a complete modern native GUI with real settings
-in this task, ahead of physical SDK work. GUI/processing scope is implemented;
-hardware adapter acceptance is still blocked on the local PC.
+## Reviewable code increments
 
-## Changed modules
+- `5550359`: real SDK adapter/API table, safe loader/factory, owned native IDs,
+  host/GUI startup, native-ID processing reset, genuine-SDK-type tests.
+- `b21ffdf`: Release preset/deployment, Qt/QML/CRT/notices/source archives and smoke.
+- `b142729`: Windows-native innoextract filters; no SDK hashes relaxed.
+- `69c8f14`: genuine SDK offline host lifecycle in the extracted-package smoke.
+- `c8596f2`: ignore generated JUnit evidence and require clean package provenance.
 
-- `src/runtime/ControlSettings.*`, `Processing.*`, `EngineRuntime.*`: strict
-  schema 2 plus legacy import; real OSC route/channel/mute/rate controls,
-  time-based filters/transforms/units, opt-in pinch/grab hysteresis, previews.
-- `src/engine/qt_engine_main.cpp`, `ConfigurationStore.hpp`, `src/ipc/Framing.hpp`:
-  independent worker, bounded same-user protocol/CAS/telemetry, atomic named /
-  startup profiles and backup ordering, redacted diagnostics.
-- `src/control/Controller.*`, `control_main.cpp`, twelve QML files: five native
-  pages, dials, acknowledged drafts/save state, detached engine launch, correct
-  live preview metadata, literal serial paths and locale-safe editors.
-- New settings/processing/model/QML/process tests; existing future-schema probe
-  changed to 999 because the Qt host now supports implemented schema 2.
-- Optional Qt CMake presets/targets and pinned native Windows/Linux workflow,
-  studio-default JSON, protocol/schema/build guides and actual native screenshots.
+Changed modules: src/tracking/*; core/HandData; runtime TrackingSource/Processing;
+both engine hosts; Controller/Main.qml; CMake SDK/control/release definitions;
+SDK fetch/manifest/tests; Windows package/smoke/workflow; notices/screenshots/docs.
+No OSC address/type/default or config schema changed. The original raw processor,
+oscpack goldens and localhost:9000 defaults remain. Native IDs never enter legacy
+addresses; known identity changes reset only the affected filter/gesture state.
 
-## Exact cloud commands
+## Exact SDK and dependency boundary
 
-Dependencies/tools live only under ignored work. Source `work/qt-env.sh` first.
+The repository contains no SDK header/import library/client DLL. The helper
+verifies/extracts selected files without executing the official 6.2.0 installer:
+SHA256e219438dc5031af3dc75e115f277c4e6e33475bad21fee1e90a278e77f5fadf 1.
+Header27d512f953bc7dcf2d52475e5e771519b9905bc4d9a88641b1877c2897641765;
+client DLL 6.2.0.0-c98d293a. Manifest pins installer/extractor/all selected files.
+Client and ServerLibrary must each report 6.2.0 or newer 6.x via the real
+LeapGetVersion API. No unknown/old version can establish healthy service state.
+SDK/client/tracking service remain external, not part of the ZIP. Runtime paths
+are absolute; CLI/env/installed Program Files discovery is in LEAPC_SETUP.md.
+
+## Actual commands/results
+
+Cloud native build (GCC 14.2 / Qt 6.8.3, task-local tools):
 
 ```sh
-cmake --preset control-debug   -DCMAKE_MAKE_PROGRAM="$PWD/work/tooling/bin/ninja"   -DCMAKE_PREFIX_PATH="$PWD/work/qt/6.8.3/gcc_64;$PWD/work/qt-deps/usr"
-cmake --build --preset control-debug --parallel 2
-QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software  XDG_CACHE_HOME="$PWD/work/qt-user-cache" XDG_DATA_HOME="$PWD/work/qt-user-data"  XDG_CONFIG_HOME="$PWD/work/qt-user-config" XDG_RUNTIME_DIR="$PWD/work/qt-runtime"  ctest --preset control-debug --output-junit "$PWD/work/native-control-results.xml"
+. work/qt-env.sh
+cmake -S . -B out/build/leapc-control -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+  -DCMAKE_PREFIX_PATH="$PWD/work/qt/6.8.3/gcc_64;$PWD/work/qt-deps/usr" \
+  -DHANDBRIDGE_BUILD_CONTROL=ON -DHANDBRIDGE_WITH_LEAPC=ON \
+  -DLEAP_SDK_ROOT="$PWD/work/sdk-v6/extracted/app/LeapSDK"
+cmake --build out/build/leapc-control --parallel 2
+QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
+  ctest --test-dir out/build/leapc-control --output-on-failure
 ```
 
-Final cloud: **58 passed, no failures/skips, 19.98 s**. Plain core: 55 passed.
-ASan/UBSan: 56 passed in 6.59 s with leak checking; project core/process/client /
-model instrumented, third-party libraries and two GUI bundles excluded. Full
-unsanitized GUI bundles passed separately. Exact sanitizer commands in GUI_BUILD.
-`ldd` confirms the host links Qt Core/Network only, never rendering libraries.
+XDG cache/data/config/runtime paths were under work/. **82/82 PASS**, no skips,
+20.48 s, including 21 genuine-header/injected-function lifecycle/version cases,
+actual UDP goldens, hardware-preflight failure and independent GUI lifecycles.
+ASan/UBSan project adapter/process cases:34/34 PASS, leak checking,0.59 s, no
+third-party Qt/SDK instrumentation. SDK fetch helper:7/7 offline regressions.
+SDK-free core and native-controller Windows/Ubuntu CI also passed at `c8596f2`.
 
-All five native pages were rendered and inspected at 1360×860 with no QML errors;
-GUI and engine exited 0. Selected PNGs are in docs/screenshots. These are real
-native captures with a mock source and actual loopback UDP, not image mockups.
+Windows Release:
 
-## Acceptance evidence
+```powershell
+python scripts/fetch-leapc-sdk.py
+cmake --preset windows-release -DHANDBRIDGE_WITH_LEAPC=ON -DLEAP_SDK_ROOT="$PWD/work/leapc-sdk"
+cmake --build --preset windows-release --parallel 2
+ctest --preset windows-release
+cmake --build --preset windows-release --target handbridge-portable
+```
 
-Actual QML tests type a new OSC port then directly click Apply and observe the
-new UDP receiver; output enable stops/resumes packets. Preview units remain at
-engine values before ack and obey raw bypass after ack. Model tests cover delayed
-acknowledgements/conflicts, dirty notifications, nested/dotted serial editing,
-profile-load edit protection and reconnect state.
+Qt prefix/build prerequisites and isolated smoke command: WINDOWS_RELEASE.md.
+[Final Release run](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43778709905):82 registered,81 PASS +1 expected POSIX-only skip,
+32.03 s; three strict until-fail lifecycle repeats 19.09/19.08/19.07 s allPASS.
+Actual SDK DLL/API load 6.2.0.0/6.2.0 passed. Real no-service host made 2 connection
+attempts, reported handshake error/zero devices/zero OSC, and exited within the
+15 s deadline. Extracted ZIP passed 16 native Windows checks with only Windows
+system paths, including app-local module paths, actual PNG render, GUI close/
+kill/reopen and continuing UDP. Independent download checked checksum/header hash,
+source revision, clean manifest and SDK exclusion. Full evidence: reports/HYPERION6_RELEASE.md.
 
-Process tests cover GUI normal close/kill/reopen while engine/output survive,
-actual processing/alias/channel/rate effects, atomic profiles/restart/backups,
-stale persistence completions, startup discovery becoming unsaved, delayed local
-server, malformed/burst/unread clients, duplicate engine and redacted export.
-Integration now has ten behavior cases plus init/cleanup (twelve Qt checks).
-Windows adds an until-fail three-run gate; it fails on the first bad repetition.
+## Download / first local use
 
-Retained Windows logs identified a test-helper startup/cleanup cascade. The
-independent client now uses bounded asynchronous connection and every failed
-startup owns cleanup. No production tracking fix is inferred, no output assertion
-was relaxed, and the original total connect bound stays five seconds. Final CI
-results are recorded below and in GUI_BUILD, including this history.
+[Final portable preview](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43778709905/artifacts/14187119668). GitHub artifact contains the inner app ZIP
+and checksum; extract both layers and keep its DLLs/plugins/QML beside both EXEs.
+No Qt/Python/VS developer install is needed to run it. Install official compatible
+Hyperion 6.2 separately. Query the installed DLL before cameras:
 
-## Limits and next task
+```powershell
+.\handbridge-engine.exe --check-leapc --leapc-library "C:\Program Files\Ultraleap\LeapSDK\lib\x64\LeapC.dll"
+.\handbridge-control.exe
+```
 
-Simulation-only. Physical SDK/USB/Hyperion/two cameras/TouchDesigner and soak are
-UNTESTED ON HARDWARE. No fabricated native hand IDs, per-channel processing
-inheritance, full 3D/all-joint view, OSCv2/bundles or installer. Profiles can be
-applied before a persistence error; authoritative applied-but-unsaved state is
-returned. Closing the GUI deliberately leaves the detached engine alive; use
-foreground Ctrl-C or the OS process manager for explicit shutdown.
+Start engine is real; Start simulator / --demo are explicit mocks. For a nonstandard
+install path set HANDBRIDGE_LEAPC_LIBRARY before launching the GUI. A detached
+engine survives window closure; foreground Ctrl-C or Task Manager stops it.
 
-**Single next task:** on the local Windows SDK machine, implement the real LeapC
-ITrackingSource adapter with exact headers/service versions, RAII, explicit
-subscriptions, one bounded poll owner and owned serial-tagged frames. Keep this
-controller and all mocks/goldens/UI tests, then record two-camera/recovery and
-actual TouchDesigner observations or BLOCKED. Do not redesign the GUI or add
-fusion/packaging in that task. Setup: WINDOWS_LOCAL_HANDOFF.md.
+## Remaining / single next task
 
+Physical Windows 10/11 cameras/USB/service recovery, TouchDesigner receipt and soak
+are **UNTESTED ON HARDWARE**. The offline SDK test did not install/run Hyperion's
+service. Consumer Windows clean-machine/DPI/accessibility acceptance remains.
+Global processing/channel settings and legacy optional-loss quirks are documented;
+no fusion, per-channel overrides, v2/bundles, installer or full 3 D skeleton is added.
 
-## Final native source CI — ebb3bd9
-
-Tested application/UI: `ebb3bd92ce04aa011cfdbaacbdce0adfc67beb1f`.
-[PR native run 43773045258](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43773045258):
-Ubuntu 58 passed, no skips/failures (20.32 s). Windows Server 2022 / MSVC
-19.44.35230: 57 passed + one expected POSIX-only skip, zero failures (32.43 s).
-The Windows integration bundle passed three additional until-fail repetitions:
-19.97 / 19.95 / 20.02 s, all twelve Qt checks passing each time.
-
-The independent [push run 43773039247](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43773039247)
-also passed on both platforms: Ubuntu 58 passed; Windows 57 passed + the same
-expected skip, then three more passing integration repetitions. This verifies
-the final applied-preview metadata regression as well as the corrected harness.
-No source/runtime assertions were relaxed, no case was retried until success,
-and no hardware result is inferred. The final handoff commit changes documentation only; application and test
-source are identical to the tested commit above.
+Open this branch in local Windows Codex and run HARDWARE_TEST_PLAN with two real
+controllers and Hyperion 6.2. Record exact DLL/API/service versions, independent
+streams, real TouchDesigner values, no hands, unplug/replug, service restart and
+GUI kill/reopen. Record PASS/FAIL/BLOCKED in HARDWARE_TEST_RESULTS; diagnose only
+observed failures and update handoff. Do not redesign the controller or claim the
+original silent-stall incident solved from mock/no-service results.

@@ -370,4 +370,7 @@ FodyWeavers.xsd
 /core-mock-results.xml
 
 /native-control-results.xml
+/native-control-repeat-results.xml
+/windows-release-results.xml
+/windows-release-repeat-results.xml
 /aqtinstall.log

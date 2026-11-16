@@ -1,7 +1,8 @@
 # Native control application — UI/UX specification
 
 **Status:** Native Qt6 Quick/QML controller implemented on branch
-codex/handbridge-native-controller; actual cloud-native screenshots and test
+codex/handbridge-leapc-release (built on the preserved native-controller branch);
+actual cloud-native screenshots and test
 evidence are recorded in CURRENT_STATE. Hardware integration remains untested.
 The requirements below still include later features, not all shipped controls.
 
@@ -23,10 +24,53 @@ redacted diagnostics and displays real bounded logs.
 Direct typing then clicking Apply commits valid focused editors. Numeric parsing
 uses an explicit consistent locale. Dotted serials are literal identifiers.
 Editor controls disable during transactions and backend prevents lost edits during
-profile loads. Offline views are labeled/disconnected, with simulator start or
-reconnect; no activity is fabricated. All current editable schema fields are
-represented; full per-channel processing overrides, full skeletal/3D renderer,
-OSC bundles/v2, installer and real SDK source remain future work.
+profile loads. Offline views are labeled/disconnected, with separate real-engine start,
+simulator start and reconnect actions; no activity is fabricated. All current
+editable schema fields are represented. Full per-channel processing overrides,
+a full skeletal/3D renderer, OSC bundles/v2 and a full installer remain future
+work. The real LeapC source is an optional Windows build whose physical
+acceptance remains unverified.
+
+### Real-engine startup and SDK diagnostics
+
+When disconnected, **Start engine** selects the real LeapC provider and **Start
+simulator** explicitly selects synthetic cameras. Reconnect attaches to an
+already-running engine. The real-engine action probes the installed SDK
+asynchronously; the interface remains responsive and startup/settings controls
+respect the busy state. A failed SDK/runtime/version check returns an actionable
+error rather than silently falling back to simulation. A successful probe then
+launches the engine detached, so closing the controller does not stop tracking or
+OSC.
+
+The runtime is an external dependency: install compatible Ultraleap Hyperion and
+LeapC development/runtime files separately. SDK headers and binaries are not
+included with the controller or committed in this repository. The optional real
+build requires the supported Hyperion/LeapC v6 line: both the client API and the
+connected tracking service must be **6.2 or newer within 6.x**. A DLL file-version
+string alone is not proof of compatible client or service behavior. The service
+version is checked after establishing the LeapC connection before the source can
+report healthy tracking.
+
+Provider labels follow actual engine telemetry. **SIMULATED SOURCE** appears only
+for a simulated source; **LEAPC SOURCE** identifies the real provider without
+claiming camera or receiver validation. **UNTESTED ON HARDWARE** remains explicit
+until physical acceptance is recorded.
+
+Overview displays a wrapped **Last tracking error · retained history** message
+when the source reports an error. This message can remain after recovery and is
+not itself a claim of a current fault. Profiles & Diagnostics separately shows:
+
+- **Library version/path:** the loaded DLL's file metadata and resolved location.
+- **Tracking service:** the actual `LeapGetVersion(ServerLibrary)` version, or
+  **Not connected / unverified**; it is not copied from the DLL file version.
+- Connection attempts, poll errors and the retained last tracking error.
+
+Preflight reports expose the `LeapGetVersion(ClientLibrary)` client API version
+separately from DLL file metadata. Device freshness and hands visible still come
+from tracking events; local IPC connection or successful DLL loading alone does
+not establish fresh physical tracking. The GUI has no ownership of SDK handles,
+processing timing or the engine's lifetime. Qt Quick remains confined to the
+controller process; the engine uses Qt Core/Network for local control only.
 
 See CONFIG_SCHEMA.md and CONTROL_PROTOCOL.md for exact implemented behavior.
 

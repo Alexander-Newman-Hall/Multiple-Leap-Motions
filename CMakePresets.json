@@ -40,6 +40,12 @@
       "displayName": "Native Qt controller and MSVC x64 IPC engine",
       "inherits": "windows-core",
       "cacheVariables": { "HANDBRIDGE_BUILD_CONTROL": "ON" }
+    },
+    {
+      "name": "windows-release",
+      "displayName": "Windows x64 native Release portable package (explicit SDK opt-in)",
+      "inherits": "windows-control",
+      "cacheVariables": { "HANDBRIDGE_WITH_LEAPC": "OFF", "HANDBRIDGE_PACKAGE_WINDOWS": "ON", "BUILD_TESTING": "ON" }
     }
   ],
   "buildPresets": [
@@ -48,13 +54,15 @@
     { "name": "windows-core", "configurePreset": "windows-core", "configuration": "Debug" },
     { "name": "windows-legacy", "configurePreset": "windows-legacy", "configuration": "Debug" },
     { "name": "control-debug", "configurePreset": "control-debug" },
-    { "name": "windows-control", "configurePreset": "windows-control", "configuration": "Debug" }
+    { "name": "windows-control", "configurePreset": "windows-control", "configuration": "Debug" },
+    { "name": "windows-release", "configurePreset": "windows-release", "configuration": "Release" }
   ],
   "testPresets": [
     { "name": "core-debug", "configurePreset": "core-debug", "output": { "outputOnFailure": true } },
     { "name": "core-release", "configurePreset": "core-release", "output": { "outputOnFailure": true } },
     { "name": "windows-core", "configurePreset": "windows-core", "configuration": "Debug", "output": { "outputOnFailure": true } },
     { "name": "control-debug", "configurePreset": "control-debug", "output": { "outputOnFailure": true } },
-    { "name": "windows-control", "configurePreset": "windows-control", "configuration": "Debug", "output": { "outputOnFailure": true } }
+    { "name": "windows-control", "configurePreset": "windows-control", "configuration": "Debug", "output": { "outputOnFailure": true } },
+    { "name": "windows-release", "configurePreset": "windows-release", "configuration": "Release", "output": { "outputOnFailure": true } }
   ]
 }

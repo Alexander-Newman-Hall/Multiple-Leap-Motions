@@ -2,7 +2,7 @@
 #include "ConfigurationStore.hpp"
 #include "runtime/ControlSettings.hpp"
 #include "runtime/EngineRuntime.hpp"
-#include "runtime/MockTrackingSource.hpp"
+#include "tracking/TrackingSourceFactory.hpp"
 #include "pipeline/04_OscSender.hpp"
 #include <QCoreApplication>
 #include <QCommandLineParser>
@@ -112,14 +112,16 @@ struct Job {
 // I/O never run on it. Telemetry copies are bounded immutable shared snapshots.
 class EngineWorker {
 public:
-    EngineWorker(ControlSettings settings, bool stall, QObject* callbackContext)
+    EngineWorker(ControlSettings settings, bool simulate, bool stall, std::string leapcLibrary, QObject* callbackContext)
         : context_(callbackContext) {
         std::promise<void> ready;
         auto readyFuture = ready.get_future();
-        thread_ = std::jthread([this, settings = std::move(settings), stall, ready = std::move(ready)](std::stop_token stop) mutable {
+        thread_ = std::jthread([this, settings = std::move(settings), simulate, stall,
+                                leapcLibrary = std::move(leapcLibrary), ready = std::move(ready)](std::stop_token stop) mutable {
             try {
                 ConfigManager config;
-                MockTrackingSource source(stall);
+                auto source = createTrackingSource(simulate, stall, leapcLibrary);
+                if (!source) throw std::runtime_error("Tracking provider could not be created");
                 auto sender = std::make_unique<OscSender>(settings.osc.host, settings.osc.port);
                 if (!sender->isInitialized()) throw std::runtime_error("Cannot initialize OSC socket");
                 std::deque<QString> logs;
@@ -129,7 +131,7 @@ public:
                     if (logs.size() > 128) logs.pop_front();
                     std::cerr << text << '\n';
                 };
-                EngineRuntime runtime(source, config,
+                EngineRuntime runtime(*source, config,
                     [&](const OscMessage& message) { return sender->sendOscMessageChecked(message); }, {}, logger);
                 runtime.applySettings(settings);
                 runtime.start(0);
@@ -138,6 +140,7 @@ public:
                 Millis now = 0, lastSnapshot = 0;
                 std::uint64_t previousPackets = 0, packetOffset = 0, byteOffset = 0, errorOffset = 0, socketGeneration = 1;
                 QString retainedError;
+                std::string lastTrackingError;
                 std::map<std::string, std::uint64_t> previousFrames;
                 auto replaceSender = [&](std::unique_ptr<OscSender>& candidate) {
                     const auto old = sender->getStats();
@@ -176,8 +179,17 @@ public:
                     const auto packets = packetOffset + stats.packetsSent;
                     const auto packetDelta = packets >= previousPackets ? packets - previousPackets : 0;
                     const auto& output = runtime.outputStatus();
-                    next->state = {{"source", "simulated"}, {"simulated", true}, {"hardware_verified", false},
+                    const auto tracking = source->diagnostics();
+                    if (tracking.lastError != lastTrackingError) {
+                        logger(tracking.lastError.empty() ? "tracking diagnostic cleared" : "tracking error=" + tracking.lastError);
+                        lastTrackingError = tracking.lastError;
+                    }
+                    next->state = {{"source", trackingSourceName(simulate)}, {"simulated", simulate}, {"hardware_verified", false},
                         {"uptime_ms", static_cast<qint64>(now)}, {"service_connected", runtime.serviceConnected()}, {"devices", devices},
+                        {"tracking", QJsonObject{{"last_error", QString::fromStdString(tracking.lastError)},
+                            {"library_path", QString::fromStdString(tracking.libraryPath)}, {"library_version", QString::fromStdString(tracking.libraryVersion)},
+                            {"service_version", QString::fromStdString(tracking.serviceVersion)},
+                            {"connection_attempts", static_cast<qint64>(tracking.connectionAttempts)}, {"poll_errors", static_cast<qint64>(tracking.pollErrors)}}},
                         {"output", QJsonObject{{"enabled", runtime.settings().osc.enabled}, {"host", QString::fromStdString(runtime.settings().osc.host)},
                             {"port", runtime.settings().osc.port}, {"target", QString::fromStdString(runtime.settings().osc.host) + ":" + QString::number(runtime.settings().osc.port)},
                             {"socket_ready", sender->isInitialized()}, {"packets_sent", static_cast<qint64>(packets)},
@@ -292,7 +304,7 @@ private:
 class ControlServer final : public QObject {
 public:
     ControlServer(const QString& endpoint, const QString& directory, const ControlSettings& settings,
-                  bool stall, bool restored, QObject* parent = nullptr)
+                  bool simulate, bool stall, std::string leapcLibrary, bool restored, QObject* parent = nullptr)
         : QObject(parent), directory_(directory), endpoint_(endpoint), lock_(QDir(privateDirectory({})).filePath(
             "engine-" + QString::fromLatin1(QCryptographicHash::hash(endpoint.toUtf8(), QCryptographicHash::Sha256).toHex().left(16)) + ".lock")),
           store_(directory, restored ? 1 : 0) {
@@ -313,7 +325,7 @@ public:
                 throw std::runtime_error("Cannot create local-only control endpoint");
 #endif
         }
-        worker_ = std::make_unique<EngineWorker>(settings, stall, this);
+        worker_ = std::make_unique<EngineWorker>(settings, simulate, stall, std::move(leapcLibrary), this);
         connect(&server_, &QLocalServer::newConnection, this, [this]() {
             while (server_.hasPendingConnections()) {
                 auto* socket = server_.nextPendingConnection();
@@ -345,9 +357,9 @@ public:
             devices[device.take("serial").toString()] = device;
         }
         const auto osc = current->config["osc"].toObject();
-        return {{"source", "simulated"}, {"hardware_verified", false},
+        return {{"source", current->state["source"]}, {"simulated", current->state["simulated"]}, {"hardware_verified", false},
             {"service_connected", current->state["service_connected"]}, {"destination", osc["host"]}, {"port", osc["port"]},
-            {"devices", devices}, {"output", current->state["output"]}};
+            {"devices", devices}, {"tracking", current->state["tracking"]}, {"output", current->state["output"]}};
     }
 private:
     QJsonArray profiles() const {
@@ -422,7 +434,11 @@ private:
                 for (qsizetype index = 0; index < devices.size(); ++index) {
                     auto device = devices[index].toObject(); device["serial"] = "<redacted>"; devices[index] = device;
                 }
-                state["devices"] = devices; diagnostic["state"] = state;
+                state["devices"] = devices;
+                auto tracking = state["tracking"].toObject();
+                if (!tracking.value("library_path").toString().isEmpty()) tracking["library_path"] = "<redacted>";
+                state["tracking"] = tracking;
+                diagnostic["state"] = state;
                 auto bytes = QJsonDocument(diagnostic).toJson(QJsonDocument::Indented);
                 for (const auto& serial : serials) bytes.replace(serial.toUtf8(), "<redacted>");
                 const auto folder = QDir(directory_).filePath("diagnostics");
@@ -498,12 +514,12 @@ private:
 int main(int argc, char** argv) {
     QCoreApplication app(argc, argv);
     QCoreApplication::setApplicationName("HandBridge");
-    QCoreApplication::setApplicationVersion("2.0.0-control-simulation");
+    QCoreApplication::setApplicationVersion("2.0.0");
     try {
         QCommandLineParser parser;
-        parser.setApplicationDescription("Hand Bridge native headless engine. Simulation only; UNTESTED ON HARDWARE.");
+        parser.setApplicationDescription("Hand Bridge native headless engine. LeapC tracking by default; --simulate selects mock cameras. UNTESTED ON HARDWARE.");
         parser.addHelpOption(); parser.addVersionOption();
-        parser.addOptions({QCommandLineOption(QStringLiteral("simulate"), "Use deterministic simulated cameras (required)."),
+        parser.addOptions({QCommandLineOption(QStringLiteral("simulate"), "Use deterministic simulated cameras instead of LeapC."),
             QCommandLineOption(QStringLiteral("headless"), "Run without a GUI (always true)."),
             QCommandLineOption(QStringLiteral("config"), "Explicit legacy or schema2 configuration.", "path"),
             QCommandLineOption(QStringLiteral("host"), "Numeric IPv4 OSC destination.", "host"),
@@ -511,12 +527,26 @@ int main(int argc, char** argv) {
             QCommandLineOption(QStringLiteral("duration-ms"), "Exit after N milliseconds;0 means until Ctrl-C.", "milliseconds", "0"),
             QCommandLineOption(QStringLiteral("scenario"), "Simulation normal or stall.", "scenario", "normal"),
             QCommandLineOption(QStringLiteral("endpoint"), "Local control endpoint token.", "name", handbridge::ipc::defaultEndpoint()),
-            QCommandLineOption(QStringLiteral("state-dir"), "Private profile/configuration directory.", "path")});
+            QCommandLineOption(QStringLiteral("state-dir"), "Private profile/configuration directory.", "path"),
+            QCommandLineOption(QStringLiteral("leapc-library"), "Absolute path to the installed LeapC runtime library.", "path"),
+            QCommandLineOption(QStringLiteral("check-leapc"), "Load and verify the LeapC runtime without starting tracking or writing state.")});
         parser.process(app);
-        if (!parser.isSet("simulate")) throw std::invalid_argument("This engine requires --simulate; the real LeapC adapter is not implemented");
+        const bool simulate = parser.isSet("simulate");
         if (!parser.positionalArguments().isEmpty()) throw std::invalid_argument("Unexpected positional argument");
         const auto scenario = parser.value("scenario");
         if (scenario != "normal" && scenario != "stall") throw std::invalid_argument("Unknown simulation scenario");
+        if (!simulate && scenario != "normal") throw std::invalid_argument("--scenario stall requires --simulate");
+        const auto leapcLibrary = parser.value("leapc-library");
+        if (!leapcLibrary.isEmpty() && (!QDir::isAbsolutePath(leapcLibrary) || simulate))
+            throw std::invalid_argument("--leapc-library requires an absolute installed-library path and real tracking mode");
+        if (parser.isSet("check-leapc")) {
+            if (simulate) throw std::invalid_argument("--check-leapc cannot be combined with --simulate");
+            const auto probe = probeLeapC(leapcLibrary.toStdString());
+            const QJsonObject report{{"provider", "leapc"}, {"library", QString::fromStdString(probe.path)},
+                {"version", QString::fromStdString(probe.version)}, {"client_api_version", QString::fromStdString(probe.apiVersion)}, {"hardware_verified", false}};
+            std::cout << QJsonDocument(report).toJson(QJsonDocument::Compact).toStdString() << '\n';
+            return 0;
+        }
         const auto endpoint = parser.value("endpoint");
         if (!QRegularExpression(QStringLiteral("^[A-Za-z0-9_.-]{1,80}$")).match(endpoint).hasMatch())
             throw std::invalid_argument("Endpoint must use1-80 letters, numbers, dot, underscore or hyphen");
@@ -542,8 +572,8 @@ int main(int argc, char** argv) {
             settings.osc.port = static_cast<int>(value); restored = false;
         }
         settings.validate();
-        ControlServer server(endpoint, directory, settings, scenario == "stall", restored);
-        std::cerr << "SIMULATED tracking; UNTESTED ON HARDWARE; local control endpoint=" << endpoint.toStdString()
+        ControlServer server(endpoint, directory, settings, simulate, scenario == "stall", leapcLibrary.toStdString(), restored);
+        std::cerr << trackingSourceName(simulate) << " tracking; UNTESTED ON HARDWARE; local control endpoint=" << endpoint.toStdString()
                   << "; UDP send success is not receiver acknowledgement\n";
         std::signal(SIGINT, interrupt); std::signal(SIGTERM, interrupt);
         const auto started = std::chrono::steady_clock::now();

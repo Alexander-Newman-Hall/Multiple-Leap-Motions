@@ -80,16 +80,19 @@ Controller::~Controller() {
     timeoutTimer_.stop();
     socket_.disconnect(this);
     socket_.abort(); // Close this IPC client only; the detached engine survives.
+    if (launchProbe_) { launchProbe_->disconnect(this); launchProbe_->kill(); }
 }
 
 bool Controller::isMutation(const QString& command) {
     return command != QStringLiteral("get_state") && command != QStringLiteral("list_profiles");
 }
 bool Controller::busy() const {
+    if (launchProbe_) return true;
     for (const auto& item : pending_) if (isMutation(item.command)) return true;
     return false;
 }
 QString Controller::statusText() const {
+    if (launchProbe_) return QStringLiteral("Checking Ultraleap runtime");
     if (!connected_) return connecting_ ? QStringLiteral("Connecting") : QStringLiteral("Engine offline");
     if (busy()) {
         for (const auto& item : pending_) {
@@ -348,8 +351,11 @@ void Controller::revert() {
     if (wasDirty != dirty()) emit dirtyChanged();
     emit uiChanged();
 }
-void Controller::startSimulator() {
-    if (connected_ || connecting_) return;
+void Controller::startSimulator() { startEngine(true); }
+void Controller::startHardwareEngine() { startEngine(false); }
+void Controller::startEngine(bool simulate) {
+    if (connected_ || busy()) return;
+    if (connecting_) { socket_.abort(); connecting_ = false; }
     const auto executable = QDir(QCoreApplication::applicationDirPath()).filePath(
 #ifdef Q_OS_WIN
         QStringLiteral("handbridge-engine.exe")
@@ -361,10 +367,69 @@ void Controller::startSimulator() {
         setError(QStringLiteral("Cannot find handbridge-engine beside the controller. Build both native targets."));
         return;
     }
+    if (simulate) {
+        launchDetachedEngine(executable, true);
+        return;
+    }
+    // Checking the installed runtime is asynchronous and does not open a LeapC
+    // connection. The actual tracking engine is detached only after this succeeds.
+    auto* probe = new QProcess(this);
+    launchProbe_ = probe;
+    probe->setProgram(executable);
+    probe->setArguments({QStringLiteral("--check-leapc")});
+    probe->setWorkingDirectory(QCoreApplication::applicationDirPath());
+    errorMessage_.clear();
+    rejected_ = false;
+    notice_ = QStringLiteral("Checking the installed Ultraleap runtime before starting tracking…");
+    emit busyChanged();
+    emit uiChanged();
+    connect(probe, &QProcess::errorOccurred, this, [this, probe](QProcess::ProcessError error) {
+        if (error != QProcess::FailedToStart || launchProbe_ != probe) return;
+        launchProbe_ = nullptr;
+        notice_.clear();
+        setError(QStringLiteral("Cannot run the bundled engine's Ultraleap check: ") + probe->errorString());
+        emit busyChanged();
+        probe->deleteLater();
+    });
+    connect(probe, qOverload<int, QProcess::ExitStatus>(&QProcess::finished), this,
+        [this, probe, executable](int exitCode, QProcess::ExitStatus exitStatus) {
+            if (launchProbe_ != probe) return;
+            launchProbe_ = nullptr;
+            emit busyChanged();
+            const auto report = QJsonDocument::fromJson(probe->readAllStandardOutput()).object();
+            const auto details = QString::fromUtf8(probe->readAllStandardError()).simplified().left(768);
+            const bool timedOut = probe->property("handbridge_probe_timed_out").toBool();
+            probe->deleteLater();
+            if (connected_) {
+                notice_ = QStringLiteral("Connected to the running engine.");
+                emit uiChanged();
+                return;
+            }
+            if (exitStatus != QProcess::NormalExit || exitCode != 0 || report.value(QStringLiteral("provider")).toString() != QStringLiteral("leapc")) {
+                notice_.clear();
+                setError(timedOut ? QStringLiteral("The Ultraleap runtime check timed out. Check the installed Hyperion runtime.") :
+                    QStringLiteral("Ultraleap runtime unavailable. ") + (details.isEmpty() ?
+                        QStringLiteral("Install Hyperion and use a build with LeapC support.") : details));
+                return;
+            }
+            launchDetachedEngine(executable, false);
+        });
+    QTimer::singleShot(5000, probe, [this, probe] {
+        if (launchProbe_ == probe && probe->state() != QProcess::NotRunning) {
+            probe->setProperty("handbridge_probe_timed_out", true);
+            probe->kill();
+        }
+    });
+    probe->start();
+}
+void Controller::launchDetachedEngine(const QString& executable, bool simulate) {
+    if (connected_) return;
     qint64 pid = 0;
     QProcess process;
     process.setProgram(executable);
-    process.setArguments({QStringLiteral("--simulate"), QStringLiteral("--endpoint"), endpoint_});
+    QStringList arguments{QStringLiteral("--endpoint"), endpoint_};
+    if (simulate) arguments.prepend(QStringLiteral("--simulate"));
+    process.setArguments(arguments);
     process.setWorkingDirectory(QCoreApplication::applicationDirPath());
 #ifdef _WIN32
     // startDetached deliberately leaves no owned process to terminate when this
@@ -375,12 +440,14 @@ void Controller::startSimulator() {
     });
 #endif
     if (!process.startDetached(&pid)) {
-        setError(QStringLiteral("The simulated engine could not be started."));
+        setError(simulate ? QStringLiteral("The simulated engine could not be started.") :
+            QStringLiteral("The LeapC tracking engine could not be started."));
         return;
     }
     rejected_ = false;
     errorMessage_.clear();
-    notice_ = QStringLiteral("Starting a simulated engine. It keeps running when this window closes.");
+    notice_ = simulate ? QStringLiteral("Starting a simulated engine. It keeps running when this window closes.") :
+        QStringLiteral("Starting the LeapC engine. Keep Hyperion running; this window can close without stopping tracking.");
     QTimer::singleShot(300, this, &Controller::connectToEngine);
     emit uiChanged();
 }

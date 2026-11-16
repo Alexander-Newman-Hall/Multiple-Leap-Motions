@@ -99,3 +99,31 @@ the user requested modern tactile controls that affect output, not cosmetic slid
 **Consequence:** every exposed schema field maps to an engine behavior; advanced
 per-channel overrides/all-bone OSC/v2 remain unimplemented and are not presented
 as working controls. Coordinate/unit changes are explicit profile choices.
+
+## ADR-015 — Explicit Hyperion v6 SDK and verified runtime versions
+
+**Status:** Accepted by explicit user instruction,2026-11-15. Use the SDK extracted
+from the official Hyperion 6.2.0 installer, with pinned installer/tool/file hashes.
+Do not substitute the earlier Unreal-plugin5.30 SDK. Use the actual LeapGetVersion
+declarations to require client and connected ServerLibrary versions6.2.0 or newer
+within 6.x. A Connection event alone is insufficient to report healthy service.
+The Windows loader resolves an absolute client DLL with safe search flags; its
+lifetime encloses adapter handle cleanup. --check-leapc loads/queries/unloads
+without connecting to the service or writing state. Keep SDK files out of Git and
+the portable preview; the official installed Hyperion runtime is a prerequisite.
+**Consequence:** compilation, export/version probes and injected lifecycle tests
+are feasible without cameras. Physical USB/service/TouchDesigner acceptance is
+still required; unknown installed versions are reported or rejected, never assumed.
+
+## ADR-016 — Release portable deployment with an independent engine
+
+**Status:** Accepted by explicit user request,2026-11-15. Package sibling native
+engine/controller executables, unmodified dynamic Qt 6.8.3/QML/platform plugins,
+permitted app-local Microsoft Release CRT, dependency notices and exact Qt
+corresponding source. Do not package Debug CRT, SDK-only archives or camera
+drivers. Record source/header/Qt identities and diagnostic hashes in a manifest.
+Test the extracted ZIP with developer PATH/settings removed, actual Windows
+plugin/module paths, rendered images and continuing UDP across GUI lifecycles.
+**Consequence:** this is an unsigned developer preview with an external Hyperion
+installation, not an installer or hardware-accepted release. Cleaned CI search
+paths do not prove every consumer Windows10/11 machine or GPU configuration.

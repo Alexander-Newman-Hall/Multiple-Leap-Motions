@@ -2,9 +2,13 @@
 #include "ipc/Framing.hpp"
 
 #include <QCoreApplication>
+#include <QDir>
 #include <QJsonArray>
 #include <QLocalServer>
+#include <QProcess>
+#include <QScopeGuard>
 #include <QSignalSpy>
+#include <QTemporaryDir>
 #include <QTest>
 #include <QUuid>
 #include <memory>
@@ -236,6 +240,37 @@ private slots:
         QVERIFY(!controller_->busy());
         controller_->saveProfile("Default");
         QCOMPARE(count("save_profile"), 0);
+    }
+    void missingHardwareRuntimePreflightIsAsynchronousVisibleAndRetryable() {
+        QTemporaryDir directory;
+        QVERIFY(directory.isValid());
+        const auto variable = "HANDBRIDGE_LEAPC_LIBRARY";
+        const bool previouslySet = qEnvironmentVariableIsSet(variable);
+        const auto previous = qgetenv(variable);
+        const auto restore = qScopeGuard([&] {
+            if (previouslySet) qputenv(variable, previous);
+            else qunsetenv(variable);
+        });
+        const auto missing = QDir(directory.path()).absoluteFilePath("missing-LeapC.dll");
+        qputenv(variable, missing.toUtf8());
+
+        // This controller has no server. It invokes the actual sibling engine's
+        // nontracking --check-leapc path; no SDK connection/device is opened.
+        Controller offline("handbridge-missing-runtime-" + QUuid::createUuid().toString(QUuid::Id128));
+        QSignalSpy changes(&offline, &Controller::busyChanged);
+        for (int attempt = 0; attempt < 2; ++attempt) {
+            const auto before = changes.count();
+            offline.startHardwareEngine();
+            QVERIFY(offline.busy());
+            QCOMPARE(offline.statusText(), "Checking Ultraleap runtime");
+            QTRY_VERIFY_WITH_TIMEOUT(!offline.busy(), 5000);
+            QVERIFY(!offline.connected());
+            QVERIFY2(offline.errorMessage().contains("Ultraleap runtime unavailable"), qPrintable(offline.errorMessage()));
+            QVERIFY(changes.count() >= before + 2);
+            QTRY_VERIFY(offline.findChildren<QProcess*>().isEmpty());
+        }
+        QCOMPARE(count("apply_config"), 0); // A failed launch does not send settings to another engine.
+        QVERIFY(controller_->connected()); // Existing connected controllers remain usable.
     }
 };
 

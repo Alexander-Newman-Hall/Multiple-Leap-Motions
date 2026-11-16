@@ -1,14 +1,18 @@
 # Architecture — Hand Bridge 2.0
 
-**Status:** Phase1 core plus native controller/local IPC/settings slice implemented; hardware adapter remains pending.
+**Status:** Native controller/runtime plus an optional real LeapC adapter implemented;
+physical hardware acceptance remains open. Windows Release packaging is a separate
+deployment gate, documented in WINDOWS_RELEASE.md and CURRENT_STATE.md.
 
 ## Implemented boundary (2026-11-15)
 
 `handbridge-core` compiles the preserved raw-mm processor, aliases, legacy config,
 sorter and OSC sender without SDK/UI dependencies. `handbridge-runtime` owns
 `ITrackingSource`, deterministic `MockTrackingSource`, and `EngineRuntime`.
-`handbridge-engine` requires `--simulate` and reuses the preserved production
-processor/oscpack serializer. The default console host is Qt-free. The optional
+`handbridge-tracking` selects an explicit mock or the optional SDK-backed source.
+`handbridge-engine` defaults to real tracking when SDK-enabled and reuses the
+preserved production processor/oscpack serializer. `--simulate` remains explicit;
+SDK-off real startup fails clearly. The default console host is Qt-free. The optional
 QtCore/Network IPC host places the same runtime on a separate worker; GUI rendering
 libraries and objects do not enter either engine path.
 
@@ -31,9 +35,36 @@ Output failures count separately and do not stop processing. The default host re
 publishes sampled telemetry to the native controller. Actual GUI attach/close/
 kill/reopen has been tested against continuing mock-source UDP output.
 
-Still proposed below: the real SDK adapter, per-channel processing overrides,
+Still proposed below: per-channel processing overrides,
 explicit OSCv2 validity, full 3D/all-joint preview and production packaging. The original
 ImGui path remains separate and retains its known lifecycle limitations.
+
+## LeapC adapter and DLL ownership
+
+`LeapCApi` obtains every type/signature/calling convention from the actual official
+SDK header. The production adapter owns one multi-device-aware connection and
+SDK-id/serial/handle/subscription records on its runtime owner thread. It waits for
+the SDK Connection event before enumeration; poll uses timeout0 and an eight-event
+budget. A three-second handshake deadline and capped retries prevent busy loops.
+Known stale streams restart only their device; device/service loss releases handles
+and invalidates output through the existing supervisor. Enumeration refreshes
+transient references without closing healthy cameras. SDK pointers are copied
+before the next poll; native hand IDs remain local to one device.
+
+`LoadedLeapCSource` owns the DLL before the adapter, so reverse destruction cleans
+the SDK handles before FreeLibrary. The loader resolves twelve required exports
+from an absolute selected path using safe Windows search flags; no bare DLL is
+searched on PATH or in the working directory. `--check-leapc` verifies load/exports/
+version without opening the service or writing configuration. The twelve required
+exports include the real SDK `LeapGetVersion`: client and server-library versions
+must each be6.2.0 or a newer6.x. Service health waits for the server version check
+after an actual connection event. Engine diagnostics
+publish actual library identity, attempts, poll errors and retained errors; exports
+redact the path. None of this establishes physical tracking/service compatibility.
+
+Known native hand-ID changes reset only that hand's positional and gesture state,
+including raw-bypass gesture handling. Unknown IDs preserve legacy/mock behavior.
+Legacy OSC addresses/types/defaults and schema2 remain unchanged.
 
 ## Context and process split
 
