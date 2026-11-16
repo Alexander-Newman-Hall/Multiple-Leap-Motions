@@ -1,3 +1,23 @@
+## Automated M0 checkpoint — 2026-11-16
+
+Feasibility work is committed/pushed on `codex/handbridge-macos-feasibility`.
+[Initial Apple run](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43955399147)
+at `4c48c61`: macOS 15.8.2 (24H232), arm64 Apple M1 virtual machine, Xcode
+16.4 (16F6), macOS SDK 15.5, Apple Clang 17.0.0 (clang-1700.0.13.5), libc++
+`_LIBCPP_VERSION=190102`, CMake 4.4.5. Both C++20 probes **FAIL compilation**:
+missing jthread/stop_token/stop_callback and atomic shared_ptr specialization.
+No production compatibility changes are in scope for M0. A step marked successful
+by continue-on-error is not a passing compiler check; the final job is failed.
+
+Added isolated SDK diagnostic, independent Apple probe harness, Mac-only SDK
+inspection/offline harness and `.github/workflows/macos-m0.yml`; no production
+source/build/GUI/OSC/config changes. Official Apple Silicon 6.2.0 package signature
+and notarization verified; SHA-256 pinned from that actual run. Initial diagnostic
+selection blocked on multiple SDK/plugin copies; corrected to the inspected
+canonical LeapSDK/include header and LeapSDK/lib/libLeapC.6.dylib. Re-run pending.
+Physical two-camera/service/recovery/TouchDesigner checks **NOT RUN**.
+Full final results will supersede this checkpoint in [M0 report](reports/MACOS_M0.md).
+
 ## Latest M0 handoff — 2026-11-16
 
 Branch: `codex/handbridge-macos-feasibility`, based on planning commit

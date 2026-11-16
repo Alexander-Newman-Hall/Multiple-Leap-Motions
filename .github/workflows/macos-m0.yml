@@ -50,6 +50,9 @@ jobs:
           esac
           curl --fail --location --retry 3 --max-time 600 "https://s3.eu-west-1.amazonaws.com/downloads.ultraleap.com/software/tracking-software/6.2.0/tracking-software-$platform-6.2.0.pkg" -o work/macos-m0/hyperion.pkg
           shasum -a 256 work/macos-m0/hyperion.pkg
+          if [ "$platform" = apple-silicon ]; then
+            echo '9cad82a6282e322d2acd71f3746e50b472f3ed83bb5f9fa6f54d554f404c5531  work/macos-m0/hyperion.pkg' | shasum -a 256 -c -
+          fi
           pkgutil --check-signature work/macos-m0/hyperion.pkg
           pkgutil --expand-full work/macos-m0/hyperion.pkg work/macos-m0/sdk
           find work/macos-m0/sdk -type f | sort
