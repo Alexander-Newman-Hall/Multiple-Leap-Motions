@@ -113,9 +113,14 @@ warning subsequently removed by explicit Session construction in `1b29631`.
 That commit also allocates the owning device record before opening its SDK handle,
 so allocation failure cannot orphan a handle. A final exact-source repeat at
 `cab1839` is [run 43958755065](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43958755065)
-(still workflow-queued with no job created as of 2026-11-16 13:32 America/Los_Angeles;
-no result is claimed). It remains queued for GitHub to execute; this is distinct
-from the completed Intel SDK run and the explicit arm64 acquisition failure.
+completed 2026-11-16: the host inspection ran; package download failed with
+`curl: (56) Recv failure: Connection reset by peer`. Diagnostic **NOT RUN**,
+not a library-loading failure. Artifact upload also failed with ETIMEDOUT.
+Actions logs retained both failures. The retry now uses curl --retry-all-errors
+with bounded connection/runtime limits and skips known feature probes by default.
+A workflow_dispatch boolean retains an explicit re-audit option. Existing successful
+Intel SDK evidence at c9f337d is unchanged. A fresh SDK-only retry will record its
+own exact source/run; Apple Silicon remains separately blocked on allocation.
 
 Intel machine/toolchain: `macos-15-intel`, x86_64, system_profiler reports Mac mini /
 Macmini6,2, processor name **Unknown** (do not infer a physical chip model),

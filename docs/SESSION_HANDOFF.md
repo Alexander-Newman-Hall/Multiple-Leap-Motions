@@ -1,3 +1,13 @@
+## M0 evidence follow-up — 2026-11-16
+
+Final repeat 43958755065 completed: SDK download connection reset (curl 56),
+diagnostic skipped, artifact upload ETIMEDOUT. These are infrastructure failures;
+previous Intel SDK compile/load/no-service PASS remains valid. Corrected curl
+retry-all-errors and immutable Actions pins; feature probes now opt-in because
+Xcode 16.4 failures are established. One SDK-only retry is pending, then the user
+has authorized the narrow M2 owned-thread/mutex-snapshot compatibility change.
+No Hyperion downgrade, GUI redesign or physical acceptance is authorized/implied.
+
 # Session handoff — macOS M0 automation
 
 Branch: `codex/handbridge-macos-feasibility`, from planning `d104b87`.

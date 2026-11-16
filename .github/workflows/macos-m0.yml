@@ -10,6 +10,10 @@ on:
         type: choice
         options: [macos-15, macos-26, macos-15-intel]
         default: macos-15
+      probe_features:
+        description: Re-audit original library features (known Xcode 16.4 failures)
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -17,7 +21,7 @@ jobs:
     runs-on: ${{ inputs.runner || 'macos-15' }}
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Inspect host and probe C++ library
         id: features
         continue-on-error: true
@@ -36,7 +40,11 @@ jobs:
           cmake --version
           echo "MACOSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET-unset}"
           printf '#include <version>\n' | xcrun clang++ -std=c++20 -dM -E -x c++ - | sort
-          python3 probes/macos-m0/run-features.py
+          if [ "${{ inputs.probe_features }}" = true ]; then
+            python3 probes/macos-m0/run-features.py
+          else
+            echo 'Original feature probes not repeated; see docs/reports/MACOS_M0.md for measured failures.'
+          fi
       - name: Inspect official Mac SDK
         id: sdk
         shell: bash
@@ -48,7 +56,7 @@ jobs:
             x86_64) platform=apple-intel ;;
             *) exit 1 ;;
           esac
-          curl --fail --location --retry 3 --max-time 600 "https://s3.eu-west-1.amazonaws.com/downloads.ultraleap.com/software/tracking-software/6.2.0/tracking-software-$platform-6.2.0.pkg" -o work/macos-m0/hyperion.pkg
+          curl --fail --location --retry 3 --retry-all-errors --retry-delay 5 --connect-timeout 30 --max-time 600 "https://s3.eu-west-1.amazonaws.com/downloads.ultraleap.com/software/tracking-software/6.2.0/tracking-software-$platform-6.2.0.pkg" -o work/macos-m0/hyperion.pkg
           shasum -a 256 work/macos-m0/hyperion.pkg
           if [ "$platform" = apple-silicon ]; then
             echo '9cad82a6282e322d2acd71f3746e50b472f3ed83bb5f9fa6f54d554f404c5531  work/macos-m0/hyperion.pkg' | shasum -a 256 -c -
@@ -65,7 +73,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 probes/macos-m0/run-sdk.py 2>&1 | tee work/macos-m0/diagnostic-results.txt
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
           name: macos-m0-evidence
