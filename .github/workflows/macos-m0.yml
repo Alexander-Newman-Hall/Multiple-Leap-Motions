@@ -46,10 +46,16 @@ jobs:
           find work/macos-m0/sdk -type f | sort
           find work/macos-m0/sdk -name LeapC.h -exec shasum -a 256 {} \; > work/macos-m0/header-inspection.txt
           find work/macos-m0/sdk -iname '*leapc*dylib*' -exec ls -l {} \; -exec file {} \; -exec lipo -info {} \; -exec otool -L {} \; -exec shasum -a 256 {} \; -exec nm -gU {} \;
+      - name: Build and run bounded SDK diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 probes/macos-m0/run-sdk.py 2>&1 | tee work/macos-m0/diagnostic-results.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: macos-m0-evidence
           path: |
             work/macos-m0/results.txt
+            work/macos-m0/diagnostic-results.txt
           retention-days: 14
