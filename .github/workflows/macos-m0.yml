@@ -12,7 +12,9 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - name: Inspect host, probe C++ library and inspect official SDK
+      - name: Inspect host and probe C++ library
+        id: features
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -28,12 +30,13 @@ jobs:
           cmake --version
           echo "MACOSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET-unset}"
           printf '#include <version>\n' | xcrun clang++ -std=c++20 -dM -E -x c++ - | sort
-          for name in threading snapshot; do
-            xcrun clang++ -std=c++20 -pthread "probes/macos-m0/$name.cpp" -o "work/macos-m0/$name"
-            python3 -c 'import subprocess,sys; subprocess.run([sys.argv[1]],timeout=10,check=True)' "work/macos-m0/$name"
-            otool -L "work/macos-m0/$name"
-            echo "$name COMPILE/LINK/RUN PASS"
-          done
+          python3 probes/macos-m0/run-features.py
+      - name: Inspect official Mac SDK
+        id: sdk
+        shell: bash
+        run: |
+          set -euo pipefail
+          exec > >(tee work/macos-m0/sdk-results.txt) 2>&1
           case "$(uname -m)" in
             arm64) platform=apple-silicon ;;
             x86_64) platform=apple-intel ;;
@@ -57,5 +60,9 @@ jobs:
           name: macos-m0-evidence
           path: |
             work/macos-m0/results.txt
+            work/macos-m0/sdk-results.txt
             work/macos-m0/diagnostic-results.txt
           retention-days: 14
+      - name: Require successful Apple library probes
+        if: always() && steps.features.outcome != 'success'
+        run: exit 1
