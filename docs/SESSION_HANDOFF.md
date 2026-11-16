@@ -2,12 +2,12 @@
 
 Branch: `codex/handbridge-macos-feasibility`. M0 final evidence at `e1fcd18`,
 collected before the user-authorized narrow M2 concurrency slice. Application source 536a018
-builds locally; full native suite 64/64 PASS (22.12 s), Windows/Linux and Windows Release CI PASS; Mac host check pending; do not treat this as full M2 or a Mac release.
+builds locally; full native suite 64/64 PASS (22.12 s), Windows/Linux and Windows Release CI PASS; Intel Mac hosts compile/link and focused worker tests PASS; full Mac suite retains SIGPIPE failure; do not treat this as full M2 or a Mac release.
 
 | Finding | Status and evidence |
 |---|---|
 | **SDK verified on Intel** | M0 retry [43962640624](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43962640624) **PASS**: Apple Clang compile/link without warnings, genuine ClientLibrary **6.2.0**, missing/load-only/no-service exits **2/0/3**, clean five-second shutdown. ServerLibrary unavailable. |
-| **Host code compatibility** | M0 measured missing jthread/stop-token and atomic shared_ptr on Xcode 16.4 / libc++ 190102. Narrow M2 replacement at 536a018 builds locally; focused 3/3 and full native **64/64 PASS** (22.12 s). Windows/Linux native and Windows Release CI **PASS**. First Mac Qt-free suite **59/60 PASS**, one existing broadcast test SIGPIPE; mailbox tests PASS, Qt host step was skipped. Independent-suite rerun pending. C++20 and Hyperion 6.2 retained. |
+| **Host code compatibility** | M0 measured missing jthread/stop-token and atomic shared_ptr on Xcode 16.4 / libc++ 190102. Narrow M2 replacement at 536a018 builds locally; focused 3/3 and full native **64/64 PASS** (22.12 s). Windows/Linux native and Windows Release CI **PASS**. Intel Mac rerun [43965924196](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43965924196) at workflow/source 1579c4f: both hosts compile/link; snapshot tests and WorkerLifecycle **PASS**. Full suites **59/60** Qt-free and **60/61** Qt-host; each retains the existing broadcast **SIGPIPE** failure. Overall Mac job FAIL; narrow slice BUILD/MOCK TESTED. C++20 and Hyperion 6.2 retained. |
 | **Infrastructure** | Corrected arm64 diagnostic BLOCKED on explicit GitHub runner-allocation failure; says nothing about SDK compatibility. Earlier final Intel repeat 43958755065 failed download/artifact networking, then SDK-only retry passed. |
 | **Physical acceptance** | Running Mac service, two simultaneous cameras, no-hands, recovery and TouchDesigner receipt **NOT RUN**; M1 stays open. |
 
@@ -25,11 +25,15 @@ from [M2 concurrency verification](reports/MACOS_M2_CONCURRENCY.md). Original
 compiler probes remain historical, now opt-in; the new checks exercise replacements.
 
 **Milestones:** M0 measured with remaining arm64 infrastructure blocker; narrow M2
-concurrency slice in progress; full M2 protected IPC/arm64/UI acceptance and Darwin SIGPIPE error handling still open;
+concurrency slice implemented and BUILD/MOCK TESTED; full M2 protected IPC/arm64/UI acceptance and Darwin SIGPIPE error handling still open;
 M1 physical NOT RUN; M3–M5 not started. No Mac distribution/minimum/universal claim.
 
-**Next exact task:** collect independent Intel Mac QtCore/Network host build and
-worker checks; retain the separate Darwin broadcast SIGPIPE failure; record actual results and blockers.
+**Next exact task:** diagnose and fix Darwin SIGPIPE in the existing broadcast
+send-error test without OSC/Windows behavior changes; rerun both Mac suites.
+This is a separate M2 portability task; keep protected IPC, arm64 and physical
+M1 acceptance open. No new service/camera/TD or distributable-Mac claim. No tests
+were skipped to hide the failure. See the M2 report for exact toolchain, commands,
+per-suite counts, source IDs, changed files and limits.
 
 ## Preserved Windows and planning history
 

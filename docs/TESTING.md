@@ -135,3 +135,26 @@ pass/skip totals; this platform-specific skip is unrelated to hardware validatio
 For Release reproduction and the verified no-development-PATH package gate, see
 [WINDOWS_RELEASE](WINDOWS_RELEASE.md). A successful package smoke still requires
 subsequent physical acceptance and a long-run soak on the target Windows PC.
+
+## M2 worker compatibility regressions (SDK-free)
+
+`test_WorkerConcurrency.cpp` exercises the production SnapshotMailbox with concurrent
+readers, coherent immutable records and retained values after replacement and
+mailbox destruction. `test_WorkerLifecycle.py` launches the existing QtCore/Network
+host: a real-provider startup error must exit exactly 1 without abort, and explicit
+simulation must exit naturally with final snapshot and decoded loopback UDP.
+A timeout/kill is a failure, never a successful stop. No cameras, GUI target or SDK
+are used by these checks. The full existing Windows/Linux UI/IPC suites still
+verify output continuity across controller close/kill/reopen.
+
+```sh
+ctest --preset control-debug -R 'WorkerConcurrency|WorkerLifecycle' --output-on-failure
+```
+
+The Intel Mac concurrency workflow builds Qt-free and QtCore/Network hosts directly
+and records both suites independently. It keeps every observed failing case and
+fails its final gate if either suite fails, even though steps continue to collect
+worker evidence. An observed existing Darwin broadcast-error test SIGPIPE is a
+separate unresolved transport result. Full M2 protected IPC/arm64/native UI and
+physical M1 acceptance remain open; see reports/MACOS_M2_CONCURRENCY.md. No ASan/
+TSan coverage is claimed by these ordinary builds.

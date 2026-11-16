@@ -1,5 +1,20 @@
 # Hand Bridge 2.0 changelog
 
+## Unreleased — M0 evidence and narrow M2 concurrency slice, 2026-11-16
+
+- Verified final owned SDK diagnostic on Intel with genuine Mac Hyperion 6.2.0:
+  missing library, real client loading and bounded no-service cleanup. Arm64
+  allocation failure remains infrastructure evidence; physical M1 NOT RUN.
+- Replaced only the host's unavailable jthread/stop-token and atomic shared_ptr
+  primitives with an owned thread, explicit stop/wake/join and immutable mutex
+  snapshots (ADR-017), retaining C++20, Hyperion 6.2, GUI and legacy OSC/config.
+- Added focused snapshot/worker regressions and SDK-free Intel Mac host CI. Local
+  64/64 native tests and Windows/Linux CI pass. Both Mac hosts compile/link, and new worker/snapshot tests pass. Full Mac suites
+  retain the separate existing broadcast test SIGPIPE (59/60 core, 60/61 host);
+  full M2 is not passed or distributable.
+- Exact commits, native results and remaining blockers are in the M0/M2 reports;
+  no real tracking service, two-camera recovery or TouchDesigner acceptance claim.
+
 ## macOS port plan — 2026-11-16
 
 - Added six staged milestones and a bounded local-Mac first-task prompt; preserved
