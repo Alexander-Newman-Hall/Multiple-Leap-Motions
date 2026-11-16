@@ -1,0 +1,56 @@
+name: macOS M0 feasibility
+on:
+  push:
+    branches: [codex/handbridge-macos-feasibility]
+    paths: ['probes/macos-m0/**', '.github/workflows/macos-m0.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect host, probe C++ library and inspect official SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work/macos-m0
+          exec > >(tee work/macos-m0/results.txt) 2>&1
+          uname -a
+          sw_vers
+          system_profiler SPHardwareDataType | sed '/Serial Number/d; /Hardware UUID/d; /Provisioning UDID/d'
+          xcode-select -p
+          xcodebuild -version
+          xcrun --sdk macosx --show-sdk-version
+          xcrun clang++ --version
+          cmake --version
+          echo "MACOSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET-unset}"
+          printf '#include <version>\n' | xcrun clang++ -std=c++20 -dM -E -x c++ - | sort
+          for name in threading snapshot; do
+            xcrun clang++ -std=c++20 -pthread "probes/macos-m0/$name.cpp" -o "work/macos-m0/$name"
+            python3 -c 'import subprocess,sys; subprocess.run([sys.argv[1]],timeout=10,check=True)' "work/macos-m0/$name"
+            otool -L "work/macos-m0/$name"
+            echo "$name COMPILE/LINK/RUN PASS"
+          done
+          case "$(uname -m)" in
+            arm64) platform=apple-silicon ;;
+            x86_64) platform=apple-intel ;;
+            *) exit 1 ;;
+          esac
+          curl --fail --location --retry 3 --max-time 600 "https://s3.eu-west-1.amazonaws.com/downloads.ultraleap.com/software/tracking-software/6.2.0/tracking-software-$platform-6.2.0.pkg" -o work/macos-m0/hyperion.pkg
+          shasum -a 256 work/macos-m0/hyperion.pkg
+          pkgutil --check-signature work/macos-m0/hyperion.pkg
+          pkgutil --expand-full work/macos-m0/hyperion.pkg work/macos-m0/sdk
+          find work/macos-m0/sdk -type f | sort
+          find work/macos-m0/sdk -name LeapC.h -exec shasum -a 256 {} \; -exec cat {} \; > work/macos-m0/header-inspection.txt
+          find work/macos-m0/sdk -iname '*leapc*dylib*' -exec ls -l {} \; -exec file {} \; -exec lipo -info {} \; -exec otool -L {} \; -exec shasum -a 256 {} \; -exec nm -gU {} \;
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: macos-m0-evidence
+          path: |
+            work/macos-m0/results.txt
+            work/macos-m0/header-inspection.txt
+          retention-days: 14
