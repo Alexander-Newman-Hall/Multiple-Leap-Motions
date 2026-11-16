@@ -1,50 +1,144 @@
-# macOS M0 attempt — 2026-11-16
+# macOS M0 — actual automated feasibility evidence
 
-**M0 BLOCKED; SDK diagnostic incomplete. M1 NOT RUN.** This is a cloud Linux
-checkout, not the owner's Mac. No Mac build, dylib load, service version query,
-camera observation or Mac missing-library/no-service test was performed.
+Date: 2026-11-16 (America/Los_Angeles). Branch:
+`codex/handbridge-macos-feasibility`, from planning revision
+`d104b87b4bdda248b12a90821f21a0742d479ce8`. Original feasibility work preserved
+in `f4f60a5`; automated diagnostic source in `1cd6b9b`, runner options in `c9f337d`.
+**M0 measurements in progress; compiler portability blockers established.
+Physical two-camera tests NOT RUN. M2–M5 not started.**
 
-Branch: `codex/handbridge-macos-feasibility`, created from latest fetched planning
-branch commit `d104b87b4bdda248b12a90821f21a0742d479ce8`; initial checkout clean.
-This report and the probes are uncommitted changes atop that revision.
+## Actual Apple compiler results
 
-## Actual environment and checks
+[Run 43955399147](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43955399147),
+source `4c48c617f56a2e4d5f4fcbe6103a22279385b26f`, completed **FAILURE**.
 
-- `uname -a`: Linux 2082065c6b14 6.18.57 #1 SMP Tue Oct 20 21:56:04 UTC 2026
-  x86_64 GNU/Linux. This is not evidence of the owner's Mac chip or OS.
-- `c++ --version`: Debian GCC 14.2.0-19, 14.2.0; not Apple Clang/libc++.
-- `cmake --version`: command not found.
-- `command -v sw_vers xcrun xcodebuild`: exit 1, no tools found.
-- `rg --files /workspace /opt /usr/local/include | rg
-  '(LeapC\.h|libLeapC.*dylib)$'`: exit 1, no matching files in these searched
-  locations. No claim of a whole-machine SDK search or knowledge of the Mac install.
-- Each standalone source compiled and linked with `c++ -std=c++20 -pthread
-  probes/macos-m0/<name>.cpp -o work/macos-m0/<name>`: exit 0 for `threading`
-  and `snapshot`. Each `timeout 5s work/macos-m0/<name>`: exit 0.
-  **Linux probe sanity checks only**, no production suite or mock camera test.
-- `git diff --check`: exit 0.
-
-## Missing evidence
-
-| M0 requirement | Result |
+| Input | Measured value |
 |---|---|
-| Mac model/chip, macOS build, Xcode/CLT, Apple Clang/libc++, CMake | BLOCKED: no Mac execution environment |
-| Installed official Mac header/dylib, symlinks, slices, exports, hashes, sample terms/instructions | BLOCKED: no installed Mac SDK available |
-| Apple C++20 compile/link/run results | NOT RUN; Linux results cannot replace these |
-| SDK-only bounded diagnostic build and missing-library/no-service checks | BLOCKED; diagnostic not implemented against uninspected SDK |
-| Actual client and connected ServerLibrary API versions | NOT RUN |
-| Distinct camera serials, independent counters/ages, physical actions | NOT RUN; M1 remains pending |
+| Runner label | macos-15; hosted Apple Virtual Machine 1 / VirtualMac2,1 |
+| Chip / architecture | Apple M1 (Virtual), arm64, 3 cores, 7 GB |
+| macOS / Darwin | 15.8.2 (24H232) / 24.6.0 |
+| Selected developer tools | /Applications/Xcode_16.4.app/Contents/Developer |
+| Xcode / build | 16.4 / 16F6; not a separate CLT-only installation |
+| Apple Clang | 17.0.0 (clang-1700.0.13.5), arm64-apple-darwin24.6.0 |
+| libc++ headers | `_LIBCPP_VERSION=190102` |
+| macOS SDK | 15.5 |
+| CMake | 4.4.5 |
+| MACOSX_DEPLOYMENT_TARGET | unset; no application minimum established |
 
-No SDK downloaded, copied, redistributed or substituted with Windows files.
-No production loader/GUI/CMake preset/packaging/OSC/configuration changes made.
-Windows Hyperion 6.2+ within 6.x policy and historical evidence remain unchanged;
-Windows physical acceptance remains open. No two-camera conclusion follows here.
+Commands (full environment commands in probes/macos-m0/README.md and workflow):
+
+```sh
+python3 probes/macos-m0/run-features.py
+# Independently, for each of threading and snapshot:
+xcrun clang++ -std=c++20 -pthread probes/macos-m0/threading.cpp -o work/macos-m0/threading
+xcrun clang++ -std=c++20 -pthread probes/macos-m0/snapshot.cpp -o work/macos-m0/snapshot
+```
+
+Both commands exited **1 during compilation**. Threading: no `std::jthread`,
+`std::stop_token` or `std::stop_callback`. Snapshot: `_Atomic` cannot be applied to
+non-trivially-copyable `std::shared_ptr<const int>`; atomic specialization absent.
+Link/run checks consequently **NOT RUN** for both on this toolchain. No experimental
+flags, alternate library or production compatibility shim was added to hide this.
+The feature step has continue-on-error so SDK inspection can proceed; GitHub's
+step conclusion is not the compiler result. The final job explicitly fails when
+feature probes fail. M2 needs its planned compatibility decision; no such rewrite
+belongs to this M0 task.
+
+## Genuine Mac Hyperion 6.2 SDK inspection
+
+Official URL linked on the LMC2 download page, rechecked in this task:
+https://s3.eu-west-1.amazonaws.com/downloads.ultraleap.com/software/tracking-software/6.2.0/tracking-software-apple-silicon-6.2.0.pkg
+
+Package SHA-256:
+`9cad82a6282e322d2acd71f3746e50b472f3ed83bb5f9fa6f54d554f404c5531`.
+The workflow now checks that digest before expansion. `pkgutil --check-signature`
+reported **Developer ID Installer: ULTRALEAP LIMITED (6349LWZUED)**, signed with a
+trusted timestamp, **trusted by the Apple notary service**. This describes the
+vendor package, not signing/notarization of Hand Bridge.
+
+`pkgutil --expand-full` inspected the package without installation or service
+startup. SDK is under `Applications/Ultraleap Hand Tracking.app/Contents/LeapSDK`:
+
+| File | Actual finding |
+|---|---|
+| include/LeapC.h | 138484 bytes; SHA-256 `40b2943f5be3271b98ad96de987f85396136af9522b2dbb7fdf5bbbd79e8265c` (independently inspected from the same package on Linux; runner confirmation pending) |
+| lib/libLeapC.dylib | symlink → libLeapC.6.dylib |
+| lib/libLeapC.6.dylib | 7270080 bytes; Mach-O arm64 only; SHA-256 `843e3e3e4ba43bff40db3d8152175c1f8c9f5c7521b75d5e1bff62b83501e245` |
+| install name | @rpath/libLeapC.6.dylib, compatibility 6.0.0, current 0.0.0; not an API version claim |
+| exports | nm -gU lists the twelve required API functions, including LeapGetVersion and per-device subscribe/unsubscribe |
+
+Important observed distinction: the package also includes CFFI library copies
+and a control-panel plugin whose install name is `@rpath/libLeapC.5.dylib`.
+The first diagnostic harness correctly rejected ambiguous selection before
+loading anything. The corrected harness explicitly selects the canonical C SDK
+include/lib directories, never the plugin or CFFI copy. No Gemini fallback.
+
+Bundled README and sample CMake instructions were inspected, not copied into the
+repository. README SHA-256 `57e1abb75847919eb2a556a36723a2cf895e2b1d9d5630fa40b482261eca125a`;
+sample CMake SHA-256 `2b4c3f0671a8c91e6507bce66f273ef01b6d09e18d49f9d7c43b4c032daedca8`.
+README requires CMake 3.16.3+, uses the app's Contents/LeapSDK/samples as the Mac
+source directory and documents configure then cmake --build. Its generic usage
+section contains older package-version wording; the actual sample CMake requires
+LeapSDK **6**, links LeapSDK::LeapC and includes MultiDeviceSample. Those sample
+names establish no Mac multi-camera runtime support. Our owned thin client copies
+no sample implementation; SDK licence/notices remain external. Samples were not
+built or redistributed. No vendor SDK/header/dylib/package is committed/uploaded.
+
+## Bounded SDK diagnostic and execution status
+
+Owned `probes/macos-m0/sdk-diagnostic.cpp`: exact official header signatures,
+absolute-path RTLD_NOW/RTLD_LOCAL load, twelve required symbols, independent client
+and connected ServerLibrary 6.2+ within 6.x gates, five-second deadline, ten-ms poll,
+64-device cap, bounded error logging, distinct serial validation, per-device frame
+counters/ages/hand counts, and handle cleanup before unload. Empty-hand frames
+advance the frame counter. SIGINT/SIGTERM request orderly exit. The outer harness
+enforces a 15-second deadline, including cleanup. No engine, GUI, config or OSC use.
+
+```sh
+python3 probes/macos-m0/run-sdk.py
+# Actual compile command uses the inspected absolute include path:
+xcrun clang++ -std=c++20 -Wall -Wextra -pthread -I "$SDK/include" \
+  probes/macos-m0/sdk-diagnostic.cpp -o work/macos-m0/sdk-diagnostic
+# Harness then checks missing absolute path (exit 2), load-only (exit 0),
+# and genuine no-service startup/cleanup (exit 3), without installing a service.
+```
+
+Corrected [arm64 rerun 43955834798](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43955834798)
+is awaiting a hosted runner. Additional capacity attempts at `c9f337d`:
+[macOS 26 arm64](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43957508676),
+[macOS 15 Intel](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43957514963).
+They are separate entries; no compiler/library results are inferred from labels
+or queue status. Earlier superseded jobs were cancelled, not passed.
+
+| Check | Actual current result |
+|---|---|
+| Initial SDK selection | BLOCKED safely on multiple copies; corrected canonical selection awaiting runner |
+| Mac diagnostic compile/link | NOT RUN yet |
+| Mac missing-library/load-only/no-service | NOT RUN yet |
+| Client / connected ServerLibrary API versions | Unknown / unavailable; never inferred from filename or package |
+| Physical serials / per-device frames / no-hands / recovery / TD | NOT RUN |
+
+## Local sanity and preserved product
+
+The initial environment was Linux x86_64 kernel 6.18.57, Debian GCC 14.2.0-19;
+CMake, sw_vers, xcrun, xcodebuild and Mac SDK were absent in searched locations.
+Both SDK-free probes compiled/linked and exited 0 under a five-second timeout on
+Linux. After explicitly retrieving the pinned **Mac** package into ignored work/,
+GCC compiled/linked the thin diagnostic against its actual Mac header; one missing
+aggregate-initializer warning, no errors. A missing-library sanity run exited 2.
+These Linux results establish no Apple/library/service/camera success.
+`python3 -m py_compile` for both harnesses and `git diff --check` passed.
+
+No production Windows source, GUI, loader, packaging, CMake presets, OSC bytes or
+configuration changed. Hyperion 6.2+ within 6.x remains mandatory. Existing
+[core CI](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43953539333),
+[native controller CI](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43953539590)
+and [Windows Release CI](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43953539477)
+passed at preserved checkpoint f4f60a5. Windows physical acceptance remains open.
 
 ## Single next task
 
-Resume M0 on the local Mac checkout of this implementation branch. Follow
-`probes/macos-m0/README.md`, retain actual toolchain/SDK evidence, then implement
-and build the bounded SDK-only diagnostic against that installed official header
-and dylib. Exercise missing-library and no-service paths without changing a shared
-tracking service. Record real versions/results and keep M1 pending unless physical
-observations are actually collected. Do not begin M2–M5.
+Collect the queued corrected M0 diagnostic runs, record exact client/offline
+results and update the handoff before any production port. Owner Mac/installed
+service, all physical M1 actions and two-camera feasibility remain unverified.
+No universal application binary, deployment minimum or camera support is claimed.
