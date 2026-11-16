@@ -80,6 +80,13 @@ The extracted-package smoke also exercises real SDK Create/Open/Poll/Cleanup
 with no service/cameras for3600ms, bounded externally to15s, and requires truthful
 unconnected/no-device/no-OSC state. This is pending Windows execution.
 
+Windows run43777494748 at69c8f14 has now passed:81+1 expected POSIX skip,
+three lifecycle repeats, actual6.2.0.0/API6.2.0 load and all16 portable checks.
+Real offline SDK startup made2 connection attempts and shut down without fake
+devices/OSC. Final artifact review found generated root JUnit files marked the
+checkout dirty; explicit ignores and a clean-source manifest CI assertion now
+require a corrected package. Application source is unchanged.
+
 ## Boundaries / single next task
 
 Physical Windows Hyperion6.2, two USB cameras, actual service restart/unplug,

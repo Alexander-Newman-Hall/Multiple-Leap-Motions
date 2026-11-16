@@ -45,6 +45,14 @@ jobs:
         run: '& ./out/build/windows-release/Release/handbridge-engine.exe --check-leapc --leapc-library "${{ github.workspace }}/work/leapc-sdk/lib/x64/LeapC.dll"'
       - name: Deploy Release applications, Qt, app-local CRT and corresponding source
         run: cmake --build --preset windows-release --target handbridge-portable
+      - name: Verify clean source provenance in the package manifest
+        shell: pwsh
+        run: |
+          $manifest = Get-Content ./out/build/windows-release/portable/HandBridge-2.0.0-windows-x64-preview/package-manifest.json -Raw | ConvertFrom-Json
+          if ($manifest.source_dirty) {
+            git status --short
+            throw 'CI package must identify a clean checkout; generated test evidence belongs in ignored paths.'
+          }
       - name: Extract ZIP and verify Windows GUI / UDP / lifecycle without development paths
         shell: pwsh
         run: |

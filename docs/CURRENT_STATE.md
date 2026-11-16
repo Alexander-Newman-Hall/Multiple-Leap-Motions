@@ -50,9 +50,10 @@ See LEAPC_SETUP.md and reports/LEAPC_SDK_AUDIT.md.
 | Real Hyperion6.2 installer extraction/hash checks |PASS; not installed/executed |
 | PowerShell packaging parse/helper checks |PASS; actual Windows deployment pending |
 | First Windows Release run43777007955 |SDK extraction failed before compile; corrected Windows-native include filters; rerun pending |
-| Windows real client DLL load/version/API |Pending corrected Release workflow |
-| Extracted Windows ZIP, no developer PATH |Pending Release workflow |
-| Actual SDK client with no service/cameras |Bounded offline-host smoke added; Windows execution pending |
+| Windows Release69c8f14 / MSVC19.44 |81 passed +1 expected POSIX skip,31.98s; three lifecycle repetitions passed |
+| Windows real client DLL load/version/API |PASS: actual6.2.0.0 client, API6.2.0 |
+| Extracted Windows ZIP, no developer PATH |PASS:16 checks, actual native GUI/Qt/CRT/UDP/lifecycle |
+| Actual SDK client with no service/cameras |PASS: bounded3600ms run,2 attempts, no service/devices/OSC |
 | Physical cameras/Hyperion recovery/USB/TouchDesigner |**UNTESTED ON HARDWARE** |
 
 Native command: cmake --build out/build/leapc-control --parallel2, followed by
@@ -61,6 +62,11 @@ HANDBRIDGE_WITH_LEAPC=ON and the exact extracted6.2 header; offscreen/software Q
 is used in cloud. Full reproduction is in SESSION_HANDOFF and Windows guides.
 The previous controller baseline at ebb3bd9 had green Windows/Ubuntu CI; its
 results do not substitute for this increment's Windows SDK/package gate.
+
+Final artifact inspection found source_dirty=true caused by the new root-level
+JUnit output files. They are now ignored explicitly, and the Release workflow
+requires a clean-checkout manifest. Repackaging with that provenance correction
+is pending; no native application behavior changed.
 
 ## Remaining limits and next task
 
