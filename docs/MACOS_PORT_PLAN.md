@@ -3,6 +3,12 @@
 Status: **planning only**. No Mac build, native SDK load, camera test or Mac
 package is delivered by this document. User authorized this plan on 2026-11-16.
 
+Execution checkpoint: M0 automated probes and the SDK-only diagnostic are on
+`codex/handbridge-macos-feasibility`; [actual results and remaining blockers](reports/MACOS_M0.md)
+include Apple compiler failures and passing Intel offline checks. This does not
+advance M1 or establish physical two-camera support. The milestones and exact
+first-task prompt below remain the scope contract.
+
 Planning branch: `codex/handbridge-macos-plan`, based on Windows handoff
 `2c1ce8e72980c0ef4d59efa474e19df30c2666a2`. Validated Windows application/package
 source remains `c8596f20b35bb0e4d09446933c543f689417f36c`; see

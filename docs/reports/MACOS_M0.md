@@ -4,8 +4,9 @@ Date: 2026-11-16 (America/Los_Angeles). Branch:
 `codex/handbridge-macos-feasibility`, from planning revision
 `d104b87b4bdda248b12a90821f21a0742d479ce8`. Original feasibility work preserved
 in `f4f60a5`; automated diagnostic source in `1cd6b9b`, runner options in `c9f337d`.
-**M0 measurements in progress; compiler portability blockers established.
-Physical two-camera tests NOT RUN. M2–M5 not started.**
+**M0 automated evidence collected with compiler/arm64 capacity blockers.
+Intel offline SDK checks PASS. Physical two-camera tests NOT RUN.
+M2–M5 not started.**
 
 ## Actual Apple compiler results
 
@@ -61,7 +62,7 @@ startup. SDK is under `Applications/Ultraleap Hand Tracking.app/Contents/LeapSDK
 
 | File | Actual finding |
 |---|---|
-| include/LeapC.h | 138484 bytes; SHA-256 `40b2943f5be3271b98ad96de987f85396136af9522b2dbb7fdf5bbbd79e8265c` (independently inspected from the same package on Linux; runner confirmation pending) |
+| include/LeapC.h | 138484 bytes; SHA-256 `40b2943f5be3271b98ad96de987f85396136af9522b2dbb7fdf5bbbd79e8265c` (confirmed independently on the Intel runner and from the pinned Apple Silicon package on Linux) |
 | lib/libLeapC.dylib | symlink → libLeapC.6.dylib |
 | lib/libLeapC.6.dylib | 7270080 bytes; Mach-O arm64 only; SHA-256 `843e3e3e4ba43bff40db3d8152175c1f8c9f5c7521b75d5e1bff62b83501e245` |
 | install name | @rpath/libLeapC.6.dylib, compatibility 6.0.0, current 0.0.0; not an API version claim |
@@ -103,20 +104,75 @@ xcrun clang++ -std=c++20 -Wall -Wextra -pthread -I "$SDK/include" \
 # and genuine no-service startup/cleanup (exit 3), without installing a service.
 ```
 
-Corrected [arm64 rerun 43955834798](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43955834798)
-is awaiting a hosted runner. Additional capacity attempts at `c9f337d`:
-[macOS 26 arm64](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43957508676),
-[macOS 15 Intel](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43957514963).
-They are separate entries; no compiler/library results are inferred from labels
-or queue status. Earlier superseded jobs were cancelled, not passed.
+[Intel run 43957514963](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43957514963),
+source `c9f337d`, completed with SDK diagnostic checks **PASS** and overall job
+**FAILURE solely from both C++20 feature probes**. Compiler errors match the arm64
+run. Diagnostic itself compiled/linked with Apple Clang; one missing-aggregate-field
+warning subsequently removed by explicit Session construction in `1b29631`.
+That commit also allocates the owning device record before opening its SDK handle,
+so allocation failure cannot orphan a handle. A final exact-source repeat at
+`cab1839` is [run 43958755065](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43958755065)
+(pending at this checkpoint).
 
-| Check | Actual current result |
+Intel machine/toolchain: `macos-15-intel`, x86_64, system_profiler reports Mac mini /
+Macmini6,2, processor name **Unknown** (do not infer a physical chip model),
+4 cores / 14 GB; macOS **15.7.9 (24G830)**, Darwin 24.6.0, Xcode **16.4 (16F6)**,
+Apple Clang **17.0.0 (clang-1700.0.13.5)** targeting x86_64-apple-darwin24.6.0,
+libc++ **190102**, macOS SDK **15.5**, CMake **4.4.2**, deployment target unset.
+
+Its separate official URL uses `tracking-software-apple-intel-6.2.0.pkg` in the
+same official directory. Package SHA-256
+`cb6279bacbda12b0e2db2eda5f1e1fd1988f77f568680150e63aee474d6552bc`;
+trusted ULTRALEAP LIMITED installer signature and Apple notarization confirmed.
+The workflow now pins this independently observed hash too. Canonical dylib is
+8457936 bytes, **x86_64 only**, same symlink/install-name convention; SHA-256
+`20d3ca486d8b3f68bd8f817821c9a8c14cdb403d2932d0f36f5e19b914dfa77b`.
+The header hash is the same Mac hash shown above; this is observed, not inferred.
+
+Actual retained output:
+
+```text
+missing absolute library path: diagnostic error: dlopen(...) ... no such file
+exit= 2 expected= 2
+client result=0 version=6.2.0
+exit= 0 expected= 0
+client result=0 version=6.2.0
+summary ever_connected=0 connected=0 devices=0 poll_errors=0 interrupted=0
+service version=unavailable (no connection event within 5s)
+exit= 3 expected= 3
+M0 OFFLINE CHECKS PASS; PHYSICAL TWO-CAMERA TESTS NOT RUN
+```
+
+The no-service loop lasted approximately five seconds and completed cleanup within
+the 15-second harness deadline. No service was installed, started or stopped.
+ServerLibrary was **unavailable**, not assumed 6.2 from the client/package. The
+normal timeout path exited cleanly; Ctrl-C/signal cleanup has code but was not
+separately exercised in this task. Device serial/counter branches have not seen
+real devices; do not declare them hardware tested.
+
+[Corrected arm64 run 43955834798](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43955834798)
+failed **before any job steps executed** after approximately 15 minutes queued.
+GitHub check annotations: “The job was not acquired by Runner of type hosted even
+after multiple attempts” and “Due to capacity constraints, jobs targeting macOS
+arm64 runners may experience longer queue times.” Thus canonical arm64 diagnostic
+compile/load/no-service checks are **BLOCKED by hosted runner allocation**; the
+first arm64 run did inspect compiler/SDK, but rejected ambiguous diagnostic input.
+The macOS 26 and latest-source arm64 capacity attempts were cancelled while still
+queued after this explicit failure. They supply no macOS 26/new toolchain evidence.
+
+| Check | Actual result |
 |---|---|
-| Initial SDK selection | BLOCKED safely on multiple copies; corrected canonical selection awaiting runner |
-| Mac diagnostic compile/link | NOT RUN yet |
-| Mac missing-library/load-only/no-service | NOT RUN yet |
-| Client / connected ServerLibrary API versions | Unknown / unavailable; never inferred from filename or package |
+| Apple C++20 threading and snapshot probes, arm64 and Intel | FAIL compilation on the measured Xcode 16.4 toolchains; link/run NOT RUN |
+| Intel diagnostic compile/link | PASS against genuine Mac header |
+| Intel missing-library / load-only / no-service | PASS: expected exits 2 / 0 / 3 |
+| Intel ClientLibrary API | 6.2.0, all twelve required exports resolved |
+| Connected ServerLibrary API | unavailable, no service connection; NOT VERIFIED |
+| Canonical arm64 diagnostic compile/load/no-service | BLOCKED: hosted runner allocation failure |
 | Physical serials / per-device frames / no-hands / recovery / TD | NOT RUN |
+
+Text-only artifacts are attached to the executed runs with 14-day retention; durable
+machine versions, hashes and key output are recorded here. SDK files are excluded.
+Earlier superseded jobs were cancelled, not passed. No universal binary claim.
 
 ## Local sanity and preserved product
 
@@ -124,8 +180,8 @@ The initial environment was Linux x86_64 kernel 6.18.57, Debian GCC 14.2.0-19;
 CMake, sw_vers, xcrun, xcodebuild and Mac SDK were absent in searched locations.
 Both SDK-free probes compiled/linked and exited 0 under a five-second timeout on
 Linux. After explicitly retrieving the pinned **Mac** package into ignored work/,
-GCC compiled/linked the thin diagnostic against its actual Mac header; one missing
-aggregate-initializer warning, no errors. A missing-library sanity run exited 2.
+GCC compiled/linked the thin diagnostic against its actual Mac header; the initial aggregate warning was removed and final Linux recompilation has
+no warnings/errors. A missing-library sanity run exited 2.
 These Linux results establish no Apple/library/service/camera success.
 `python3 -m py_compile` for both harnesses and `git diff --check` passed.
 
@@ -138,7 +194,9 @@ passed at preserved checkpoint f4f60a5. Windows physical acceptance remains open
 
 ## Single next task
 
-Collect the queued corrected M0 diagnostic runs, record exact client/offline
-results and update the handoff before any production port. Owner Mac/installed
-service, all physical M1 actions and two-camera feasibility remain unverified.
-No universal application binary, deployment minimum or camera support is claimed.
+Complete the remaining **arm64 M0** canonical diagnostic build/load/no-service
+checks on the owner's Mac or an available arm64 runner using the pinned official
+SDK; record actual client and unavailable/connected service versions. Keep the
+measured Xcode 16.4 library failures open for M2's later owned-thread/snapshot
+compatibility decision. Do not implement that decision in M0. Physical M1 and all
+two-camera/service recovery/TouchDesigner acceptance remain NOT RUN.

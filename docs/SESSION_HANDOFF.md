@@ -1,50 +1,50 @@
-## Automated M0 checkpoint — 2026-11-16
+# Session handoff — macOS M0 automation
 
-Feasibility work is committed/pushed on `codex/handbridge-macos-feasibility`.
-[Initial Apple run](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43955399147)
-at `4c48c61`: macOS 15.8.2 (24H232), arm64 Apple M1 virtual machine, Xcode
-16.4 (16F6), macOS SDK 15.5, Apple Clang 17.0.0 (clang-1700.0.13.5), libc++
-`_LIBCPP_VERSION=190102`, CMake 4.4.5. Both C++20 probes **FAIL compilation**:
-missing jthread/stop_token/stop_callback and atomic shared_ptr specialization.
-No production compatibility changes are in scope for M0. A step marked successful
-by continue-on-error is not a passing compiler check; the final job is failed.
+Branch: `codex/handbridge-macos-feasibility`, from planning `d104b87`.
+Initial feasibility work committed/pushed as `f4f60a5`; compiler/SDK diagnostic and
+runner harnesses through `cab1839`. Production Windows/GUI/loader/build/legacy
+OSC/configuration remain unchanged; Hyperion 6.2+ within 6.x remains mandatory.
 
-Added isolated SDK diagnostic, independent Apple probe harness, Mac-only SDK
-inspection/offline harness and `.github/workflows/macos-m0.yml`; no production
-source/build/GUI/OSC/config changes. Official Apple Silicon 6.2.0 package signature
-and notarization verified; SHA-256 pinned from that actual run. Initial diagnostic
-selection blocked on multiple SDK/plugin copies; corrected to the inspected
-canonical LeapSDK/include header and LeapSDK/lib/libLeapC.6.dylib. Re-run pending; optional macOS 26/Intel runner pools are separate M0 entries,
-not application support claims. Linux GCC also compiled the owned diagnostic
-against the genuine Mac header (hash
-`40b2943f5be3271b98ad96de987f85396136af9522b2dbb7fdf5bbbd79e8265c`);
-that establishes no Apple/dylib/runtime behavior.
-Physical two-camera/service/recovery/TouchDesigner checks **NOT RUN**.
-Full final results will supersede this checkpoint in [M0 report](reports/MACOS_M0.md).
+**M0 automated evidence delivered with blockers. M1 physical tests NOT RUN.
+M2–M5 not started.** Actual results: [M0 report](reports/MACOS_M0.md).
 
-## Latest M0 handoff — 2026-11-16
+| Scope | Actual result |
+|---|---|
+| arm64 Mac VM / macOS 15.8.2 / Xcode 16.4 / Clang 17 / libc++ 190102 / SDK 15.5 / CMake 4.4.5 | Both C++20 feature probes FAIL compilation; official Mac SDK signature/slices/exports inspected |
+| Intel / macOS 15.7.9 / same Xcode/Clang/libc++/SDK / CMake 4.4.2 | Both feature probes FAIL; diagnostic compiled/linked; missing library/load-only/no-service PASS (exits 2/0/3) |
+| Actual Intel client API | 6.2.0; all twelve exports resolved |
+| Connected ServerLibrary | unavailable; no connection event during bounded 5 s run; zero devices/errors, clean exit |
+| Corrected arm64 offline diagnostic | BLOCKED: GitHub explicitly failed runner acquisition after 15 minutes queued |
+| Physical two-camera streams, serials, no-hands, USB/recovery, TD | NOT RUN on either architecture |
 
-Branch: `codex/handbridge-macos-feasibility`, based on planning commit
-`d104b87b4bdda248b12a90821f21a0742d479ce8`; current changes uncommitted.
-**M0 BLOCKED / incomplete; M1 NOT RUN; M2–M5 not started.** Actual environment is
-Linux x86_64 / Debian GCC 14.2.0, no CMake or Apple tools, no Mac SDK in searched
-locations. Mac chip/macOS/Xcode/CLT/libc++/SDK/client/service versions are unknown.
+Changed files: `.github/workflows/macos-m0.yml`, isolated `probes/macos-m0/`
+(threading/snapshot sources, bounded SDK-only client, independent feature/SDK
+harnesses, commands), this state/handoff, the plan execution link and `docs/reports/MACOS_M0.md`. Both genuine
+Mac packages have separately measured/pinned SHA-256 values and verified vendor
+signature/notarization; no Windows SDK or Gemini substitution and no vendor files
+committed/uploaded. The inspected canonical SDK avoids old control-panel plugins.
 
-Added isolated `probes/macos-m0/{threading.cpp,snapshot.cpp,README.md}` and
-`docs/reports/MACOS_M0.md`; updated CURRENT_STATE and SESSION_HANDOFF. No production
-architecture, Windows GUI/loader/build, Hyperion requirement, OSC or config change.
-Both tiny sources compiled/linked with GCC C++20/pthread and exited 0 under a
-5-second timeout; `git diff --check` passed. These are Linux sanity results only.
-SDK diagnostic implementation/build and actual Mac offline/hardware checks remain
-BLOCKED/NOT RUN; no two-camera support inferred. Full commands, limits and actual
-results: [M0 report](reports/MACOS_M0.md). Earlier Windows evidence below is historical.
+Commands/results: `python3 probes/macos-m0/run-features.py` records independent
+compile failures (jthread/stop-token/callback absent, atomic shared_ptr specialization
+absent); `python3 probes/macos-m0/run-sdk.py` builds/inspects and enforces bounded
+real offline exit codes. Overall CI is correctly red because compiler features
+failed, even when SDK checks pass. Detailed source/run IDs, commands, logs, hashes
+and scope limits are in the report. Linux syntax/sanity checks, Python compilation
+and git diff --check pass; no hardware claims follow. The existing core/controller/
+Windows Release workflows passed at f4f60a5 and again at 1cd6b9b.
 
-**Single next task:** resume M0 on the actual local Mac with its installed official
-Hyperion 6.2 SDK; run the documented probes, inspect SDK/terms, implement/build the
-bounded SDK diagnostic and record actual versions/offline checks. Preserve M1 as
-pending physical observation; do not advance production port milestones.
+Final exact-source Intel repeat at cab1839 is pending (run 43958755065); previous
+native SDK result is at c9f337d. Latest device-allocation ownership correction was
+compiled locally without warnings; native repeat will confirm it separately.
+
+**Single next task:** complete remaining arm64 M0 canonical diagnostic checks on
+the actual Mac or an available arm64 runner, recording actual client/service
+versions. Retain compiler findings for M2's later compatibility ADR; do not rewrite
+production or claim M1 until physical two-device observations exist.
 
 ---
+
+## Preserved Windows and planning history
 
 # Session handoff — macOS port planning
 
