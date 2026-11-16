@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <chrono>
 #include <csignal>
+#include <cstdint>
 #include <cstring>
 #include <filesystem>
 #include <iostream>
@@ -66,6 +67,7 @@ struct Session {
     Api& api;
     LEAP_CONNECTION connection{};
     std::map<std::uint32_t, Device> devices;
+    explicit Session(Api& functions) : api(functions) {}
     ~Session() {
         clear();
         if (connection) {
@@ -86,15 +88,16 @@ struct Session {
     void clear() { while (!devices.empty()) remove(devices.begin()->first); }
     void add(LEAP_DEVICE_REF ref) {
         if (devices.contains(ref.id) || devices.size() >= 64) return;
-        Device d;
-        auto result = api.LeapOpenDevice(ref, &d.handle);
-        if (result != eLeapRS_Success || !d.handle) {
-            std::cout << "open id=" << ref.id << " error=" << static_cast<unsigned>(result) << '\n';
-            if (d.handle) api.LeapCloseDevice(d.handle);
+        // Allocate the owning record before opening an SDK handle. Allocation
+        // failure must not leave a live handle outside Session's cleanup scope.
+        auto& owned = devices.try_emplace(ref.id).first->second;
+        const auto opened = api.LeapOpenDevice(ref, &owned.handle);
+        if (opened != eLeapRS_Success || !owned.handle) {
+            std::cout << "open id=" << ref.id << " error=" << static_cast<unsigned>(opened) << '\n';
+            remove(ref.id);
             return;
         }
-        // Insert immediately so every subsequent failure is covered by cleanup.
-        auto& owned = devices.emplace(ref.id, std::move(d)).first->second;
+        eLeapRS result{};
         LEAP_DEVICE_INFO info{};
         info.size = sizeof(info);
         result = api.LeapGetDeviceInfo(owned.handle, &info);

@@ -14,7 +14,9 @@ inspection/offline harness and `.github/workflows/macos-m0.yml`; no production
 source/build/GUI/OSC/config changes. Official Apple Silicon 6.2.0 package signature
 and notarization verified; SHA-256 pinned from that actual run. Initial diagnostic
 selection blocked on multiple SDK/plugin copies; corrected to the inspected
-canonical LeapSDK/include header and LeapSDK/lib/libLeapC.6.dylib. Re-run pending.
+canonical LeapSDK/include header and LeapSDK/lib/libLeapC.6.dylib. Re-run pending. Diagnostic ownership now allocates each device record before
+opening its SDK handle, covering allocation-failure cleanup; Linux GCC recompilation
+against the actual Mac header passes without warnings. Native verification pending.
 Physical two-camera/service/recovery/TouchDesigner checks **NOT RUN**.
 Full final results will supersede this checkpoint in [M0 report](reports/MACOS_M0.md).
 
