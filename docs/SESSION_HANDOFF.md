@@ -1,39 +1,38 @@
-# Session handoff — M0 evidence collected, narrow M2 compatibility
+# Session handoff — arm64-only SIGPIPE and native validation
 
-Branch: `codex/handbridge-macos-feasibility`. M0 final evidence at `e1fcd18`,
-collected before the user-authorized narrow M2 concurrency slice. Application source 536a018
-builds locally; full native suite 64/64 PASS (22.12 s), Windows/Linux and Windows Release CI PASS; Intel Mac hosts compile/link and focused worker tests PASS; full Mac suite retains SIGPIPE failure; do not treat this as full M2 or a Mac release.
+Branch: `codex/handbridge-macos-feasibility`; starting source 48f2e17.
+**Mac product scope is native Apple Silicon arm64 only.** No Intel build, Rosetta
+or universal release requirement. Historical Intel results do not pass arm64
+acceptance. Windows x64, C++20, Hyperion 6.2, Qt GUI and legacy OSC/config remain.
 
-| Finding | Status and evidence |
+Darwin sender now sets SO_NOSIGPIPE per socket before connect/send, checking errors
+through existing RAII/counters. Global signal policy is untouched. Existing
+broadcast regression remains; new Darwin child test defaults/unblocks SIGPIPE and
+checks error counting plus unchanged disposition. ADR-018 records the decision.
+
+Changed paths: OscSender, legacy OSC tests, arm64-only presets/Mac workflows,
+SDK fetch/diagnostic architecture guards, native GUI smoke, plan/spec/README,
+OSC_PROTOCOL/DECISIONS and this state/handoff. [Arm64 report](reports/MACOS_ARM64.md)
+separates new results from [historical M0](reports/MACOS_M0.md) and
+[historical concurrency evidence](reports/MACOS_M2_CONCURRENCY.md).
+
+| Acceptance | Current result |
 |---|---|
-| **SDK verified on Intel** | M0 retry [43962640624](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43962640624) **PASS**: Apple Clang compile/link without warnings, genuine ClientLibrary **6.2.0**, missing/load-only/no-service exits **2/0/3**, clean five-second shutdown. ServerLibrary unavailable. |
-| **Host code compatibility** | M0 measured missing jthread/stop-token and atomic shared_ptr on Xcode 16.4 / libc++ 190102. Narrow M2 replacement at 536a018 builds locally; focused 3/3 and full native **64/64 PASS** (22.12 s). Windows/Linux native and Windows Release CI **PASS**. Intel Mac rerun [43965924196](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43965924196) at workflow/source 1579c4f: both hosts compile/link; snapshot tests and WorkerLifecycle **PASS**. Full suites **59/60** Qt-free and **60/61** Qt-host; each retains the existing broadcast **SIGPIPE** failure. Overall Mac job FAIL; narrow slice BUILD/MOCK TESTED. C++20 and Hyperion 6.2 retained. |
-| **Infrastructure** | Corrected arm64 diagnostic BLOCKED on explicit GitHub runner-allocation failure; says nothing about SDK compatibility. Earlier final Intel repeat 43958755065 failed download/artifact networking, then SDK-only retry passed. |
-| **Physical acceptance** | Running Mac service, two simultaneous cameras, no-hands, recovery and TouchDesigner receipt **NOT RUN**; M1 stays open. |
+| Linux local regression | Build, legacy OSC **8/8 PASS** (0.05 s), full native suite **64/64 PASS** (22.49 s); not Darwin/arm64 evidence |
+| Native arm64 engine / unchanged GUI / genuine 6.2 SDK | CI prepared; actual arm64 results pending; no Intel substitution |
+| Local Apple Silicon access | Not available; attached machine is Linux x86_64 |
+| Physical Mac service / two cameras / recovery / TD | **NOT RUN** |
 
-M2 changed `src/engine/qt_engine_main.cpp` to one owned std::thread, stop flag/CV
-wake and join outside locks, including constructor startup failure. Added
-`SnapshotMailbox.hpp` with reader-owned immutable shared pointers and separate
-short copy/swap locking. Queue32, worker lifetime, processing/OSC ownership,
-acknowledgements, legacy OSC/config and GUI remain intact. No production Mac loader,
-GUI redesign, packaging or SDK policy changes.
+The arm64 job builds/tests engine and GUI, checks application slices, loads the
+pinned genuine arm64 SDK in the owned diagnostic, and exercises a separate native
+Cocoa GUI/engine/UDP lifecycle smoke. SDK-header/injected tests are software tests;
+production Mac loader integration remains M3. No test is skipped to hide SIGPIPE.
+If hosted capacity fails, report exact blocker and leave arm64 checks unrun.
 
-Changed build/test files: CMakeLists, Intel Mac core/control presets,
-macos-concurrency workflow, test_WorkerConcurrency.cpp and test_WorkerLifecycle.py.
-ADR-017 and ARCHITECTURE explain ownership. Reports separate [M0 evidence](reports/MACOS_M0.md)
-from [M2 concurrency verification](reports/MACOS_M2_CONCURRENCY.md). Original
-compiler probes remain historical, now opt-in; the new checks exercise replacements.
-
-**Milestones:** M0 measured with remaining arm64 infrastructure blocker; narrow M2
-concurrency slice implemented and BUILD/MOCK TESTED; full M2 protected IPC/arm64/UI acceptance and Darwin SIGPIPE error handling still open;
-M1 physical NOT RUN; M3–M5 not started. No Mac distribution/minimum/universal claim.
-
-**Next exact task:** diagnose and fix Darwin SIGPIPE in the existing broadcast
-send-error test without OSC/Windows behavior changes; rerun both Mac suites.
-This is a separate M2 portability task; keep protected IPC, arm64 and physical
-M1 acceptance open. No new service/camera/TD or distributable-Mac claim. No tests
-were skipped to hide the failure. See the M2 report for exact toolchain, commands,
-per-suite counts, source IDs, changed files and limits.
+**Milestones:** arm64 M0/M2 acceptance pending; protected Mac IPC remains open;
+M1 physical NOT RUN; M3 real integration and M4/M5 packaging/hardware not delivered.
+**Next exact task:** collect arm64 CI evidence (or its concrete capacity blocker),
+record compiler/platform/SDK and GUI outcomes, then hand off remaining gates.
 
 ## Preserved Windows and planning history
 

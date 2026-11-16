@@ -2,14 +2,20 @@
 
 This is a **phased plan for multiple Codex tasks**, not a request to finish everything in one task. Each task should produce a reviewable PR with precise acceptance evidence and updated handoff docs. Follow `PROJECT_SPEC.md` for product requirements.
 
-## macOS planning checkpoint — 2026-11-16
+## macOS execution scope — 2026-11-16
 
-The user requested a Mac-port plan, not implementation in this task. The staged
-[macOS port plan](docs/MACOS_PORT_PLAN.md) defines M0–M5, starting with actual Mac
-SDK/toolchain probes and a physical two-device feasibility gate. Preserve the
-working Windows product and its pending physical acceptance. Mac support is not
-implemented or verified. The single next implementation task is M0 in a fresh
-local Mac Codex chat; use the exact handoff prompt at the end of that plan.
+The Mac product target is **Apple Silicon only, native arm64**. Intel builds,
+Rosetta and universal releases are outside the planned product scope. Historical
+Intel observations stay in reports but do not satisfy arm64 acceptance. The staged
+[macOS port plan](docs/MACOS_PORT_PLAN.md) retains M0–M5 and its physical two-device
+feasibility gate. Validate the existing engine, unchanged Qt 6.8.3 GUI and genuine
+Mac Hyperion 6.2 SDK natively on arm64; preserve C++20, legacy OSC/config and the
+Windows product. Use `macos-arm64-core` / `macos-arm64-control` presets. Record
+actual toolchain/SDK/build/test results. If hosted arm64 capacity is unavailable,
+record BLOCKED or use a local Apple Silicon Mac; do not fall back to Intel results.
+Running service, independent simultaneous cameras, recovery and TouchDesigner
+receipt still require physical evidence. Current implementation/results and one
+next task live in CURRENT_STATE and SESSION_HANDOFF.
 
 ## Execution checkpoint — 2026-11-15
 

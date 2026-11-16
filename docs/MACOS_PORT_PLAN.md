@@ -1,15 +1,19 @@
 # Hand Bridge macOS port plan
 
-Status: **planning only**. No Mac build, native SDK load, camera test or Mac
-package is delivered by this document. User authorized this plan on 2026-11-16.
+Status: **staged execution plan**, updated by user instruction on 2026-11-16.
+The Mac product target is native arm64 Apple Silicon only. This document is not
+a Mac package or physical camera acceptance record; actual results belong in the
+linked reports and current state/handoff.
 
 Execution checkpoint: M0 automated probes and the SDK-only diagnostic are on
 `codex/handbridge-macos-feasibility`; [actual results and remaining blockers](reports/MACOS_M0.md)
-include Apple compiler failures and passing final Intel offline checks. The user
-subsequently authorized only the small M2 concurrency compatibility slice; see
-[that separate report](reports/MACOS_M2_CONCURRENCY.md). This does not advance M1
-or establish physical two-camera support. The milestones and exact
-first-task prompt below remain the scope contract.
+include Apple compiler failures and historical passing Intel offline checks.
+Those Intel observations are not arm64 acceptance. The user subsequently
+authorized the M2 concurrency slice, Darwin SIGPIPE repair and native arm64
+engine/GUI/genuine SDK validation; see [M2 evidence](reports/MACOS_M2_CONCURRENCY.md).
+No compile, SDK load or mock result advances physical M1 acceptance. The
+milestones remain the acceptance framework. The original M0 prompt below is
+historical context; it does not limit the newly authorized arm64 validation task.
 
 Planning branch: `codex/handbridge-macos-plan`, based on Windows handoff
 `2c1ce8e72980c0ef4d59efa474e19df30c2666a2`. Validated Windows application/package
@@ -27,17 +31,21 @@ Keep Hyperion **6.2.0 or newer within 6.x**, with actual client and connected
 service API version checks. No Gemini downgrade, fusion, cross-camera identity,
 network relay, web UI, elevated background service or unrelated feature expansion.
 
-Target the owner's actual Mac architecture first. Apple Silicon is the proposed
-first target if no machine has been selected; Intel support is a separate tested
-matrix entry. Do not promise a universal binary until both slices and all native
-dependencies have been inspected and tested.
+Target **Apple Silicon only, native arm64**. Intel Mac builds are outside the
+planned product scope; neither Rosetta validation nor a universal release is
+required. Check the actual running process and every native dependency for arm64
+execution/slices. Historical Intel measurements remain reference evidence and must
+never substitute for arm64 acceptance. Use the arm64 hosted runner or a local
+Apple Silicon Mac. If neither executes the checks, record BLOCKED with the actual
+reason; do not change architecture to make the job pass.
 
 ## Evidence and unresolved questions
 
 Checked on 2026-11-16; recheck before implementation:
 
 - [Official LMC2 downloads](https://www.ultraleap.com/downloads/leap-motion-controller-2/)
-  list Hyperion 6.2.0 for Apple Silicon and Intel, with SDK and tracking service.
+  list Hyperion 6.2.0 for Apple Silicon, with SDK and tracking service. The vendor
+  also offers Intel downloads, which are outside Hand Bridge's Mac product scope.
   Ultraleap's listed macOS minimum is 11; that is not Hand Bridge's application minimum.
 - [Ultraleap's multiple-device guidance](https://docs.ultraleap.com/hand-tracking/integration-tips-resources.html#multiple-devices)
   still describes simultaneous multi-device support as Windows-only, using older
@@ -46,7 +54,8 @@ Checked on 2026-11-16; recheck before implementation:
   remain unverified.** Neither technical impossibility nor successful support
   follows from the available documentation.
 - [Qt 6.8 supported platforms](https://doc.qt.io/qt-6.8/supported-platforms.html)
-  list macOS 12+ deployment, Xcode 15+/macOS 14 SDK build inputs, arm64 and x86_64.
+  list macOS 12+ deployment and Xcode 15+/macOS 14 SDK build inputs. Use the arm64
+  support entry; the vendor's x86_64 support does not add Intel to this project scope.
   Keep the current Qt 6.8.3 pin unless a separate decision justifies changing it.
   The final application minimum must also satisfy the selected C++ standard library
   and SDK; do not advertise macOS 11 merely because Ultraleap does.
@@ -82,8 +91,9 @@ SESSION_HANDOFF after each. Do not turn this document into a single rewrite.
 
 ### M0 — Mac environment, compiler and SDK probe
 
-Run on a real Mac execution environment. Record chip/architecture, macOS build,
-Xcode/CLT, Apple Clang/libc++ and CMake versions. Inspect the installed official
+Run natively on an Apple Silicon arm64 execution environment. Record the actual
+process architecture, chip, macOS build, Xcode/CLT, Apple Clang/libc++ and CMake
+versions. Inspect the installed official
 Mac Hyperion 6.2 SDK: actual header, dylib names/symlinks, architecture slices,
 exports, hashes and bundled sample build instructions. Do not infer those from
 the Windows installer or download proprietary files into Git.
@@ -125,7 +135,8 @@ prioritized ahead of resolving this feasibility gate.
 
 ### M2 — SDK-free native Mac build, portability and protected IPC
 
-Add architecture-specific Mac CMake presets and a pinned available macOS CI runner.
+Use native arm64 Mac CMake presets (`macos-arm64-core` and
+`macos-arm64-control`) and a pinned available arm64 macOS CI runner.
 Choose the deployment target from actual dependencies/toolchain tests, not the
 Ultraleap minimum alone. Build the Qt-free host and optional native controller;
 run core/settings/processing/OSC goldens, profile, model, IPC and GUI-lifecycle tests.
@@ -188,7 +199,8 @@ plugin; an offscreen render alone is insufficient for native UI acceptance.
 Keep Hyperion/SDK external under the established licence boundary. Include notices
 and the correct corresponding Qt source. Never copy Windows CRT/DLLs into a Mac
 package. Record source revision, clean/dirty state, architectures, actual dependency
-versions and checksums. No universal claim from one architecture's build.
+versions and checksums. Produce native arm64 application executables only; Intel
+and universal releases are not acceptance requirements.
 
 An unsigned/ad-hoc developer preview and a publicly signed/notarized release are
 different deliverables. Plan nested helper/framework signing, Gatekeeper and
@@ -203,8 +215,9 @@ helper remains independent, and signing/notarization status is explicit.
 
 ### M5 — Mac recovery and release acceptance
 
-On each supported architecture, perform no-hands, both-device tracking, ten
-unplug/replug cycles, controlled service restart, app reboot, sleep/wake, GUI crash/
+On the supported native arm64 Apple Silicon target, perform no-hands, both-device
+tracking, ten unplug/replug cycles, controlled service restart, app reboot,
+sleep/wake, GUI crash/
 reopen, profile restore and actual TouchDesigner checks. Start with a documented
 one-hour two-camera soak, then an eight-hour deployment soak before a production
 claim; capture frame ages/drops, recovery failures, CPU, memory and output errors.
@@ -231,13 +244,12 @@ must contain commit/branch, exact machine/toolchain/SDK versions, commands/resul
 physical actions NOT RUN, limitations and one next task. No tests are run by this
 planning-only change; validate document links and preserve the tested source.
 
-## Recommended next chat and exact first task
+## Original M0 first-task prompt — historical reference
 
-Use a fresh Codex chat **opened on the local Mac checkout**. A new cloud chat can
-prepare code/CI but does not gain access to your Mac or USB cameras. The repository
-plan and handoff carry context; no repeat audit or GUI redesign is needed.
-
-Paste this into that chat:
+The implementation now continues on `codex/handbridge-macos-feasibility`; use
+CURRENT_STATE and SESSION_HANDOFF for the current next task. The original prompt
+below is retained for traceability. It did not grant physical Mac/USB access to a
+cloud chat. Current Mac acceptance is native arm64 only, under the scope above.
 
 > Repository: https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions.
 > Start from the latest `codex/handbridge-macos-plan` branch, preserve local edits,

@@ -130,9 +130,11 @@ the independent engine; **Start simulator** remains separate.
 ## Documentation
 
 - [macOS port plan](docs/MACOS_PORT_PLAN.md), [M0 SDK evidence](docs/reports/MACOS_M0.md)
-  and [M2 concurrency slice](docs/reports/MACOS_M2_CONCURRENCY.md): Intel 6.2 client
-  loading verified; host compatibility work is separate. Physical Mac/two-camera
-  service support remains unverified; no Mac package is delivered.
+  and [M2 concurrency slice](docs/reports/MACOS_M2_CONCURRENCY.md): the Mac product
+  target is **Apple Silicon, native arm64 only**. Historical Intel findings do not
+  establish arm64 acceptance. Engine, unchanged GUI and genuine Hyperion 6.2 SDK
+  checks require arm64 evidence; physical Mac/two-camera service support remains
+  unverified. No Mac package is delivered.
 - [Specification](PROJECT_SPEC.md), [plan](PLANS.md), [agent instructions](AGENTS.md)
 - [Current state](docs/CURRENT_STATE.md), [handoff](docs/SESSION_HANDOFF.md), [GUI build evidence](docs/reports/GUI_BUILD.md)
 - [Architecture](docs/ARCHITECTURE.md), [local IPC](docs/CONTROL_PROTOCOL.md), [configuration](docs/CONFIG_SCHEMA.md), [UI](docs/UI_SPEC.md)

@@ -48,11 +48,11 @@
       "cacheVariables": { "HANDBRIDGE_WITH_LEAPC": "OFF", "HANDBRIDGE_PACKAGE_WINDOWS": "ON", "BUILD_TESTING": "ON" }
     },
     {
-      "name": "macos-intel-core",
-      "displayName": "Intel macOS SDK-free C++20 checks (not hardware acceptance)",
+      "name": "macos-arm64-core",
+      "displayName": "Apple Silicon macOS SDK-free C++20 checks (not hardware acceptance)",
       "inherits": "core-debug",
       "cacheVariables": {
-        "CMAKE_OSX_ARCHITECTURES": "x86_64",
+        "CMAKE_OSX_ARCHITECTURES": "arm64",
         "CMAKE_OSX_DEPLOYMENT_TARGET": "12.0"
       },
       "condition": {
@@ -62,9 +62,9 @@
       }
     },
     {
-      "name": "macos-intel-control",
-      "displayName": "Intel macOS QtCore/Network host compatibility checks",
-      "inherits": "macos-intel-core",
+      "name": "macos-arm64-control",
+      "displayName": "Apple Silicon macOS QtCore/Network host compatibility checks",
+      "inherits": "macos-arm64-core",
       "cacheVariables": {
         "HANDBRIDGE_BUILD_CONTROL": "ON"
       }
@@ -79,12 +79,12 @@
     { "name": "windows-control", "configurePreset": "windows-control", "configuration": "Debug" },
     { "name": "windows-release", "configurePreset": "windows-release", "configuration": "Release" },
     {
-      "name": "macos-intel-core",
-      "configurePreset": "macos-intel-core"
+      "name": "macos-arm64-core",
+      "configurePreset": "macos-arm64-core"
     },
     {
-      "name": "macos-intel-control",
-      "configurePreset": "macos-intel-control"
+      "name": "macos-arm64-control",
+      "configurePreset": "macos-arm64-control"
     }
   ],
   "testPresets": [
@@ -95,15 +95,15 @@
     { "name": "windows-control", "configurePreset": "windows-control", "configuration": "Debug", "output": { "outputOnFailure": true } },
     { "name": "windows-release", "configurePreset": "windows-release", "configuration": "Release", "output": { "outputOnFailure": true } },
     {
-      "name": "macos-intel-core",
-      "configurePreset": "macos-intel-core",
+      "name": "macos-arm64-core",
+      "configurePreset": "macos-arm64-core",
       "output": {
         "outputOnFailure": true
       }
     },
     {
-      "name": "macos-intel-control",
-      "configurePreset": "macos-intel-control",
+      "name": "macos-arm64-control",
+      "configurePreset": "macos-arm64-control",
       "output": {
         "outputOnFailure": true
       }

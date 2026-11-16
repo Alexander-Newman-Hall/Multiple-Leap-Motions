@@ -1,5 +1,10 @@
 # M2 concurrency compatibility slice — 2026-11-16
 
+**Historical evidence:** product scope is now native Apple Silicon arm64 only.
+Intel results below are retained as history and are not arm64 acceptance. No
+Intel/Rosetta/universal product requirement remains. Current validation and
+SIGPIPE work: [arm64 report](MACOS_ARM64.md).
+
 Scope authorized after collecting M0 evidence, on
 `codex/handbridge-macos-feasibility`. M0 SDK-only retry at e1fcd18 passed natively
 on Intel Mac: [run 43962640624](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43962640624).

@@ -1,5 +1,10 @@
 # macOS M0 — actual automated feasibility evidence
 
+**Historical evidence:** product scope is now native Apple Silicon arm64 only.
+Intel results below are retained as history and are not arm64 acceptance. No
+Intel/Rosetta/universal product requirement remains. Current validation and
+SIGPIPE work: [arm64 report](MACOS_ARM64.md).
+
 Date: 2026-11-16 (America/Los_Angeles). Branch:
 `codex/handbridge-macos-feasibility`, from planning revision
 `d104b87b4bdda248b12a90821f21a0742d479ce8`. Original feasibility work preserved

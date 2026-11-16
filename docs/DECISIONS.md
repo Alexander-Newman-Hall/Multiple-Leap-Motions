@@ -149,3 +149,23 @@ single control thread, idempotent on that thread. Full M2 protected Mac IPC and
 physical M1 acceptance remain open; this is not a distributable Mac application.
 **Evidence:** MACOS_M0 report; snapshot coherence/lifetime and worker startup/normal
 shutdown regressions; actual verification is recorded in reports/MACOS_M2_CONCURRENCY.md.
+
+## ADR-018 — Native Apple Silicon target and per-socket Darwin SIGPIPE handling
+
+**Status:** Accepted by explicit user instruction, 2026-11-16. **Scope:** planned
+Mac product is native Apple Silicon arm64 only. Intel builds, Rosetta execution
+and universal releases are not requirements; historical Intel results are retained
+only as history and never satisfy arm64 acceptance. Windows x64 is unchanged.
+**Fix:** set SO_NOSIGPIPE on each Darwin OSC socket immediately after creation,
+before connect/send. Check setsockopt failure through existing RAII cleanup and
+error reporting. Keep send flags, serializers, Windows/Linux paths and process-wide
+signal disposition unchanged. Failed sends must return/count errors rather than
+kill the engine. A Darwin-only child test restores and unblocks default SIGPIPE,
+then checks repeated failed sends and unchanged signal policy. No SIG_IGN workaround.
+**Validation:** arm64-only presets and runner guards; actual application/diagnostic/
+SDK binary slice checks; engine/GUI mock suites, native Cocoa GUI lifecycle smoke,
+and pinned genuine Apple Silicon Hyperion 6.2 load/no-service checks. Universal
+Qt dependency files may contain multiple slices; that is not an Intel product
+build. Arm64 acceptance requires arm64 execution. Hosted capacity failure is a
+blocker, not a reason to substitute Intel. Physical service/two-camera/USB/TD
+acceptance and protected IPC remain separate gates. Evidence: reports/MACOS_ARM64.md.

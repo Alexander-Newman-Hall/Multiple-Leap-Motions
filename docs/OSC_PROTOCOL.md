@@ -127,3 +127,13 @@ documented legacy loss rules and retain their optional-channel limitations.
 The SDK/client version checks and a successful UDP send do not prove that actual
 TouchDesigner received camera data. Complete the physical receiver checklist with
 Hyperion 6.2 or newer 6.x and record real results separately.
+
+## Darwin send errors and SIGPIPE
+
+The Darwin sender enables SO_NOSIGPIPE per socket before connect/send. It keeps
+the process signal policy intact and routes socket-option/send errors through the
+existing readiness and send-error counters. Legacy address/type/units/one-scalar
+packet behavior and Windows/Linux transport paths are unchanged. The broadcast
+error regression and an isolated default/unblocked-SIGPIPE test remain enabled on
+Darwin; no failed case is hidden by a global ignored signal or a test skip.
+Actual arm64 verification and any infrastructure blocker: reports/MACOS_ARM64.md.

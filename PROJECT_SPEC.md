@@ -2,12 +2,14 @@
 
 **Status:** Authoritative v1 specification; Phase 0 code audit completed 2026-11-15. Implementation status is maintained in docs/CURRENT_STATE.md; requirements below are not claims of shipped features. **Owner:** Repository owner. **Target:** Windows 10/11 x64. **Product:** Native multi-Ultraleap camera tracking bridge for local TouchDesigner OSC workflows.
 
-**Proposed platform extension (2026-11-16):** the user authorized planning a macOS
-port; see [MACOS_PORT_PLAN](docs/MACOS_PORT_PLAN.md). Windows remains the existing
-release target. The initial-release exclusions below do not prohibit this later
-feasibility work, but no Mac implementation or two-camera support is delivered
-by the plan. C++20, Hyperion v6, OSC parity and independent engine lifetime remain
-requirements; physical Mac support must pass the new gates before being claimed.
+**Mac platform extension (2026-11-16):** the user selected **Apple Silicon only,
+native arm64**; see [MACOS_PORT_PLAN](docs/MACOS_PORT_PLAN.md). Intel Mac builds,
+Rosetta validation and universal releases are outside the planned product scope.
+Windows x64 remains the existing release target. Historical Intel SDK/host checks
+are reference evidence only and cannot satisfy arm64 acceptance. C++20, Hyperion
+**6.2.0 or newer within 6.x**, the existing Qt 6.8.3 GUI, OSC parity and independent
+engine lifetime remain requirements. Native arm64 engine/GUI/SDK results and
+physical two-camera gates must be recorded before support is claimed.
 
 ## 1. Product purpose
 
@@ -34,7 +36,7 @@ The software must operate headlessly in a production installation. A separate gr
 - Windows Service installation with elevated privileges, unless validated as necessary for deployment.
 
 ## 3. Operating constraints
-- Primary: Windows 10/11, MSVC, x64, C++20, CMake presets. Ultraleap Hyperion service and compatible Leap Motion Controller 2 devices provided on test PC.
+- Primary release: Windows 10/11, MSVC, x64, C++20, CMake presets. Mac extension: native arm64 Apple Silicon only; no Intel, Rosetta or universal-release requirement. Ultraleap Hyperion 6.2+ within 6.x and compatible Leap Motion Controller 2 devices remain external test inputs.
 - IPC: local-only native mechanism. Recommended implementation: Qt 6 `QLocalServer`/`QLocalSocket` between headless host and Qt native GUI; core tracking/processing can remain Qt-independent. Explicitly restrict local control endpoint access and protect against a second engine instance.
 - UI: Qt 6 Qt Quick/QML + C++ models (a native executable, **not a browser app**). Keep UI as a distinct process; import into engine only a small IPC bridge, not visual modules.
 - OSC: UDP to `127.0.0.1:<configured-port>`; current source uses a 9000 fallback in `src/core/ConfigManager.cpp`; existing saved configs/UI may differ, so document exact compatibility after audit. No internet connection required.

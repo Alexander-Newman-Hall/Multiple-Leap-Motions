@@ -1,9 +1,13 @@
 """Inspect the extracted official Mac SDK and run the owned diagnostic only."""
 import hashlib
 import os
+import platform
 from pathlib import Path
 import subprocess
 import sys
+
+if sys.platform != 'darwin' or platform.machine() != 'arm64':
+    sys.exit('BLOCKED: arm64 acceptance requires native Apple Silicon macOS')
 
 root = Path('work/macos-m0/sdk')
 out = Path('work/macos-m0')
@@ -24,6 +28,7 @@ if len(headers) != 1 or len(libraries) != 1:
 header, library = headers[0], libraries[0]
 sdk = header.parent.parent
 print('selected canonical C SDK:', sdk, flush=True)
+(out/'sdk-root.txt').write_text(str(sdk.resolve()) + '\n')
 for link in sorted((sdk/'lib').iterdir()):
     print('library entry:', link.name, 'symlink_target=', os.readlink(link) if link.is_symlink() else '(regular file)', flush=True)
 for path in [header, library]:
@@ -40,9 +45,14 @@ if readme.is_file():
     for line in readme.read_text(errors='replace').splitlines():
         if any(word in line.lower() for word in ['cmake', 'build', 'make', 'xcode', 'sample', 'license', 'licence']):
             print('SDK README build/terms reference:', line, flush=True)
-run(['xcrun', 'clang++', '-std=c++20', '-Wall', '-Wextra', '-pthread', '-I', header.parent,
+run(['xcrun', 'clang++', '-arch', 'arm64', '-std=c++20', '-Wall', '-Wextra', '-pthread', '-I', header.parent,
      'probes/macos-m0/sdk-diagnostic.cpp', '-o', out/'sdk-diagnostic'])
 exe = (out/'sdk-diagnostic').resolve()
+for binary in (library, exe):
+    slices = subprocess.check_output(['lipo', '-archs', str(binary)], text=True).strip()
+    print('required native slices:', binary, slices, flush=True)
+    if slices != 'arm64':
+        sys.exit('FAIL: expected arm64-only SDK/diagnostic, no Intel or translated acceptance')
 run([exe, out.resolve()/'definitely-missing.dylib', '--load-only'], expected=2)
 run([exe, library, '--load-only'])
 # The package is expanded only, never installed. Do not stop/start any service.

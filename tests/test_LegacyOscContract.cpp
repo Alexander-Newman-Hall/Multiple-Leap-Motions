@@ -15,6 +15,9 @@
 #include <filesystem>
 #include <fstream>
 #include <stdexcept>
+#ifdef __APPLE__
+#include <signal.h>
+#endif
 
 namespace {
 class Receiver {
@@ -276,3 +279,34 @@ TEST(LegacyOscContract, NativeBroadcastPermissionErrorIsNotReportedAsSuccess) {
     EXPECT_EQ(stats.lastError.find("OSC target requires"), std::string::npos);
 #endif
 }
+
+#ifdef __APPLE__
+TEST(LegacyOscContract, DarwinSendFailureSurvivesDefaultUnblockedSigpipeWithoutGlobalPolicyChange) {
+    // Isolate signal setup from the test runner. A runner-inherited SIG_IGN or
+    // blocked signal must not make the unfixed sender look safe.
+    EXPECT_EXIT({
+        struct sigaction action{};
+        action.sa_handler = SIG_DFL;
+        sigemptyset(&action.sa_mask);
+        if (sigaction(SIGPIPE, &action, nullptr) != 0) _exit(10);
+        sigset_t unblock;
+        sigemptyset(&unblock);
+        sigaddset(&unblock, SIGPIPE);
+        if (sigprocmask(SIG_UNBLOCK, &unblock, nullptr) != 0) _exit(11);
+        const auto unchanged = [] {
+            struct sigaction current{};
+            return sigaction(SIGPIPE, nullptr, &current) == 0 && current.sa_handler == SIG_DFL;
+        };
+        {
+            OscSender sender("255.255.255.255", 9000);
+            if (!unchanged()) _exit(12);
+            for (int attempt = 0; attempt < 3; ++attempt)
+                if (sender.sendMessageChecked("/probe", 1)) _exit(13);
+            const auto stats = sender.getStats();
+            if (stats.sendAttempts != 3 || stats.sendErrors != 3 || stats.packetsSent != 0 ||
+                stats.lastSuccessUs != 0 || stats.lastError.empty() || !unchanged()) _exit(14);
+        }
+        _exit(unchanged() ? 0 : 15);
+    }, ::testing::ExitedWithCode(0), ".*");
+}
+#endif

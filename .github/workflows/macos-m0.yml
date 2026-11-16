@@ -1,14 +1,11 @@
 name: macOS M0 feasibility
 on:
-  push:
-    branches: [codex/handbridge-macos-feasibility]
-    paths: ['probes/macos-m0/**', '.github/workflows/macos-m0.yml']
   workflow_dispatch:
     inputs:
       runner:
-        description: Hosted Mac image for M0 only
+        description: Native Apple Silicon hosted image (no Intel acceptance)
         type: choice
-        options: [macos-15, macos-26, macos-15-intel]
+        options: [macos-15, macos-26]
         default: macos-15
       probe_features:
         description: Re-audit original library features (known Xcode 16.4 failures)
@@ -30,6 +27,7 @@ jobs:
           set -euo pipefail
           mkdir -p work/macos-m0
           exec > >(tee work/macos-m0/results.txt) 2>&1
+          test "$(uname -m)" = arm64
           uname -a
           sw_vers
           system_profiler SPHardwareDataType | sed '/Serial Number/d; /Hardware UUID/d; /Provisioning UDID/d'
@@ -51,23 +49,7 @@ jobs:
         run: |
           set -euo pipefail
           exec > >(tee work/macos-m0/sdk-results.txt) 2>&1
-          case "$(uname -m)" in
-            arm64) platform=apple-silicon ;;
-            x86_64) platform=apple-intel ;;
-            *) exit 1 ;;
-          esac
-          curl --fail --location --retry 3 --retry-all-errors --retry-delay 5 --connect-timeout 30 --max-time 600 "https://s3.eu-west-1.amazonaws.com/downloads.ultraleap.com/software/tracking-software/6.2.0/tracking-software-$platform-6.2.0.pkg" -o work/macos-m0/hyperion.pkg
-          shasum -a 256 work/macos-m0/hyperion.pkg
-          if [ "$platform" = apple-silicon ]; then
-            echo '9cad82a6282e322d2acd71f3746e50b472f3ed83bb5f9fa6f54d554f404c5531  work/macos-m0/hyperion.pkg' | shasum -a 256 -c -
-          else
-            echo 'cb6279bacbda12b0e2db2eda5f1e1fd1988f77f568680150e63aee474d6552bc  work/macos-m0/hyperion.pkg' | shasum -a 256 -c -
-          fi
-          pkgutil --check-signature work/macos-m0/hyperion.pkg
-          pkgutil --expand-full work/macos-m0/hyperion.pkg work/macos-m0/sdk
-          find work/macos-m0/sdk -type f | sort
-          find work/macos-m0/sdk -name LeapC.h -exec shasum -a 256 {} \; > work/macos-m0/header-inspection.txt
-          find work/macos-m0/sdk -iname '*leapc*dylib*' -exec ls -l {} \; -exec file {} \; -exec lipo -info {} \; -exec otool -L {} \; -exec shasum -a 256 {} \; -exec nm -gU {} \;
+          bash probes/macos-m0/fetch-sdk.sh
       - name: Build and run bounded SDK diagnostic
         shell: bash
         run: |

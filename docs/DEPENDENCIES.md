@@ -11,6 +11,7 @@ historical build audit, and [GUI_BUILD](reports/GUI_BUILD.md) for controller evi
 | Component | Purpose | Version / boundary |
 |---|---|---|
 | Windows 10/11 x64 | Target runtime | Exact supported OS builds require local acceptance. |
+| Apple Silicon / macOS arm64 | Mac extension target | Native arm64 only; no Intel, Rosetta or universal-release requirement. Acceptance requires actual arm64 results; historical Intel checks do not transfer. |
 | MSVC 2022 + Windows SDK | Windows C++20 build | x64 Visual Studio 17 2022 presets; Release uses dynamic MSVC runtime. |
 | CMake / Ninja | Build | CMake 3.24+; CI pins CMake 3.31.6 and Ninja wheel 1.11.1.4. |
 | Ultraleap Hyperion / LeapC | Actual tracking provider | Official Hyperion **6.2.0** SDK; client DLL **6.2.0.0-c98d293a**. External runtime/service; never bundled in this preview. |
@@ -26,7 +27,23 @@ historical build audit, and [GUI_BUILD](reports/GUI_BUILD.md) for controller evi
 Open-source CMake fetches use exact revisions and SHA-256 checks in ignored build
 directories. CMake does not automatically download the proprietary SDK.
 
-## Genuine Hyperion 6.2 development SDK
+## Genuine Mac Hyperion 6.2 SDK — native arm64 only
+
+Mac validation uses the official **Apple Silicon 6.2.0** package and its actual
+arm64 header/dylib, not files extracted from the Windows installer below. The
+package SHA-256 is
+`9cad82a6282e322d2acd71f3746e50b472f3ed83bb5f9fa6f54d554f404c5531`;
+provenance/inspection and unexecuted checks are recorded in [M0 evidence](reports/MACOS_M0.md).
+No SDK file is committed or redistributed. Qt remains **6.8.3**, C++ remains **20**,
+and client/connected ServerLibrary must independently meet **6.2.0 or newer 6.x**.
+Use `macos-arm64-core` / `macos-arm64-control` presets and arm64 CI. If a dependency
+archive contains other architecture slices, validate and execute arm64; its archive
+format does not impose a universal application release requirement. Historical
+Intel results are retained as historical evidence only. Capacity failure is BLOCKED,
+not SDK incompatibility or permission to substitute an Intel build. A Mac SDK load
+without a running service establishes no physical camera/recovery/TD acceptance.
+
+## Genuine Windows Hyperion 6.2 development SDK
 
 Use the exact installed SDK when available, or explicitly run:
 
@@ -52,7 +69,9 @@ official API references and licence evidence.
 Enable the adapter with `HANDBRIDGE_WITH_LEAPC=ON` and an explicit `LEAP_SDK_ROOT`.
 CMake validates the actual header's version API and prints its SHA-256. Linux can
 compile the real adapter against this header and test injected SDK function
-pointers without an SDK binary; loading the actual client requires Windows x64.
+pointers without an SDK binary; the production runtime loader currently requires
+Windows x64. The separate Mac SDK-only diagnostic has its own native arm64 acceptance gate; it is not production
+Mac engine integration.
 The runtime checks the client and connected server-library versions independently;
 each must report 6.2.0 or newer within 6.x. A successful header compile, DLL
 preflight or injected-API test does not prove service/camera operation.

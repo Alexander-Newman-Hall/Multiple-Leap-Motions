@@ -37,6 +37,13 @@ public:
             std::unique_ptr<addrinfo, decltype(&freeaddrinfo)> address(rawAddress, freeaddrinfo);
             socket_ = ::socket(address->ai_family, address->ai_socktype, address->ai_protocol);
             if (socket_ == invalidSocket) throwSocketError("socket");
+#ifdef __APPLE__
+            // Darwin may raise SIGPIPE instead of just returning a send error.
+            // Suppress it for this socket only; leave process signal policy alone.
+            const int noSigPipe = 1;
+            if (::setsockopt(socket_, SOL_SOCKET, SO_NOSIGPIPE, &noSigPipe, sizeof(noSigPipe)) != 0)
+                throwSocketError("setsockopt(SO_NOSIGPIPE)");
+#endif
             if (::connect(socket_, address->ai_addr, static_cast<int>(address->ai_addrlen)) != 0)
                 throwSocketError("connect");
 #ifdef _WIN32
