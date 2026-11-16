@@ -1,70 +1,65 @@
-# Continue locally on Windows
+# Continue locally on Windows — Hyperion 6.2 acceptance
 
-The user subsequently authorized a full native GUI rebuild in cloud. It is now
-implemented and mock/UDP tested. Continue its branch on the Windows PC for the
-real SDK adapter; do not discard the controller/audit/test work.
+The new controller and real LeapC adapter are implemented. Continue the feature
+branch; do not repeat the GUI rebuild or discard the prior audit/test work.
+Actual cloud/Windows Release results and exact tested commits are in CURRENT_STATE
+and SESSION_HANDOFF. A DLL load or mock stream is not a physical camera test.
 
 ## Get the work
 
-Draft PR: https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/pull/2
-
 ```powershell
-git clone --branch codex/handbridge-native-controller https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions.git
+git clone --branch codex/handbridge-leapc-release https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions.git
 cd Multiple-Leap-Motions
 ```
 
-If already cloned, preserve local edits, fetch origin and switch to the development
-branch safely. Do not reset, delete or force-push master/handbridge-v2.
-Open this local checkout in Codex on the Windows PC. A new cloud task cannot
-access your USB cameras just because it points to the same GitHub repository.
+Preserve local edits when switching an existing checkout. Master, handbridge-v2
+and prior feature branches remain available; never reset/delete/force-push them.
+Open this checkout in local Codex. Cloud Codex cannot access these USB cameras.
 
-## Machine prerequisites
+For a prebuilt developer preview, follow WINDOWS_RELEASE.md and choose a
+successful workflow artifact. Extract the full ZIP. It includes Qt and release
+CRT; Visual Studio/Qt/Python are build tools, not requirements for running that
+package. The official Hyperion runtime/SDK remains an external prerequisite.
 
-- Windows 10/11 x64, VS2022 Desktop development with C++ and Windows SDK.
-- Git, CMake3.24+, Python3.9+ (test receiver only).
-- Official compatible Ultraleap Hyperion runtime and LeapC development SDK;
-  record exact installed versions and obey its license. No SDK files are vendored.
-- Two controllers, USB connections and TouchDesigner for physical validation.
+## Establish the correct runtime before cameras
 
-First establish the SDK-free baseline locally:
+Install current official **Hyperion 6.2.0** compatible with your devices and record
+the exact Windows/SDK/client/service versions. The required API policy is6.2.0 or
+newer 6.x for both client and connected tracking service. Old/unknown versions fail
+clearly before healthy state. Use the actual installed x64 client DLL:
 
 ```powershell
-cmake --preset windows-core
-cmake --build --preset windows-core --parallel 2
-ctest --preset windows-core
+.\handbridge-engine.exe --check-leapc --leapc-library "C:\Program Files\Ultraleap\LeapSDK\lib\x64\LeapC.dll"
+.\handbridge-engine.exe --headless --leapc-library "C:\Program Files\Ultraleap\LeapSDK\lib\x64\LeapC.dll"
+.\handbridge-control.exe
 ```
 
-The new handbridge-engine is **simulation only**. It does not yet have a LeapC
-adapter. The optional windows-legacy preset builds the old GUI reference and is
-unverified; it is not a real-device mode of the new host. Set LEAP_SDK_ROOT to the
-installed SDK directory containing include/LeapC.h and lib/x64/LeapC.lib when
-working on SDK integration. Do not copy SDK DLLs into git.
+The GUI can perform the same check with Start engine. For a nonstandard DLL path,
+set HANDBRIDGE_LEAPC_LIBRARY before opening the controller. Start simulator is
+explicitly separate. Stop an already-running detached simulator in Task Manager
+before switching to a real engine on the same endpoint. Closing the GUI does not
+stop either engine. Full path policy and developer builds: LEAPC_SETUP.md.
+
+The preflight reports the loaded DLL file/API versions with no service connection
+or camera. Once connected, the engine separately checks the actual ServerLibrary
+version. Record observations; do not copy SDK binaries into Git.
 
 ## Paste into the next local Codex task
 
-> Read AGENTS.md, PROJECT_SPEC.md, PLANS.md, docs/CURRENT_STATE.md,
-> docs/SESSION_HANDOFF.md, docs/reports/*_AUDIT.md and relevant protocol/hardware
-> documents. Continue the existing feature branch; preserve original branches.
-> Implement only P2.1: the smallest real LeapC ITrackingSource adapter and Windows
-> x64 build seam for the tested headless runtime. Inspect exact installed SDK
-> headers and official docs before using APIs; record SDK/service versions.
-> Use RAII, explicit multi-device subscriptions, one poll owner, bounded timeout,
-> owned frames and serial-based identity. Keep the simulated/OSC/config tests
-> passing. Then verify two real devices and actual TouchDesigner receipt with
-> the user's physical interaction, recording exact results or blockers. Preserve
-> the existing Qt controller/IPC/processing; do not add fusion or packaging. Update current state,
-> hardware results and handoff with one next task. A compile or simulator pass
-> must never be reported as a physical camera test.
+> Read AGENTS.md, PROJECT_SPEC.md, PLANS.md, CURRENT_STATE, SESSION_HANDOFF,
+> LEAPC_SETUP, WINDOWS_RELEASE and HARDWARE_TEST_PLAN. Continue
+> codex/handbridge-leapc-release. The GUI, IPC and genuine Hyperion 6.2 adapter
+> already exist; preserve them. First query the installed client/service versions
+> and establish the cloud-test baseline locally. Then execute only the physical
+> two-camera acceptance: distinct serial/aliases and simultaneous output, no hands,
+> real TouchDesigner OSC receipt, unplug/replug, controlled tracking-service
+> restart, per-device filtering/restart, GUI close/kill/reopen and a measured soak.
+> Record actual PASS/FAIL/BLOCKED and exact versions in HARDWARE_TEST_RESULTS.md.
+> Diagnose observed failures from source/subscription/frame/output metrics and
+> fix only a bounded demonstrated issue; do not add fusion or redesign the UI.
+> Update current state and handoff with the exact tested commit and one next task.
 
-Human hand movement, unplug/replug and receiver observations must actually be
-performed on that PC. Follow HARDWARE_TEST_PLAN.md; label unperformed cases
-UNTESTED ON HARDWARE. The field silent-stall root cause remains unproven.
-
-## Build the new native controller first
-
-Install official Qt6.8.3 MSVC2022 x64 desktop development files; use root README's
-windows-control commands with CMAKE_PREFIX_PATH and Qt bin on PATH. The controller
-already implements modern VST-style settings and survives engine GUI detachment.
-Use handbridge-control.exe --demo to see it with mock cameras; this is not a real
-LeapC mode. Keep native UI/process and55 Qt-free tests passing when adding SDK
-support. Actual hardware still needs this local PC and human observations.
+Human hand motion, unplugging and receiver observations must actually happen on
+that PC. Mark unperformed hardware cases NOT RUN. The original field silent-stall
+incident remains unproven until reproduced/measured; mock recovery tests do not
+establish its real root cause.

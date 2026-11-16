@@ -86,3 +86,12 @@ consistent explicit parsing locale; validation in the engine remains authoritati
 Legacy direct save is still non-atomic; the new atomic profile mechanism belongs
 to the Qt host. Future per-profile inheritance, all-bone OSC and optional OSCv2
 remain unimplemented. The original proposal is archived under docs/legacy.
+
+## Runtime provider selection
+
+This increment does not change schema2, legacy migration or the OSC contract.
+Select real input at engine startup, or use explicit --simulate; select the
+installed SDK client using --leapc-library or the documented environment variables.
+These are process/dependency settings, not additional profile JSON keys. Do not
+add an undocumented source/runtime path field to a validated profile. The real
+client and connected service must each report 6.2.0 or newer 6.x. See LEAPC_SETUP.md.

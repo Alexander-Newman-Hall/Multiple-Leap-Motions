@@ -65,7 +65,7 @@ The optional Qt controller and actual hardware adapter are not part of this buil
 
 ## Native controller workflow
 
-Build windows-control with Qt6.8.3 and run handbridge-control.exe --demo to start
+Build windows-control with Qt 6.8.3 and run handbridge-control.exe --demo to start
 an independent simulated engine. In OSC Output choose loopback and the actual TD
 listener port, select channels, then Apply. Engine acknowledgement is required;
 Editing and Applied-but-unsaved are distinct. Save a named profile to restore
@@ -76,4 +76,6 @@ Processing defaults to raw mm. If you explicitly disable bypass and select meter
 or transforms, update TD's expected scaling. Optional pinchActive/grabActive are
 separate thresholded flags; native pinch/grabStrength is unchanged. Test the real
 OSC In DAT/CHOP; none of the cloud GUI/UDP tests establish TouchDesigner receipt.
-The real LeapC adapter is still pending local Windows hardware work.
+The real adapter is implemented against the official Hyperion 6.2 SDK, requiring
+client/service 6.2.0 or newer 6.x. Actual camera streams and TouchDesigner receipt
+still require local Windows hardware verification; see LEAPC_SETUP.md.

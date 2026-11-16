@@ -17,8 +17,9 @@ belongs in the living state/handoff, not inferred from these checkboxes.
 The user explicitly requested a complete modern native GUI rebuild with a VST
 feel and working settings, after the initial pause for local hardware work. This
 instruction authorizes Phase 3 and the minimum Phase 4 settings/processing needed
-by its controls using the tested mock source now. Phase 2 remains BLOCKED ON
-INSTALLED SDK/HARDWARE; the GUI must clearly label simulated tracking. Original
+by its controls using the tested mock source at that checkpoint. The SDK adapter
+has since been delivered; Phase2 physical acceptance remains BLOCKED ON HARDWARE.
+The GUI must clearly label simulated tracking. Original
 branches/UI stay recoverable. This changes task order, not hardware acceptance.
 
 Delivered: portable settings `2de385f`, native IPC/profile host `99622f2`,
@@ -33,7 +34,7 @@ Bounded increments: (1) validated engine settings and real processing effects;
 (4) packet/process/UI lifecycle tests, screenshots, Windows/Linux build evidence
 and handoff. No fusion, web frontend, real-camera claim or SDK API invention.
 
-## User-approved SDK and release increment — active task
+## User-approved SDK and release increment — delivered scope
 
 The user explicitly requested the real adapter and a Windows Release ZIP before
 connecting cameras, and clarified that **latest Hyperion v6** is required. Use the
@@ -46,6 +47,12 @@ Deliver a real-header compiled adapter, deterministic injected-API tests, runtim
 DLL preflight, SDK-independent fallback, separate real/simulator GUI actions,
 Release deployment with Qt/MSVC runtimes and a PATH-clean extracted-ZIP smoke.
 Keep SDK licence boundaries explicit and preserve all earlier branches.
+
+Delivered at c8596f2: the actual Hyperion6.2 header adapter, version-gated client /
+service, Linux82/82 tests, Windows81+1 expected skip, actual DLL/offline client
+checks and sixteen extracted-ZIP native Windows checks. A clean-source Release
+artifact is published. Physical P2/P5 gates remain open; next task is the local
+two-camera acceptance, not another GUI rewrite. See CURRENT_STATE/SESSION_HANDOFF.
 
 ## P0: Baseline and evidence (start here)
 

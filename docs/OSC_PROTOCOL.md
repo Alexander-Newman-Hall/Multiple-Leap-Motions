@@ -113,3 +113,17 @@ output remain future work. Full order/bounds: CONFIG_SCHEMA.md.
 Controller shutdown/crash leaves the QtCore/Network engine and OSC worker alive.
 Raw/processed point previews and measured telemetry travel over sampled local IPC;
 the GUI never carries the tracking stream used to send packets. See CONTROL_PROTOCOL.md.
+
+## Hyperion 6 source compatibility
+
+The optional real adapter uses the official Hyperion 6.2 SDK, preserving raw palm /
+arm / digit/bone observations, millimeters, quaternion order, native strengths and
+source timestamps before the existing processing/OSC stages. It does not introduce
+a new address format or expose native IDs as new legacy channels. Known native
+hand-ID changes reset only that hand's filter/gesture state; raw bypass and legacy
+golden packets remain unchanged. No-hands, stale/device/service loss still use the
+documented legacy loss rules and retain their optional-channel limitations.
+
+The SDK/client version checks and a successful UDP send do not prove that actual
+TouchDesigner received camera data. Complete the physical receiver checklist with
+Hyperion 6.2 or newer 6.x and record real results separately.

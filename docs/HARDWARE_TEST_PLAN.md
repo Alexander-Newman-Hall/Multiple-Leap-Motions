@@ -1,74 +1,148 @@
-# Windows + Ultraleap + TouchDesigner physical acceptance test plan
+# Windows / Hyperion 6 / TouchDesigner physical acceptance plan
 
-**Status:** Test plan only. No physical tests have been performed in preparing this kit.
+**Status: UNTESTED ON HARDWARE.** The real adapter is compiled and its lifecycle
+is tested using injected functions with official SDK types. Software-only Windows
+DLL loading/version checks, a missing-service test, portable ZIP smoke and mock
+frames do not establish physical camera, USB, service-recovery or TD behavior.
+Record their results separately from every physical checkbox below.
 
-## Before testing
+## Prepare the actual test PC
 
-Record: Git commit SHA, build artifact SHA/version, Windows edition/build, MSVC runtime/Qt version if relevant, installed Hyperion/LeapC service versions, controller model/firmware, USB controller/hub and power arrangements, OSC IP/port and TouchDesigner build. Use serial pseudonyms in shared records.
+Record the exact source commit, package manifest/hash, Windows edition/build,
+Qt/MSVC runtime versions, installed client DLL path/file/API version, connected
+Hyperion service version, controller model/firmware/count, USB port/controller/hub
+and power arrangement, profile, OSC destination and TouchDesigner version. Redact
+serials and private paths before sharing diagnostics.
 
-Setup: One Windows PC, two Leap Motion Controller 2 devices, an appropriate USB connection for both, TouchDesigner and Hand Bridge headless engine/UI. Configure OSC receiver at `127.0.0.1` and actual configured port (legacy C++ fallback currently 9000, subject to saved settings).
+Use Windows 10/11 x64, two Leap Motion Controller 2 devices and the official
+Hyperion **6.2.0 or newer 6.x** runtime/client. Both client and connected service
+must pass the implemented version gate; unknown/older/different-major versions
+must remain unavailable. Follow [SDK setup](LEAPC_SETUP.md), the Windows build/
+portable guide and [current state](CURRENT_STATE.md) for the exact tested build.
+No SDK binary is bundled with the portable preview.
 
-### Gate A: Single-camera basics
+Run the documented `--check-leapc` probe with the intended absolute DLL path first.
+That verifies client loading/required exports/API version only; it does not connect
+to the tracking service or observe cameras. Then launch the real engine, or choose
+**Start engine** in the controller. **Start simulator** remains a separate explicit
+mode; its results cannot fill the physical checklist. Confirm actual provider and
+service-version diagnostics before proceeding.
 
-- [ ] Verify Ultraleap service is actually running. Launch engine headlessly.
-- [ ] One camera appears with stable serial/alias and subscribed state.
-- [ ] Move left hand and right hand separately; confirm source joint values and handedness update.
-- [ ] Remove hands; frame arrival remains healthy even with zero visible hands; no stale data held indefinitely.
-- [ ] Restart app and confirm chosen filters, aliases and OSC port persist.
-- [ ] Inspect OSC In DAT/CHOP for actual address/value/types, not merely a send counter.
+Configure TouchDesigner OSC In DAT/CHOP for `127.0.0.1` and the exact active port
+(default 9000; a saved valid different port is preserved). Inspect OSC In DAT
+addresses/types before interpreting CHOP channels. A sender counter is not receipt.
 
-### Gate B: Two simultaneous controllers
+## Gate A — one real camera
 
-- [ ] Attach both cameras; assert separate device serial/alias mapping and independent frame counters.
-- [ ] A hand in one camera does not spuriously overwrite the other's alias/channel.
-- [ ] Confirm simultaneous output from both devices, with correct device and handedness labels.
-- [ ] Disable Camera A output; Camera B continues sending unmodified.
-- [ ] Reassign one camera left/right filter; confirm matching output channels change and assignment persists.
-- [ ] Close/reopen native UI with engine still running; TouchDesigner receives unchanged stream.
-- [ ] Kill GUI process; engine survives and is reattachable after relaunch.
+- [ ] Real service connection is acknowledged only after the connected server
+      reports an accepted Hyperion version; record both client and service values.
+- [ ] One camera appears with stable serial/alias and separate present/subscribed/
+      fresh-frame/hand-visible facts. Compare with Ultraleap's own tools.
+- [ ] Move left and right hands separately; confirm raw palm/wrist/fingertip values,
+      lowercase handedness and native frame/hand IDs where surfaced in diagnostics.
+- [ ] Remove hands. Observe fresh empty frames without a false device failure;
+      confirm the one-time legacy loss output at the actual receiver.
+- [ ] Reacquire a hand and record ID changes; no previous person's filtered pose or
+      gesture latch should leak into a different known native hand ID.
+- [ ] Save a profile, restart the engine, reopen the controller and verify aliases,
+      selected channels, hand assignment and destination are restored.
 
-### Gate C: Failure reproduction and recovery
+## Gate B — two independent real cameras
 
-- [ ] Physically unplug A while B runs; B remains usable, A marked disconnected, A's stale/validity state cleared.
-- [ ] Replug A; reopen/resubscribe with original stable alias, output resumes without restarting engine.
-- [ ] Repeat with B and reversed attachment order.
-- [ ] Restart Ultraleap Tracking Service in a controlled test environment; engine detects loss and recovers correctly or reports a bounded actionable failure. Do not stop an organization's shared service without permission.
-- [ ] Exercise USB sleep/power management scenario if applicable.
-- [ ] Stress queue with high CPU/background load; dropped-frame counters reflect reality and stay finite; prevent unnoticed permanent stall.
-- [ ] Simulate invalid port and correct it; UI and logs describe sender state truthfully.
-- [ ] Restart TouchDesigner only; verify OSC sender continues and TD reattaches after the listener restarts.
-- [ ] Confirm no hands is *not* classified as a disconnected device.
-- [ ] Use diagnostic export to capture service, device, queue and OSC stages if a silent stall happens.
+- [ ] Attach both; record distinct serial/alias mapping and independent progressing
+      tracking counters. Repeat with reversed attachment order after persistence.
+- [ ] Observe both devices concurrently in OSC In DAT/CHOP. One camera's hand must
+      not overwrite the other's device prefix. No fusion/handoff is expected.
+- [ ] Disable A's **output routing**, verify its frames remain independently healthy
+      and B's output continues, then re-enable A. This control does not power off
+      USB or promise upstream SDK unsubscription.
+- [ ] Change A's left/right/both filter and verify actual receiver channels and
+      persistence; B's selected route must remain unchanged.
+- [ ] Close, reopen and kill/restart the GUI while the engine runs. Verify real
+      TouchDesigner output continues and the new GUI reads engine truth.
 
-### Gate D: Processing and OSC controls
+## Gate C — loss, stale streams and recovery
 
-- [ ] Verify default legacy OSC addresses, lowercase `left`/`right` where current source uses them, float values, active port and units vs golden tests.
-- [ ] Switch raw/processed output for one channel; confirm numeric change and no cross-device leakage.
-- [ ] Verify smoothing is time-based and does not create giant lag or jump after reacquisition.
-- [ ] Verify offsets/transforms and units on palm, wrist, finger values and correct axis conventions.
-- [ ] Configure pinch threshold+hysteresis and validate stable transitions without oscillation.
-- [ ] Save preset; restart engine, then reopen UI; compare exact output and readback.
-- [ ] Optional bundled messages are received and parsed by OSC In DAT/CHOP; large bundles split into bounded packets.
+- [ ] Unplug A while B runs: A becomes invalid/disconnected, default pose channels
+      clear and B keeps processing/sending. Record timestamps and counters.
+- [ ] Replug A: the original serial alias returns, handles/subscriptions are fresh
+      and frames/OSC resume without restarting the whole engine. Repeat for B.
+- [ ] Use the supported manual restart action on A; confirm a real resubscription
+      and new frame progression while B continues. Do not mistake command ack for
+      recovered fresh tracking.
+- [ ] Restart Hyperion service in a controlled test environment, then observe full
+      cleanup, re-enumeration and resubscription. Record actual detection/recovery
+      delays and SDK results. No automatic OS service restart is implemented.
+- [ ] Keep frame-stale timing distinct from service-lost notification: the runtime
+      uses a 500 ms frame threshold, while the 6.2 SDK documents that service-lost
+      notification can take up to five seconds without another service transaction.
+- [ ] Observe capped retries under unavailable service/device conditions; no tight
+      retry/log loop. Pending service acknowledgement has a three-second deadline.
+- [ ] If reproducible, exercise USB sleep/power management and CPU load; collect
+      frame age, drops, processing/output counters and per-camera isolation.
+- [ ] Reject an invalid OSC port without changing applied settings. Correct a valid
+      wrong destination and verify reception resumes; test manual output reset.
+- [ ] Restart TouchDesigner alone. Verify sending continues and the receiver can
+      reattach. UDP may still report OS success with no listener; never infer TD
+      receipt or a guaranteed send error from listener absence.
+- [ ] Export redacted diagnostics before recovery if the reported silent stall
+      occurs. Record which pipeline boundary stopped first and what restored it.
 
-### Gate E: Endurance and operations
+## Gate D — current global processing and OSC controls
 
-- [ ] At least one multi-hour two-camera soak, with logger size, memory usage, CPU, mean/max frame ages and dropped frames captured. Choose duration appropriate to deployment and document exact value.
-- [ ] Repeat at least 10 unplug/replug and service-loss recovery cycles; report counts and any failures.
-- [ ] Run with UI closed most of the time; open briefly for diagnostics; confirm no tracking disturbance.
-- [ ] Validate ability to shut down cleanly and reopen without orphaned device handles or duplicate output.
-- [ ] Document cold boot/autostart behavior if required by an installation.
+The implemented processing parameters are **global**, with separate filter state
+per device/hand/channel. Per-device routing/hand filters and the global channel
+selectors are implemented. Per-channel processing overrides are not implemented.
 
-## Results log — copy one row per test
+- [ ] With default raw bypass, verify legacy scalar float addresses, units in mm,
+      wrist/tip validity omissions, active port and documented loss quirks against
+      the golden fixtures. Optional orientation/velocity/normal are not guaranteed
+      to clear on loss; zero is not explicit validity.
+- [ ] Toggle every supported channel family and observe actual TD packets: palm,
+      wrist, five fingertips, pinch/grab, orientation, velocity, normal, visible
+      time and finger extension. Verify Applied/Rejected state matches engine ack.
+- [ ] Switch **global** raw bypass off; test time-based smoothing and dead-zone,
+      scale, X/Y/Z rotation, offset and selected mm/m units on real positions.
+      Preserve default raw-mm behavior when bypass is on; no hidden filter applies.
+- [ ] Verify camera/hand states remain independent despite global parameters.
+      Remove/reacquire a hand; inspect known-ID reset and absence of old-pose blends.
+- [ ] Enable optional pinch/grab gesture output and test enter/exit hysteresis.
+      Verify native pinchStrength/grabStrength remain native strengths and new
+      pinchActive/grabActive messages reflect only the explicit gesture option.
+- [ ] Change output enable and rate. Verify actual packets and loss clearing; do
+      not label the scalar packet rate as complete-hand frame rate.
+- [ ] Save/load a named profile, restart engine and reopen GUI; compare actual
+      output, active settings, profile save status and backup behavior.
 
-| Date/time (local) | Commit | Test ID | Environment | Result | Evidence / metrics | Defect link |
-|---|---|---|---|---|---|---|
-| — | — | — | UNTESTED | NOT RUN | — | — |
+## Gate E — endurance and deployment
 
-Use statuses `PASS`, `FAIL`, `BLOCKED`, `NOT RUN`. File test reports in `docs/HARDWARE_TEST_RESULTS.md` or dated files under `docs/reports/` and update `docs/CURRENT_STATE.md`.
+- [ ] Run an initial one-hour two-camera soak, then an eight-hour deployment soak
+      when available; record exact duration, memory/handle/log growth, CPU, frame
+      age/drop/retry counters and sender errors. These are targets, not prior passes.
+- [ ] Repeat at least ten unplug/replug and service-restart cycles; report every
+      failed cycle and recovery action, not only the successful final run.
+- [ ] Leave the UI closed for most of the soak; open briefly without disturbing
+      capture/output. Verify clean shutdown/relaunch has no leaked/duplicate streams.
+- [ ] Validate the extracted portable package on a Windows PC without developer
+      Qt paths; separately confirm installed Hyperion availability and real tracking.
+- [ ] Record cold boot, login/session, sleep and optional autostart behavior relevant
+      to the installation. Ordinary user-session execution is the intended model.
 
-## Safety/realism notes
+## Future optional checks — not acceptance claims for this build
 
-- Never send high-frequency debug logs on the LeapC tracking callback thread during measurement.
-- On UDP, a sender reporting success does not establish receiver receipt; use OSC In DAT/CHOP or a separate packet capture.
-- A GUI preview value is not proof OSC was transmitted; verify the real receiver.
-- Without connected physical devices, all items involving USB/Hyperion must remain NOT RUN or BLOCKED, not PASS.
+Per-channel raw/processed overrides, advanced calibration scope, OSC v2 explicit
+validity, bundled/MTU-split packets, recorded replay and automatic output socket
+supervision need their own implementation and tests before physical acceptance.
+Do not mark these as broken or passed by exercising controls that do not exist.
+
+## Results and evidence
+
+| Date/time with timezone | Commit/package | Test ID | Environment | Result | Evidence / defect |
+|---|---|---|---|---|---|
+| — | — | — | PHYSICAL WINDOWS | NOT RUN | — |
+
+Use PASS/FAIL/BLOCKED/NOT RUN. Write detailed results in
+HARDWARE_TEST_RESULTS.md (or dated reports), including real TD observations and
+logs/metrics, then update CURRENT_STATE.md and SESSION_HANDOFF.md. Keep software
+CI/probe results in separate rows. No physical checkbox is passed by compilation,
+SDK-header injection, DLL probing or simulated frames.

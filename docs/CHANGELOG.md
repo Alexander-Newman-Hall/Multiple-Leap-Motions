@@ -1,5 +1,21 @@
 # Hand Bridge 2.0 changelog
 
+## Hyperion 6.2 adapter / portable preview — 2026-11-15
+
+- Added a native real LeapC source using the exact official Hyperion 6.2 header,
+  owned frame copies, native hand IDs, explicit multi-device subscriptions and
+  bounded independent recovery; both headless hosts can select it.
+- Required client/server versions6.2.0 or newer 6.x with actual SDK version calls;
+  added safe DLL loading, nontracking preflight and real GUI startup/diagnostics.
+- Reset positional/gesture state when a known native hand identity changes.
+- Added21 genuine-SDK-type injected lifecycle/version tests and7 SDK-fetch
+  regressions; full Linux native suite82/82 passed. Windows evidence follows in
+  CURRENT_STATE rather than being inferred from these tests.
+- Added optional Windows Release portable deployment and extracted-package
+  verification, Qt/QML/plugins, app-local CRT, notices/corresponding Qt source.
+- Preserved legacy OSC/default port/units/config schema and original branches.
+  Physical camera/Hyperion recovery/TouchDesigner receipt remain unverified.
+
 This file tracks **implemented** changes to the application. Do not list planned features as shipped. Keep dates/versions and commits with each entry.
 
 ## Unreleased — native controller rebuild, 2026-11-15

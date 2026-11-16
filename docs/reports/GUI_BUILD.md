@@ -1,5 +1,10 @@
 # Native controller build and verification
 
+> Historical controller milestone: this report records the earlier native GUI
+> implementation and its exact source commits. Its simulation-only SDK statements
+> are historical. The current Hyperion 6.2 adapter, client/deployment evidence and
+> Windows Release instructions are in CURRENT_STATE, LEAPC_SETUP and WINDOWS_RELEASE.
+
 Branch: `codex/handbridge-native-controller`, based on `30cd5e3`.
 This report covers C++20 / Qt6 Quick/QML GUI and local IPC builds. No LeapC SDK
 binary is downloaded or required for the simulated path. Hardware remains
@@ -27,7 +32,7 @@ and exercised by actual controller runs; visual inspection is separate from core
 
 ## Developer commands
 
-Install Qt6.8.3 official desktop development files under its license (GCC Linux or
+Install Qt 6.8.3 official desktop development files under its license (GCC Linux or
 MSVC2022 x64 Windows). Supply its prefix using CMAKE_PREFIX_PATH or Qt6_DIR.
 Linux needs desktop OpenGL/EGL and xkbcommon development headers/libraries. Python
 is test infrastructure only; no Python code runs in the engine/controller.
@@ -56,7 +61,7 @@ The managed cloud environment has no Qt dev files, development GL/XKB headers,
 system package helper or sudo. Installed only under ignored `work/`:
 
 - CMake3.31.6/Ninja wheel1.11.1.4 from existing work/tooling venv.
-- aqtinstall3.3.0 via that venv; official Qt6.8.3 `linux_gcc_64` archives qtbase,
+- aqtinstall3.3.0 via that venv; official Qt 6.8.3 `linux_gcc_64` archives qtbase,
   qtdeclarative, qttools and ICU. These are development dependencies, not vendored
   in git. No proprietary Ultraleap SDK is fetched.
 - Read-only system had runtime GL/EGL/XKB libraries but no headers. Extracted
@@ -87,14 +92,14 @@ from the dependency probe alone.
 ## CI and distribution boundary
 
 `.github/workflows/native-control.yml` adds Ubuntu24.04 and Windows2022 builds,
-Qt6.8.3, pinned immutable install-qt-action v4.3.0 revision and pinned helper
+Qt 6.8.3, pinned immutable install-qt-action v4.3.0 revision and pinned helper
 versions. Core-mock workflow is unchanged. GUI CI uploads test evidence only;
 it does not package or label a simulated binary as a hardware product. Review
 Qt/OpenGL/third-party license notices before any binary redistribution.
 
 ## Actual cloud integration results
 
-Real GCC14.2/CMake3.31.6 configure and native link succeeded with Qt6.8.3.
+Real GCC14.2/CMake3.31.6 configure and native link succeeded with Qt 6.8.3.
 `ldd out/build/control-debug/handbridge-engine` reports Qt6Network and Qt6Core;
 there are no QtGui/Quick/Widgets dependencies in that headless executable.
 The standalone host smoke run emitted simulated metrics and real native UDP

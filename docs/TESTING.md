@@ -2,96 +2,136 @@
 
 ## Test levels
 
-**Unit tests (no SDK):** serial alias mapping, config migrations, selector semantics, time-based smoothing/processor reset, coordinate and quaternion transforms, OSC serializer golden packets, packet size limits, presence flags and invalid inputs.
+**SDK-free unit tests:** alias mapping, configuration/migrations, channel selectors,
+time-based smoothing and reset, transforms, OSC golden packets, payload limits,
+validity/loss behavior and invalid input.
 
-**Mock integration tests (no SDK):** two independently simulated devices; output to a loopback UDP receiver; queue/processing pipeline; native control IPC and config apply/acknowledgment; frame stall, reconnect, UI kill/restart without stopping engine.
+**Mock process integration:** two independent simulated devices; actual localhost
+UDP receiver; control IPC and apply acknowledgements; frame stalls/reconnects;
+profile persistence; GUI close/kill/restart while the engine continues sending.
+These execute production processing/serialization, with synthetic tracking input.
 
-**SDK integration tests (Windows with SDK):** adapter initialization/open/subscription and failure handling, if service present. A compiled adapter is not a physical test.
+**Genuine-SDK-type adapter tests:** production LeapC adapter compiled against the
+official Hyperion 6.2 header, with injected C function pointers using its exact
+declarations. No substitute SDK header, SDK binary or device is used. These test
+ownership, lifecycle, recovery and version policy, not the actual service.
 
-**Physical hardware tests (Windows with cameras):** real discovery/streams/hotplug/service restart, two-device independence, long-run health, TouchDesigner receiver, visual UI validation. See `docs/HARDWARE_TEST_PLAN.md`.
+**Windows client/deployment checks:** load the actual external DLL, verify client
+version/exports and run bounded no-service startup/cleanup; extract the portable
+ZIP and launch with developer search paths removed. These require Windows but no
+cameras, and are distinct from a successful SDK-header compile.
 
-## Deterministic frame fixtures
+**Physical Windows acceptance:** discovery, two real streams, USB hotplug, service
+restart, no-hands, soak/latency, native display/GPU/DPI behavior and actual
+TouchDesigner receipt. See [HARDWARE_TEST_PLAN](HARDWARE_TEST_PLAN.md).
 
-- Generate synthetic frames with fixed device IDs, serials, frame counters, timestamp domains and known palm/fingertip vectors.
-- Include left/right and multiple-hands, empty frames, handedness swaps, lost/reacquired IDs, duplicate frames and invalid joints.
-- Model time passage with injected monotonic test clock rather than `sleep()` in most tests.
-- Store a few sanitized JSON/CBOR frame fixtures or C++ literals. No sensitive camera imagery is needed.
-- Use a `MockTrackingSource` that shares the same interface as the LeapC adapter, not a separate demo-only code path.
+## Current verification checkpoint — 2026-11-16
 
-## OSC golden tests
+| Scope | Actual result |
+|---|---|
+| Linux GCC 14.2 / Qt 6.8.3 / genuine Hyperion 6.2 header | Configure/build passed. |
+| Full SDK-enabled native CTest suite | **82 passed, zero failures/skips; 20.48 s.** |
+| Adapter tests within that suite | **21 passed**, genuine SDK types and injected functions; no SDK binary calls. |
+| SDK-off native checkpoint before additive service-version fields | **61 passed, zero skips; 20.33 s.** |
+| Official 6.2 installer extraction/hash verification | Passed; installer was not executed and no service was installed. |
+| Current Windows Release / genuine 6.2 header | **81 passed + one expected POSIX-only skip**, zero failures; 32.03 s. Three strict lifecycle repetitions also passed. |
+| Windows real client DLL 6.2.0.0 load/version/API checks | **PASS**, including bounded actual SDK startup/cleanup without a service or cameras. |
+| Extracted Windows ZIP without developer PATH | **16 checks passed**; clean source manifest, actual Windows rendering, app-local Qt/CRT and continuing UDP. |
+| Project adapter/process ASan+UBSan | **34/34 passed**, leak checking, zero diagnostics; excludes Qt/SDK binary instrumentation. |
+| Physical cameras / Hyperion recovery / USB / TouchDesigner | **UNTESTED ON HARDWARE.** |
 
-- Capture existing exact addresses, lowercased handedness, float argument count/encoding, units, order where meaningful and selected toggles before refactor.
-- Decode outgoing OSC packets with an independent parser/test receiver. Compare numerical tolerances appropriately; do not compare unordered bundle byte order unless protocol guarantees it.
-- Test port changes, destination mismatch, missing hands, disabled channels and both cameras.
-- Test optional bundling with splitting at configured safe UDP payload size; do not silently switch the legacy default.
+SDK-enabled Linux command used:
 
-## Concurrency/robustness
+```sh
+cmake --build out/build/leapc-control --parallel 2
+ctest --test-dir out/build/leapc-control --output-on-failure
+```
 
-- Repeated start/stop and disconnect/reconnect cycles with sanitizers where available.
-- Prove UI process death does not stop engine or OSC.
-- Assert queue full count is incremented, not hidden behind logging level.
-- Verify no deadlocks on configuration update/reconnect and no use-after-free of LeapC handles.
-- Measure events/seconds and end-to-end latency only with explicitly described clocks; avoid guessed benchmarks.
+That build enables `HANDBRIDGE_BUILD_CONTROL` and `HANDBRIDGE_WITH_LEAPC`, points
+`LEAP_SDK_ROOT` at the exact SDK extracted from the official 6.2 Windows installer,
+and uses native offscreen/software Qt. The XML report is retained locally under
+ignored `work/hyperion6-native-results.xml`. Configure instructions, exact SDK
+provenance and current branch/commit are in [LEAPC_SETUP](LEAPC_SETUP.md),
+[LEAPC_SDK_AUDIT](reports/LEAPC_SDK_AUDIT.md), [CURRENT_STATE](CURRENT_STATE.md) and
+[SESSION_HANDOFF](SESSION_HANDOFF.md). Earlier plugin-derived 5.30 checks do not
+establish the current 6.2 build or release baseline.
 
-## Test reporting
+## Adapter acceptance covered without cameras
 
-Every test report must include date, commit SHA, OS/toolchain/SDK versions (if used), command, pass/fail/skip counts and links to log artifacts. `SKIPPED: no hardware` is not equivalent to success. Update current state and session handoff docs after test runs.
+The 21 adapter tests cover multi-device-aware connection setup, service handshake,
+two-pass serial queries, independent subscriptions, borrowed frame/hand data copied
+before the next poll, native hand IDs, empty-hand frames, duplicate SDK IDs/serials,
+device loss and rediscovery. Targeted restart must actually unsubscribe, close,
+reopen and resubscribe A while B remains active.
 
-## Executable baseline (2026-11-15)
+Fault cases include create/open/info/subscription failure, bounded polling,
+handshake timeout, fatal poll error, service loss, capped retry and idempotent
+cleanup. Tests feed the production runtime to check A loss clears A output while B
+continues, and stale A restarts then accepts reset frame IDs. Version cases reject
+5.x, 6.1 and failed server-version queries before any healthy service state or
+device enumeration; 6.2 and later 6.x are accepted. Actual hand-ID changes also
+reset processing history rather than blending a newly acquired hand with the old
+pose. None of this proves USB/service recovery on a physical PC.
 
-Default CTest discovers 40 cases: 10 config, 7 aliases, 1 retained sorter,
-8 actual scalar OSC/UDP, 13 runtime/mock, and 1 Python process/UDP integration.
-Run the Debug/Release or Windows presets in root README. Python is an independent
-receiver/test harness only. The tests do not instantiate a fake hardware binary
-or count obsolete original tests as passing. Detailed exclusions/compile evidence
-and sanitizer commands are in [BUILD_AUDIT](reports/BUILD_AUDIT.md).
+## Controller, processing and protocol acceptance
 
-Runtime tests inject monotonic time rather than sleeping: stale/no-hands,
-subscription failure and capped backoff, duplicate/old frames, mailbox overwrites,
-service re-enumeration inventory, 100 reattachments, no-send output-health rules
-and start/stop. The process test binds an ephemeral localhost receiver before
-launching the actual headless executable, parses padded OSC/network float bytes,
-checks B sends during A loss/recovery, actual config aliases/channels and CLI
-rejection. Physical Hyperion, USB, TouchDesigner and GUI lifecycle checks remain
-NOT RUN. Sanitizers cover project code/tests, not third-party dependencies.
+Settings tests exercise actual scalar OSC output for channel/mute/hand/alias/rate,
+dead-zone, time smoothing, transforms/units, raw bypass and opt-in hysteresis.
+Legacy golden fixtures remain unchanged. Controller-model tests withhold or
+delay acknowledgements and inject stale responses, conflicts and reconnects to
+verify that editing is distinct from applied engine state. Missing-runtime
+hardware preflight executes the sibling engine probe twice, checks actionable
+error/busy-state recovery, and starts no owned engine.
 
-The actual broadcast-permission kernel regression is POSIX-only: Windows CI's UDP
-provider accepts that send, so the case skips on Windows. Windows readiness/closed
-socket failures and all decoded UDP/runtime/config tests still execute. Report
-39 passed + 1 platform-specific skip instead of claiming 40 Windows passes.
+Native QML tests type a new destination port and click Apply directly, then observe
+real packets on the new receiver and GUI output-switch stop/resume. Applied preview
+tests keep unacknowledged units out of live projection and retain raw millimeters
+under bypass. Integration closes/kills/reopens actual GUI processes while engine
+PID and changed OSC values continue. This is native Qt rendering, not a browser
+mockup. Automated interaction covers selected critical paths; it does not certify
+every control, keyboard/high-DPI layout, GPU or visual detail on Windows hardware.
 
-## Native controller acceptance (implemented)
+IPC tests cover more than one drain batch of commands, malformed/version/oversized
+frames, an unread-client flood, delayed endpoint availability, duplicate engine
+ownership even with another state directory, revision CAS and diagnostic redaction.
+Profile tests inspect actual profile/current/backup files and config/output round
+trips. A production ConfigurationStore regression delivers an old save after a
+newer save and checks current/backup bytes remain unchanged. Discovered devices
+after restore advance revision and are correctly shown as unsaved.
 
-The default Qt-free suite now has55 CTest entries. Optional control-debug /
-windows-control adds three QtTest bundles,58 CTest entries total: ControllerModel
-(9 scenarios+init/cleanup), actual native QML typing/clicks affecting UDP, and
-ControlIntegration (10 process/persistence behaviors+init/cleanup). UI tests use
-software/offscreen native Qt; they are not HTML/browser screenshots.
+## Deterministic fixtures and OSC checks
 
-Settings tests exercise real scalar output for channel/mute/hand/alias/rate,
-deadzone/time smoothing, transforms/units and opt-in hysteresis. Default legacy
-golden fixtures remain unchanged. Controller tests withhold acknowledgements and
-inject delayed/stale responses to verify editor truth. QML tests type a new port
-and click Apply directly, then observe actual packets on the new receiver and
-transmission stopping/resuming from the GUI switch. Integration closes/kills/
-reopens real GUI processes while engine PID and changed OSC values continue.
+- Use fixed serials, aliases, frame counters, timestamp domains, handedness and
+  known joint vectors; include empty/lost/reacquired and duplicate/old frames.
+- Inject monotonic test time for liveness/retry tests rather than sleeping.
+- Decode OSC independently and assert exact addresses, case, float types, units,
+  channel toggles, default port and loss behavior before changing legacy output.
+- Bind an ephemeral localhost receiver before process startup; verify per-camera
+  isolation and changed settings in received packets, not just a UI property.
+- Do not claim optional bundles, file replay, OSC v2 or full hardware acceptance
+  from tests of the currently implemented scalar legacy/synthetic path.
 
-Protocol tests cover20 batched frames, malformed/version/oversized input, unread
-client flood, duplicate engine (even alternate state directory), CAS, diagnostics
-redaction and actual profile/current/backup files. A production ConfigurationStore
-regression delivers an older save after a newer one and checks actual bytes stay
-unchanged. Initial discovery after restore advances revision and is not Saved.
+## Reporting and retained historical evidence
 
-Final cloud58/58 PASS, no skips. A separate ASan/UBSan run passes56 entries with
-leak checking, covering project core/process/client model while excluding the two
-GUI bundles and third-party Qt instrumentation. Exact commands/results and final
-CI distinction: CURRENT_STATE, SESSION_HANDOFF and reports/GUI_BUILD.md. Windows
-retains the explicitly skipped POSIX-only kernel-denial case; no skip is hardware
-verification. Real SDK/USB/Hyperion/TouchDesigner/soak remain UNTESTED ON HARDWARE.
+Record date, source commit, OS/toolchain/SDK versions, actual commands, pass/fail/
+skip counts and logs in CURRENT_STATE and SESSION_HANDOFF. A successful UDP send
+does not prove receipt by TouchDesigner. Missing hardware is a blocked acceptance
+gate, never a passing test.
 
+The original Phase 0/1 checkpoint had 40 CTest entries; source/compile exclusions
+and sanitizer commands are preserved in [BUILD_AUDIT](reports/BUILD_AUDIT.md).
+The controller milestone at `ebb3bd9` passed 58 Linux entries and native Windows/
+Ubuntu push and PR CI. Windows also passed three until-fail lifecycle repetitions
+per event. Its separate ASan/UBSan checkpoint passed 56 entries with leak checking,
+excluding the two GUI bundles and third-party Qt instrumentation. These historical
+runs do not claim sanitizer or Windows coverage of the new SDK increment. Detailed
+controller evidence is retained in [GUI_BUILD](reports/GUI_BUILD.md).
 
-Final source ebb3bd9 passes native Windows and Ubuntu CI on both push and PR.
-Windows adds three until-fail repetitions of the process bundle; all passed on
-both events. The applied-preview QML regression verifies unacknowledged units do
-not change live projection, and raw bypass remains mm even with inactive meter
-settings. Detailed retained logs/results: CURRENT_STATE and GUI_BUILD.
+One actual broadcast-permission kernel regression is POSIX-only: Windows accepts
+that send, so that specific case explicitly skips there. Other socket failures
+and decoded UDP/runtime/config checks still run. Always report the actual Windows
+pass/skip totals; this platform-specific skip is unrelated to hardware validation.
+
+For Release reproduction and the verified no-development-PATH package gate, see
+[WINDOWS_RELEASE](WINDOWS_RELEASE.md). A successful package smoke still requires
+subsequent physical acceptance and a long-run soak on the target Windows PC.

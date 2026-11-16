@@ -1,53 +1,42 @@
 # Session handoff — Hyperion 6 adapter / Windows Release preview
 
-Task branch: `codex/handbridge-leapc-release`.
-Starting commit: `3825ecd0d7acf35be6a8a7d164ebef01bd25d790` on preserved
-codex/handbridge-native-controller. This checkpoint accompanies the adapter
-commit (`5550359`); final package source SHA and Windows workflow evidence follow after CI.
-Original master054e578, handbridge-v2 5f54718 and previous feature branches are
-preserved. User explicitly authorized both SDK integration and portable packaging,
-then clarified that latest Hyperionv6 is mandatory.
+Branch: `codex/handbridge-leapc-release`.
+Validated source: **`c8596f20b35bb0e4d09446933c543f689417f36c`**. Final handoff is docs/screenshots only.
+Started at controller `3825ecd`; all prior branches and original ImGui source remain
+recoverable. User authorized the adapter and package, then explicitly required
+latest Hyperion v6. Do not regress to the older Unreal-plugin 5.30 research SDK.
 
-## Changed components
+## Reviewable code increments
 
-- src/tracking/: genuine-header API table, real adapter, safe Windows loader,
-  factory, explicit mock/real selection and nontracking runtime preflight.
-- src/runtime/TrackingSource.hpp and core/HandData.hpp: diagnostics + optional
-  device-local native hand ID; no cross-camera identity/fusion.
-- Processing.cpp/.hpp: reset filters/gesture state on known native-ID changes.
-- Both engine hosts: default real mode, --simulate explicit, --leapc-library,
-  --check-leapc, actual provider/library/API/service versions and counters.
-- Controller.cpp/.hpp + Main.qml: async hardware preflight/detached startup,
-  separate simulator, truthful version/error panels, independent lifetime.
-- CMakeLists/LeapC.cmake/NativeControl.cmake: optional real SDK-header target and
-  actual SDK typed tests; SDK-off builds remain supported.
-- SDK manifest/fetch script/tests/report: official Hyperion6.2 extraction with
-  pinned sizes/SHA-256 and no SDK publication.
-- Windows release preset/deploy scripts/workflow/packaging: both apps, Qt/QML,
-  app-local Release CRT, notices/corresponding source, checksum manifest and
-  extracted-package PATH-clean GUI/UDP/lifecycle smoke.
+- `5550359`: real SDK adapter/API table, safe loader/factory, owned native IDs,
+  host/GUI startup, native-ID processing reset, genuine-SDK-type tests.
+- `b21ffdf`: Release preset/deployment, Qt/QML/CRT/notices/source archives and smoke.
+- `b142729`: Windows-native innoextract filters; no SDK hashes relaxed.
+- `69c8f14`: genuine SDK offline host lifecycle in the extracted-package smoke.
+- `c8596f2`: ignore generated JUnit evidence and require clean package provenance.
 
-## SDK and compatibility
+Changed modules: src/tracking/*; core/HandData; runtime TrackingSource/Processing;
+both engine hosts; Controller/Main.qml; CMake SDK/control/release definitions;
+SDK fetch/manifest/tests; Windows package/smoke/workflow; notices/screenshots/docs.
+No OSC address/type/default or config schema changed. The original raw processor,
+oscpack goldens and localhost:9000 defaults remain. Native IDs never enter legacy
+addresses; known identity changes reset only the affected filter/gesture state.
 
-The repo itself has no SDK files. Current baseline is selected files extracted
-without installation from official tracking-software-windows-6.2.0.exe:
-installer SHA256e219438dc5031af3dc75e115f277c4e6e33475bad21fee1e90a278e77f5fadf1;
-LeapC.dll file version6.2.0.0; SDK header
-27d512f953bc7dcf2d52475e5e771519b9905bc4d9a88641b1877c2897641765.
-Unreal-plugin5.30 files were research only and are superseded.
-Client and connected ServerLibrary API versions must be6.2.0 or newer6.x.
-LeapGetVersion is taken from the exact real6.2 header; unknown/older versions are
-rejected before healthy service/device enumeration. Hardware verification remains
-false in runtime telemetry until a separate physical acceptance report.
+## Exact SDK and dependency boundary
 
-No OSC address/type/default or persistent configuration version changed. Native
-IDs do not enter legacy addresses. Empty-hand delivery is liveness. The legacy
-optional orientation/velocity/normal loss quirks remain documented in OSC_PROTOCOL.
-SDK client/Hyperion service are external prerequisites, not ZIP contents.
+The repository contains no SDK header/import library/client DLL. The helper
+verifies/extracts selected files without executing the official 6.2.0 installer:
+SHA256e219438dc5031af3dc75e115f277c4e6e33475bad21fee1e90a278e77f5fadf 1.
+Header27d512f953bc7dcf2d52475e5e771519b9905bc4d9a88641b1877c2897641765;
+client DLL 6.2.0.0-c98d293a. Manifest pins installer/extractor/all selected files.
+Client and ServerLibrary must each report 6.2.0 or newer 6.x via the real
+LeapGetVersion API. No unknown/old version can establish healthy service state.
+SDK/client/tracking service remain external, not part of the ZIP. Runtime paths
+are absolute; CLI/env/installed Program Files discovery is in LEAPC_SETUP.md.
 
-## Commands and actual results
+## Actual commands/results
 
-Cloud Qt/core source build uses GCC14.2, Qt6.8.3 and task-local tools/dependencies:
+Cloud native build (GCC 14.2 / Qt 6.8.3, task-local tools):
 
 ```sh
 . work/qt-env.sh
@@ -60,42 +49,60 @@ QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
   ctest --test-dir out/build/leapc-control --output-on-failure
 ```
 
-XDG cache/data/config/runtime directories are set under ignored work/ during the
-run. Result: **82/82 PASS, zero skips,20.48s**. This includes21 real-SDK-type
-injected lifecycle/version tests, raw conversion/ownership, native-ID regression,
-actual UDP goldens and real GUI/process tests. SDK-off native suite also passed
-61/61 before the additive final service-version fields. SDK-off host/preflight
-manual checks rejected real startup clearly and created no profile state.
+XDG cache/data/config/runtime paths were under work/. **82/82 PASS**, no skips,
+20.48 s, including 21 genuine-header/injected-function lifecycle/version cases,
+actual UDP goldens, hardware-preflight failure and independent GUI lifecycles.
+ASan/UBSan project adapter/process cases:34/34 PASS, leak checking,0.59 s, no
+third-party Qt/SDK instrumentation. SDK fetch helper:7/7 offline regressions.
+SDK-free core and native-controller Windows/Ubuntu CI also passed at `c8596f2`.
 
-Windows commands and package location: WINDOWS_RELEASE.md. SDK/runtime selection:
-LEAPC_SETUP.md. Windows real-DLL/portable gate is pending its first workflow run;
-PowerShell syntax, helper argument/Unicode/PNG logic and Qt source checksums have
-passed locally. These checks do not establish a working Windows ZIP yet.
+Windows Release:
 
-First Windows run43777007955 failed before configuration: innoextract uses native
-backslashes in Windows include filters, so POSIX filters selected zero files.
-The helper now uses native Windows filters; seven offline helper regressions
-pass without changing any expected SDK hash. Windows rerun is required.
-The extracted-package smoke also exercises real SDK Create/Open/Poll/Cleanup
-with no service/cameras for3600ms, bounded externally to15s, and requires truthful
-unconnected/no-device/no-OSC state. This is pending Windows execution.
+```powershell
+python scripts/fetch-leapc-sdk.py
+cmake --preset windows-release -DHANDBRIDGE_WITH_LEAPC=ON -DLEAP_SDK_ROOT="$PWD/work/leapc-sdk"
+cmake --build --preset windows-release --parallel 2
+ctest --preset windows-release
+cmake --build --preset windows-release --target handbridge-portable
+```
 
-Windows run43777494748 at69c8f14 has now passed:81+1 expected POSIX skip,
-three lifecycle repeats, actual6.2.0.0/API6.2.0 load and all16 portable checks.
-Real offline SDK startup made2 connection attempts and shut down without fake
-devices/OSC. Final artifact review found generated root JUnit files marked the
-checkout dirty; explicit ignores and a clean-source manifest CI assertion now
-require a corrected package. Application source is unchanged.
+Qt prefix/build prerequisites and isolated smoke command: WINDOWS_RELEASE.md.
+[Final Release run](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43778709905):82 registered,81 PASS +1 expected POSIX-only skip,
+32.03 s; three strict until-fail lifecycle repeats 19.09/19.08/19.07 s allPASS.
+Actual SDK DLL/API load 6.2.0.0/6.2.0 passed. Real no-service host made 2 connection
+attempts, reported handshake error/zero devices/zero OSC, and exited within the
+15 s deadline. Extracted ZIP passed 16 native Windows checks with only Windows
+system paths, including app-local module paths, actual PNG render, GUI close/
+kill/reopen and continuing UDP. Independent download checked checksum/header hash,
+source revision, clean manifest and SDK exclusion. Full evidence: reports/HYPERION 6_RELEASE.md.
 
-## Boundaries / single next task
+## Download / first local use
 
-Physical Windows Hyperion6.2, two USB cameras, actual service restart/unplug,
-TouchDesigner receipt and hardware soak remain UNTESTED ON HARDWARE. A Windows
-CI DLL-load/PATH-clean smoke is not a clean consumer machine or physical test.
-Do not redesign the GUI, add fusion, or claim the silent-stall incident solved.
+[Final portable preview](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43778709905/artifacts/14187119668). GitHub artifact contains the inner app ZIP
+and checksum; extract both layers and keep its DLLs/plugins/QML beside both EXEs.
+No Qt/Python/VS developer install is needed to run it. Install official compatible
+Hyperion 6.2 separately. Query the installed DLL before cameras:
 
-After cloud deployment checks pass, open this branch on the local Windows PC and
-execute the Hyperion6.2 two-camera acceptance checklist. Record exact DLL/API /
-service versions, two independent streams, real OSC receipt, unplug/replug,
-service restart and GUI closed/reopened behavior in HARDWARE_TEST_RESULTS.md.
-Fix only observed failures in a small follow-up; record blocked tests truthfully.
+```powershell
+.\handbridge-engine.exe --check-leapc --leapc-library "C:\Program Files\Ultraleap\LeapSDK\lib\x64\LeapC.dll"
+.\handbridge-control.exe
+```
+
+Start engine is real; Start simulator / --demo are explicit mocks. For a nonstandard
+install path set HANDBRIDGE_LEAPC_LIBRARY before launching the GUI. A detached
+engine survives window closure; foreground Ctrl-C or Task Manager stops it.
+
+## Remaining / single next task
+
+Physical Windows 10/11 cameras/USB/service recovery, TouchDesigner receipt and soak
+are **UNTESTED ON HARDWARE**. The offline SDK test did not install/run Hyperion's
+service. Consumer Windows clean-machine/DPI/accessibility acceptance remains.
+Global processing/channel settings and legacy optional-loss quirks are documented;
+no fusion, per-channel overrides, v2/bundles, installer or full 3 D skeleton is added.
+
+Open this branch in local Windows Codex and run HARDWARE_TEST_PLAN with two real
+controllers and Hyperion 6.2. Record exact DLL/API/service versions, independent
+streams, real TouchDesigner values, no hands, unplug/replug, service restart and
+GUI kill/reopen. Record PASS/FAIL/BLOCKED in HARDWARE_TEST_RESULTS; diagnose only
+observed failures and update handoff. Do not redesign the controller or claim the
+original silent-stall incident solved from mock/no-service results.

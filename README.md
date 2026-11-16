@@ -19,6 +19,14 @@ for exact verified builds and remaining work.
 
 ## Run the native controller
 
+The [Windows Release preview](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43778709905/artifacts/14187119668)
+includes both applications, Qt/plugins and the Microsoft runtime. Extract the
+artifact, then the application ZIP inside it. Install Hyperion6.2 separately for
+real tracking; **Start simulator** needs no cameras. See
+[Release instructions](docs/WINDOWS_RELEASE.md) and [verified results](docs/reports/HYPERION6_RELEASE.md).
+
+To build from source:
+
 Install Visual Studio2022 Desktop development with C++, CMake3.24+, Python3.9+
 (tests only), and official Qt6.8.3 MSVC2022 x64 desktop development files under
 Qt's license. In PowerShell, adjust your Qt prefix:

@@ -8,6 +8,10 @@ excluded. Current actual results are in [CURRENT_STATE](CURRENT_STATE.md).
 
 ## Download and run
 
+[Final verified preview, source c8596f2](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43778709905/artifacts/14187119668)
+passed the genuine Hyperion6.2 SDK and sixteen native Windows deployment checks.
+See [the evidence report](reports/HYPERION6_RELEASE.md) for the exact scope.
+
 Open the [Windows Release workflow](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/workflows/windows-portable.yml)
 on the development branch and choose a **successful** run. Its
 `HandBridge-2.0.0-windows-x64-preview` artifact contains the ZIP and SHA-256 file.
