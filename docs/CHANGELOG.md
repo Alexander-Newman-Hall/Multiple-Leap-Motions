@@ -1,5 +1,16 @@
 # Hand Bridge 2.0 changelog
 
+## macOS port plan — 2026-11-16
+
+- Added six staged milestones and a bounded local-Mac first-task prompt; preserved
+  the Windows release and identified two-device support as unverified.
+- Included code-level loader, Apple C++ library, IPC permission, deployment and
+  architecture gates, with cloud versus physical evidence requirements.
+- Updated plan/spec links, current state and handoff; corrected an installer-hash
+  formatting typo in the earlier Windows notes.
+- Documentation only: no application changes, SDK downloads, Mac builds or camera
+  tests. Documentation link/source-boundary checks are the task validation.
+
 ## Hyperion 6.2 adapter / portable preview — 2026-11-15
 
 - Added a native real LeapC source using the exact official Hyperion 6.2 header,

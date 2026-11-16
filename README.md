@@ -129,6 +129,7 @@ the independent engine; **Start simulator** remains separate.
 
 ## Documentation
 
+- [macOS port plan](docs/MACOS_PORT_PLAN.md) — planning only; Mac/two-camera support is unverified.
 - [Specification](PROJECT_SPEC.md), [plan](PLANS.md), [agent instructions](AGENTS.md)
 - [Current state](docs/CURRENT_STATE.md), [handoff](docs/SESSION_HANDOFF.md), [GUI build evidence](docs/reports/GUI_BUILD.md)
 - [Architecture](docs/ARCHITECTURE.md), [local IPC](docs/CONTROL_PROTOCOL.md), [configuration](docs/CONFIG_SCHEMA.md), [UI](docs/UI_SPEC.md)

@@ -2,6 +2,13 @@
 
 **Status:** Authoritative v1 specification; Phase 0 code audit completed 2026-11-15. Implementation status is maintained in docs/CURRENT_STATE.md; requirements below are not claims of shipped features. **Owner:** Repository owner. **Target:** Windows 10/11 x64. **Product:** Native multi-Ultraleap camera tracking bridge for local TouchDesigner OSC workflows.
 
+**Proposed platform extension (2026-11-16):** the user authorized planning a macOS
+port; see [MACOS_PORT_PLAN](docs/MACOS_PORT_PLAN.md). Windows remains the existing
+release target. The initial-release exclusions below do not prohibit this later
+feasibility work, but no Mac implementation or two-camera support is delivered
+by the plan. C++20, Hyperion v6, OSC parity and independent engine lifetime remain
+requirements; physical Mac support must pass the new gates before being claimed.
+
 ## 1. Product purpose
 
 Hand Bridge is an installable Windows utility to obtain **independent** tracking from two or more supported Ultraleap/Leap Motion controllers on a single Windows computer, select and optionally process per-hand data, and transmit it to **TouchDesigner on the same PC over OSC/UDP**. The interactive artwork, graphics and user gestures may be implemented in TouchDesigner; Hand Bridge must remain a predictable, reliable hardware-data source.

@@ -2,6 +2,15 @@
 
 This is a **phased plan for multiple Codex tasks**, not a request to finish everything in one task. Each task should produce a reviewable PR with precise acceptance evidence and updated handoff docs. Follow `PROJECT_SPEC.md` for product requirements.
 
+## macOS planning checkpoint — 2026-11-16
+
+The user requested a Mac-port plan, not implementation in this task. The staged
+[macOS port plan](docs/MACOS_PORT_PLAN.md) defines M0–M5, starting with actual Mac
+SDK/toolchain probes and a physical two-device feasibility gate. Preserve the
+working Windows product and its pending physical acceptance. Mac support is not
+implemented or verified. The single next implementation task is M0 in a fresh
+local Mac Codex chat; use the exact handoff prompt at the end of that plan.
+
 ## Execution checkpoint — 2026-11-15
 
 P0 inventory/build feasibility and source-backed OSC/config baseline are delivered

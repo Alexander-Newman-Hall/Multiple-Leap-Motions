@@ -57,10 +57,14 @@ See `docs/SESSION_HANDOFF.md` and `docs/CURRENT_STATE.md` templates. The cloud t
 
 ## Current handoff entry point
 
-The kit is already in `handbridge-v2`; do not copy planning files over current
-state. The implementation branch is `codex/handbridge-phase0-reliability`.
-Use SDK-free `windows-core` for CI/PC verification first. `windows-legacy` is an
-unverified original GUI target, not a hardware mode of the new engine. Next work
-must compile a real ITrackingSource adapter against the exact installed SDK;
-physical results remain separate from cloud/mock and CI results. Current source
-and command evidence is in SESSION_HANDOFF and reports/BUILD_AUDIT.
+The Windows implementation is on `codex/handbridge-leapc-release`, with validated
+source `c8596f2` and handoff `2c1ce8e`; earlier branches remain preserved. Its real
+Hyperion6.2 adapter and Release package have CI evidence, but physical Windows
+acceptance is still open. `windows-legacy` remains the original GUI reference.
+
+The user has now requested Mac-port planning on `codex/handbridge-macos-plan`.
+Read [MACOS_PORT_PLAN](MACOS_PORT_PLAN.md), CURRENT_STATE and SESSION_HANDOFF before
+starting. Use a fresh local Mac Codex chat for M0 SDK/toolchain/probe work, followed
+by actual two-device feasibility. A cloud Mac runner can compile/mock-test a port;
+it cannot observe the owner's USB cameras. Selecting a new chat does not change
+which computer its commands execute on. Record platform and test class separately.
