@@ -46,6 +46,28 @@
       "displayName": "Windows x64 native Release portable package (explicit SDK opt-in)",
       "inherits": "windows-control",
       "cacheVariables": { "HANDBRIDGE_WITH_LEAPC": "OFF", "HANDBRIDGE_PACKAGE_WINDOWS": "ON", "BUILD_TESTING": "ON" }
+    },
+    {
+      "name": "macos-intel-core",
+      "displayName": "Intel macOS SDK-free C++20 checks (not hardware acceptance)",
+      "inherits": "core-debug",
+      "cacheVariables": {
+        "CMAKE_OSX_ARCHITECTURES": "x86_64",
+        "CMAKE_OSX_DEPLOYMENT_TARGET": "12.0"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      }
+    },
+    {
+      "name": "macos-intel-control",
+      "displayName": "Intel macOS QtCore/Network host compatibility checks",
+      "inherits": "macos-intel-core",
+      "cacheVariables": {
+        "HANDBRIDGE_BUILD_CONTROL": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -55,7 +77,15 @@
     { "name": "windows-legacy", "configurePreset": "windows-legacy", "configuration": "Debug" },
     { "name": "control-debug", "configurePreset": "control-debug" },
     { "name": "windows-control", "configurePreset": "windows-control", "configuration": "Debug" },
-    { "name": "windows-release", "configurePreset": "windows-release", "configuration": "Release" }
+    { "name": "windows-release", "configurePreset": "windows-release", "configuration": "Release" },
+    {
+      "name": "macos-intel-core",
+      "configurePreset": "macos-intel-core"
+    },
+    {
+      "name": "macos-intel-control",
+      "configurePreset": "macos-intel-control"
+    }
   ],
   "testPresets": [
     { "name": "core-debug", "configurePreset": "core-debug", "output": { "outputOnFailure": true } },
@@ -63,6 +93,20 @@
     { "name": "windows-core", "configurePreset": "windows-core", "configuration": "Debug", "output": { "outputOnFailure": true } },
     { "name": "control-debug", "configurePreset": "control-debug", "output": { "outputOnFailure": true } },
     { "name": "windows-control", "configurePreset": "windows-control", "configuration": "Debug", "output": { "outputOnFailure": true } },
-    { "name": "windows-release", "configurePreset": "windows-release", "configuration": "Release", "output": { "outputOnFailure": true } }
+    { "name": "windows-release", "configurePreset": "windows-release", "configuration": "Release", "output": { "outputOnFailure": true } },
+    {
+      "name": "macos-intel-core",
+      "configurePreset": "macos-intel-core",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "macos-intel-control",
+      "configurePreset": "macos-intel-control",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
   ]
 }

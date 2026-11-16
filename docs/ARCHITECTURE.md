@@ -164,8 +164,11 @@ Use `QLocalServer`/`QLocalSocket` (Qt Network) or an alternative documented in `
 ## Implemented native controller boundary
 
 With HANDBRIDGE_BUILD_CONTROL=ON, handbridge-engine uses QtCore/Network for local
-control only. A dedicated std::jthread owns source/runtime/processing/sender;
-bounded32-command work and immutable atomic snapshots connect it to the IPC thread.
+control only. A dedicated owned std::thread owns source/runtime/processing/sender;
+bounded32-command work and mutex-protected immutable shared snapshots connect it
+to the IPC thread. Stop sets a flag under the command mutex, wakes and joins
+outside locks; startup exceptions join before constructor unwind. Snapshot JSON
+is built outside its separate pointer-exchange mutex. See ADR-017.
 QLocalServer parsing, sampled telemetry and QSaveFile profile I/O do not execute
 on the tracking worker. The host links neither QtGui nor QtQuick. The separate
 handbridge-control process owns the QtQuick scene and C++ draft/ack model; it can

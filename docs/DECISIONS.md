@@ -127,3 +127,25 @@ plugin/module paths, rendered images and continuing UDP across GUI lifecycles.
 **Consequence:** this is an unsigned developer preview with an external Hyperion
 installation, not an installer or hardware-accepted release. Cleaned CI search
 paths do not prove every consumer Windows10/11 machine or GPU configuration.
+
+## ADR-017 — Owned worker thread and mutex-protected immutable snapshots
+
+**Status:** Accepted by explicit user instruction, 2026-11-16; narrow M2 slice.
+**Context:** M0 measured missing jthread/stop_token/stop_callback and atomic
+shared_ptr specialization in Xcode 16.4 / Apple libc++ 190102, independently of
+successful Intel Hyperion 6.2 client loading. **Decision:** keep C++20, Qt 6.8.3,
+Hyperion 6.2+ within 6.x and the existing GUI. Replace only the IPC host's worker
+with one owned std::thread, an atomic bool stop flag set under the command mutex,
+condition-variable wake and join outside all locks. Join on constructor startup
+failure before rethrowing, and reject commands after stop. Preserve the 32-command
+bound and worker ownership of source/processing/OSC. Publish immutable shared
+snapshots through SnapshotMailbox: lock only to copy/swap a shared pointer; build
+JSON and retire old values outside that lock. Readers retain old snapshots safely.
+**Alternatives:** experimental Apple library flags or a replacement standard
+library change the toolchain contract; a platform-specific fork duplicates worker
+lifecycle; moving work onto Qt's event loop breaks engine independence. **Effects:**
+no IPC schema, OSC, config, GUI or SDK policy change. Stop/join remains owned by the
+single control thread, idempotent on that thread. Full M2 protected Mac IPC and
+physical M1 acceptance remain open; this is not a distributable Mac application.
+**Evidence:** MACOS_M0 report; snapshot coherence/lifetime and worker startup/normal
+shutdown regressions; actual verification is recorded in reports/MACOS_M2_CONCURRENCY.md.

@@ -7,7 +7,7 @@ in `f4f60a5`; automated diagnostic first native-tested at `c9f337d`, ownership c
 `1b29631`, and both package checksum pins in `cab1839`.
 **M0 automated evidence collected with compiler/arm64 capacity blockers.
 Intel offline SDK checks PASS. Physical two-camera tests NOT RUN.
-M2–M5 not started.**
+M2 concurrency work is tracked separately; M3–M5 not started.**
 
 ## M0 final Intel evidence collected before M2
 
@@ -222,11 +222,12 @@ configuration changed. Hyperion 6.2+ within 6.x remains mandatory. Existing
 and [Windows Release CI](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43953539477)
 passed at preserved checkpoint f4f60a5. Windows physical acceptance remains open.
 
-## Single next task
+## Remaining M0 evidence
 
-Implement only the user-authorized M2 concurrency compatibility slice; preserve
-arm64 M0 diagnostic build/load/no-service checks as BLOCKED on runner allocation on the owner's Mac or an available arm64 runner using the pinned official
-SDK; record actual client and unavailable/connected service versions. Keep the
-measured Xcode 16.4 library failures open for M2's later owned-thread/snapshot
-compatibility decision. Do not implement that decision in M0. Physical M1 and all
-two-camera/service recovery/TouchDesigner acceptance remain NOT RUN.
+Canonical arm64 diagnostic build/load/no-service execution remains BLOCKED on
+hosted runner allocation. Collect it on an available arm64 runner or the owner's
+Mac, using the pinned official package and recording actual client/service
+versions. Intel SDK evidence is complete at e1fcd18; original host-feature failures
+are a separate code finding. The user-authorized M2 concurrency slice is tracked
+in [its own report](MACOS_M2_CONCURRENCY.md). Physical M1 and all two-camera,
+service recovery and TouchDesigner acceptance remain NOT RUN.

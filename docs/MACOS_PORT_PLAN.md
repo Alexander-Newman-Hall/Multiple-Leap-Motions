@@ -5,8 +5,10 @@ package is delivered by this document. User authorized this plan on 2026-11-16.
 
 Execution checkpoint: M0 automated probes and the SDK-only diagnostic are on
 `codex/handbridge-macos-feasibility`; [actual results and remaining blockers](reports/MACOS_M0.md)
-include Apple compiler failures and passing Intel offline checks. This does not
-advance M1 or establish physical two-camera support. The milestones and exact
+include Apple compiler failures and passing final Intel offline checks. The user
+subsequently authorized only the small M2 concurrency compatibility slice; see
+[that separate report](reports/MACOS_M2_CONCURRENCY.md). This does not advance M1
+or establish physical two-camera support. The milestones and exact
 first-task prompt below remain the scope contract.
 
 Planning branch: `codex/handbridge-macos-plan`, based on Windows handoff

@@ -1,5 +1,6 @@
 #include "ipc/Framing.hpp"
 #include "ConfigurationStore.hpp"
+#include "SnapshotMailbox.hpp"
 #include "runtime/ControlSettings.hpp"
 #include "runtime/EngineRuntime.hpp"
 #include "tracking/TrackingSourceFactory.hpp"
@@ -116,8 +117,8 @@ public:
         : context_(callbackContext) {
         std::promise<void> ready;
         auto readyFuture = ready.get_future();
-        thread_ = std::jthread([this, settings = std::move(settings), simulate, stall,
-                                leapcLibrary = std::move(leapcLibrary), ready = std::move(ready)](std::stop_token stop) mutable {
+        thread_ = std::thread([this, settings = std::move(settings), simulate, stall,
+                                leapcLibrary = std::move(leapcLibrary), ready = std::move(ready)]() mutable {
             try {
                 ConfigManager config;
                 auto source = createTrackingSource(simulate, stall, leapcLibrary);
@@ -202,7 +203,7 @@ public:
                     for (const auto& line : logs) next->logs.push_back(line);
                     previousPackets = packets;
                     lastSnapshot = now;
-                    snapshot_.store(next);
+                    snapshot_.store(std::move(next));
                 };
                 // Establish the startup configuration's revision before source
                 // discovery can add persistent serial/alias bindings.
@@ -210,7 +211,7 @@ public:
                 runtime.tick(0);
                 publish();
                 ready.set_value();
-                while (!stop.stop_requested()) {
+                while (!stopping_.load()) {
                     now = static_cast<Millis>(std::chrono::duration_cast<std::chrono::milliseconds>(
                         std::chrono::steady_clock::now() - started).count());
                     std::deque<Job> work;
@@ -258,7 +259,7 @@ public:
                     runtime.tick(now);
                     if (now - lastSnapshot >= 100) publish();
                     std::unique_lock lock(mutex_);
-                    wake_.wait_for(lock, std::chrono::milliseconds(2), [&]() { return stop.stop_requested() || !jobs_.empty(); });
+                    wake_.wait_for(lock, std::chrono::milliseconds(2), [&]() { return stopping_.load() || !jobs_.empty(); });
                 }
                 // Keep last live device state for the CLI compatibility summary;
                 // shutdown loss messages are still included in output counters.
@@ -270,18 +271,25 @@ public:
                 output["attempts"] = static_cast<qint64>(runtime.outputStatus().attempts);
                 output["successes"] = static_cast<qint64>(runtime.outputStatus().successes);
                 final->state["output"] = output;
-                snapshot_.store(final);
+                snapshot_.store(std::move(final));
             } catch (...) {
                 try { ready.set_exception(std::current_exception()); } catch (...) {}
                 failed_ = true;
             }
         });
-        readyFuture.get();
+        try {
+            readyFuture.get();
+        } catch (...) {
+            // A throwing constructor does not run ~EngineWorker. Explicitly join
+            // before unwinding the owned std::thread, including provider errors.
+            stop();
+            throw;
+        }
     }
     ~EngineWorker() { stop(); }
     bool enqueue(Job job) {
         std::lock_guard lock(mutex_);
-        if (jobs_.size() >= 32 || failed_) return false;
+        if (jobs_.size() >= 32 || stopping_.load() || failed_) return false;
         jobs_.push_back(std::move(job));
         wake_.notify_one();
         return true;
@@ -289,16 +297,24 @@ public:
     std::shared_ptr<const Snapshot> snapshot() const { return snapshot_.load(); }
     bool failed() const { return failed_; }
     void stop() {
-        if (thread_.joinable()) { thread_.request_stop(); wake_.notify_one(); thread_.join(); }
+        // Called only by the control thread; repeated shutdown is harmless.
+        {
+            std::lock_guard lock(mutex_);
+            stopping_.store(true);
+        }
+        wake_.notify_one();
+        // Never hold the command/snapshot mutex while waiting for the owner.
+        if (thread_.joinable()) thread_.join();
     }
 private:
     QObject* context_;
-    std::atomic<std::shared_ptr<const Snapshot>> snapshot_;
+    SnapshotMailbox<Snapshot> snapshot_;
     std::atomic<bool> failed_ = false;
     std::mutex mutex_;
     std::condition_variable wake_;
     std::deque<Job> jobs_;
-    std::jthread thread_;
+    std::atomic<bool> stopping_ = false;
+    std::thread thread_;
 };
 
 class ControlServer final : public QObject {

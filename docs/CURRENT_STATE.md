@@ -1,76 +1,35 @@
-## M0 closed out / M2 concurrency authorized — 2026-11-16
+# Current state — M0 findings and M2 concurrency slice
 
-SDK-only retry [43962640624](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43962640624)
-at e1fcd18 **PASS**: final diagnostic compiled/linked without warnings on Intel
-macOS 15.7.9 / Xcode 16.4 / Apple Clang 17, genuine Hyperion ClientLibrary 6.2.0,
-missing-library/load-only/no-service exits 2/0/3 and clean shutdown. Service version
-unavailable; physical two-camera/USB/recovery/TD NOT RUN. Arm64 offline execution
-remains BLOCKED by runner allocation, not SDK incompatibility. Final earlier
-repeat 43958755065 failed at network download; it is no longer queued. See M0 report
-for exact inputs, commands, hashes, output and historical failures.
+Branch: `codex/handbridge-macos-feasibility`. M0 final evidence at `e1fcd18`,
+collected before the user-authorized narrow M2 concurrency slice. Current source
+change builds locally; focused tests pass, full/native CI is pending; do not treat this as full M2 or a Mac release.
 
-M0 evidence is collected before changing production concurrency. User now authorizes
-only the narrow M2 owned-thread/mutex-snapshot change; C++20/Hyperion 6.2/GUI/legacy
-OSC stay intact. Full M2 IPC/architecture acceptance and M1 physical gate remain open.
-**Next:** implement/test that small compatibility change with exception-safe startup,
-stop/wake/join, immutable snapshots and Windows/Linux regression coverage.
-
-## M0 evidence follow-up — 2026-11-16
-
-Final repeat 43958755065 completed: SDK download connection reset (curl 56),
-diagnostic skipped, artifact upload ETIMEDOUT. These are infrastructure failures;
-previous Intel SDK compile/load/no-service PASS remains valid. Corrected curl
-retry-all-errors and immutable Actions pins; feature probes now opt-in because
-Xcode 16.4 failures are established. One SDK-only retry is pending, then the user
-has authorized the narrow M2 owned-thread/mutex-snapshot compatibility change.
-No Hyperion downgrade, GUI redesign or physical acceptance is authorized/implied.
-
-# Current state — Windows preview and macOS M0
-
-Branch: `codex/handbridge-macos-feasibility`, from planning `d104b87`.
-Initial feasibility work committed/pushed as `f4f60a5`; compiler/SDK diagnostic and
-runner harnesses through `cab1839`. Production Windows/GUI/loader/build/legacy
-OSC/configuration remain unchanged; Hyperion 6.2+ within 6.x remains mandatory.
-
-**M0 automated evidence delivered with blockers. M1 physical tests NOT RUN.
-M2–M5 not started.** Actual results: [M0 report](reports/MACOS_M0.md).
-
-| Scope | Actual result |
+| Finding | Status and evidence |
 |---|---|
-| arm64 Mac VM / macOS 15.8.2 / Xcode 16.4 / Clang 17 / libc++ 190102 / SDK 15.5 / CMake 4.4.5 | Both C++20 feature probes FAIL compilation; official Mac SDK signature/slices/exports inspected |
-| Intel / macOS 15.7.9 / same Xcode/Clang/libc++/SDK / CMake 4.4.2 | Both feature probes FAIL; diagnostic compiled/linked; missing library/load-only/no-service PASS (exits 2/0/3) |
-| Actual Intel client API | 6.2.0; all twelve exports resolved |
-| Connected ServerLibrary | unavailable; no connection event during bounded 5 s run; zero devices/errors, clean exit |
-| Corrected arm64 offline diagnostic | BLOCKED: GitHub explicitly failed runner acquisition after 15 minutes queued |
-| Physical two-camera streams, serials, no-hands, USB/recovery, TD | NOT RUN on either architecture |
+| **SDK verified on Intel** | M0 retry [43962640624](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43962640624) **PASS**: Apple Clang compile/link without warnings, genuine ClientLibrary **6.2.0**, missing/load-only/no-service exits **2/0/3**, clean five-second shutdown. ServerLibrary unavailable. |
+| **Host code compatibility** | M0 measured missing jthread/stop-token and atomic shared_ptr on Xcode 16.4 / libc++ 190102. Narrow M2 replacement built locally; focused 3/3 PASS, full/CI pending. C++20 and Hyperion 6.2 retained. |
+| **Infrastructure** | Corrected arm64 diagnostic BLOCKED on explicit GitHub runner-allocation failure; says nothing about SDK compatibility. Earlier final Intel repeat 43958755065 failed download/artifact networking, then SDK-only retry passed. |
+| **Physical acceptance** | Running Mac service, two simultaneous cameras, no-hands, recovery and TouchDesigner receipt **NOT RUN**; M1 stays open. |
 
-Changed files: `.github/workflows/macos-m0.yml`, isolated `probes/macos-m0/`
-(threading/snapshot sources, bounded SDK-only client, independent feature/SDK
-harnesses, commands), this state/handoff, the plan execution link and `docs/reports/MACOS_M0.md`. Both genuine
-Mac packages have separately measured/pinned SHA-256 values and verified vendor
-signature/notarization; no Windows SDK or Gemini substitution and no vendor files
-committed/uploaded. The inspected canonical SDK avoids old control-panel plugins.
+M2 changed `src/engine/qt_engine_main.cpp` to one owned std::thread, stop flag/CV
+wake and join outside locks, including constructor startup failure. Added
+`SnapshotMailbox.hpp` with reader-owned immutable shared pointers and separate
+short copy/swap locking. Queue32, worker lifetime, processing/OSC ownership,
+acknowledgements, legacy OSC/config and GUI remain intact. No production Mac loader,
+GUI redesign, packaging or SDK policy changes.
 
-Commands/results: `python3 probes/macos-m0/run-features.py` records independent
-compile failures (jthread/stop-token/callback absent, atomic shared_ptr specialization
-absent); `python3 probes/macos-m0/run-sdk.py` builds/inspects and enforces bounded
-real offline exit codes. Overall CI is correctly red because compiler features
-failed, even when SDK checks pass. Detailed source/run IDs, commands, logs, hashes
-and scope limits are in the report. Linux syntax/sanity checks, Python compilation
-and git diff --check pass; no hardware claims follow. The existing core/controller/
-Windows Release workflows passed at f4f60a5 and again at 1cd6b9b.
+Changed build/test files: CMakeLists, Intel Mac core/control presets,
+macos-concurrency workflow, test_WorkerConcurrency.cpp and test_WorkerLifecycle.py.
+ADR-017 and ARCHITECTURE explain ownership. Reports separate [M0 evidence](reports/MACOS_M0.md)
+from [M2 concurrency verification](reports/MACOS_M2_CONCURRENCY.md). Original
+compiler probes remain historical, now opt-in; the new checks exercise replacements.
 
-Final exact-source Intel repeat at cab1839 remains workflow-queued with no job
-created as of 2026-11-16 13:32 America/Los_Angeles (run 43958755065); previous
-native SDK result is at c9f337d. Latest device-allocation ownership correction was
-compiled locally without warnings; native repeat will confirm it separately.
+**Milestones:** M0 measured with remaining arm64 infrastructure blocker; narrow M2
+concurrency slice in progress; full M2 protected IPC/arm64/UI acceptance still open;
+M1 physical NOT RUN; M3–M5 not started. No Mac distribution/minimum/universal claim.
 
-**Single next task:** finish remaining M0 evidence: collect the queued Intel
-repeat 43958755065, then run the arm64 canonical diagnostic on the actual Mac or
-an available arm64 runner, recording actual client/service versions. Retain compiler findings for M2's later compatibility ADR; do not rewrite
-production or claim M1 until physical two-device observations exist.
-
----
+**Next exact task:** collect the full local native suite, Windows/Linux regression
+suites and targeted Intel Mac build/mock CI; record actual results and blockers.
 
 ## Preserved Windows and planning history
 
