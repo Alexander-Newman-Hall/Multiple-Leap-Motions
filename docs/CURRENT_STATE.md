@@ -33,13 +33,14 @@ and scope limits are in the report. Linux syntax/sanity checks, Python compilati
 and git diff --check pass; no hardware claims follow. The existing core/controller/
 Windows Release workflows passed at f4f60a5 and again at 1cd6b9b.
 
-Final exact-source Intel repeat at cab1839 is pending (run 43958755065); previous
+Final exact-source Intel repeat at cab1839 remains workflow-queued with no job
+created as of 2026-11-16 13:32 America/Los_Angeles (run 43958755065); previous
 native SDK result is at c9f337d. Latest device-allocation ownership correction was
 compiled locally without warnings; native repeat will confirm it separately.
 
-**Single next task:** complete remaining arm64 M0 canonical diagnostic checks on
-the actual Mac or an available arm64 runner, recording actual client/service
-versions. Retain compiler findings for M2's later compatibility ADR; do not rewrite
+**Single next task:** finish remaining M0 evidence: collect the queued Intel
+repeat 43958755065, then run the arm64 canonical diagnostic on the actual Mac or
+an available arm64 runner, recording actual client/service versions. Retain compiler findings for M2's later compatibility ADR; do not rewrite
 production or claim M1 until physical two-device observations exist.
 
 ---

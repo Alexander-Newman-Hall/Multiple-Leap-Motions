@@ -3,7 +3,8 @@
 Date: 2026-11-16 (America/Los_Angeles). Branch:
 `codex/handbridge-macos-feasibility`, from planning revision
 `d104b87b4bdda248b12a90821f21a0742d479ce8`. Original feasibility work preserved
-in `f4f60a5`; automated diagnostic source in `1cd6b9b`, runner options in `c9f337d`.
+in `f4f60a5`; automated diagnostic first native-tested at `c9f337d`, ownership correction in
+`1b29631`, and both package checksum pins in `cab1839`.
 **M0 automated evidence collected with compiler/arm64 capacity blockers.
 Intel offline SDK checks PASS. Physical two-camera tests NOT RUN.
 M2–M5 not started.**
@@ -112,7 +113,9 @@ warning subsequently removed by explicit Session construction in `1b29631`.
 That commit also allocates the owning device record before opening its SDK handle,
 so allocation failure cannot orphan a handle. A final exact-source repeat at
 `cab1839` is [run 43958755065](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43958755065)
-(pending at this checkpoint).
+(still workflow-queued with no job created as of 2026-11-16 13:32 America/Los_Angeles;
+no result is claimed). It remains queued for GitHub to execute; this is distinct
+from the completed Intel SDK run and the explicit arm64 acquisition failure.
 
 Intel machine/toolchain: `macos-15-intel`, x86_64, system_profiler reports Mac mini /
 Macmini6,2, processor name **Unknown** (do not infer a physical chip model),
@@ -194,8 +197,8 @@ passed at preserved checkpoint f4f60a5. Windows physical acceptance remains open
 
 ## Single next task
 
-Complete the remaining **arm64 M0** canonical diagnostic build/load/no-service
-checks on the owner's Mac or an available arm64 runner using the pinned official
+Finish remaining **M0** evidence: collect the queued exact-source Intel repeat
+43958755065, then complete arm64 canonical diagnostic build/load/no-service checks on the owner's Mac or an available arm64 runner using the pinned official
 SDK; record actual client and unavailable/connected service versions. Keep the
 measured Xcode 16.4 library failures open for M2's later owned-thread/snapshot
 compatibility decision. Do not implement that decision in M0. Physical M1 and all
