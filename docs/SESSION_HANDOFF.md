@@ -1,3 +1,27 @@
+## Latest M0 handoff — 2026-11-16
+
+Branch: `codex/handbridge-macos-feasibility`, based on planning commit
+`d104b87b4bdda248b12a90821f21a0742d479ce8`; current changes uncommitted.
+**M0 BLOCKED / incomplete; M1 NOT RUN; M2–M5 not started.** Actual environment is
+Linux x86_64 / Debian GCC 14.2.0, no CMake or Apple tools, no Mac SDK in searched
+locations. Mac chip/macOS/Xcode/CLT/libc++/SDK/client/service versions are unknown.
+
+Added isolated `probes/macos-m0/{threading.cpp,snapshot.cpp,README.md}` and
+`docs/reports/MACOS_M0.md`; updated CURRENT_STATE and SESSION_HANDOFF. No production
+architecture, Windows GUI/loader/build, Hyperion requirement, OSC or config change.
+Both tiny sources compiled/linked with GCC C++20/pthread and exited 0 under a
+5-second timeout; `git diff --check` passed. These are Linux sanity results only.
+SDK diagnostic implementation/build and actual Mac offline/hardware checks remain
+BLOCKED/NOT RUN; no two-camera support inferred. Full commands, limits and actual
+results: [M0 report](reports/MACOS_M0.md). Earlier Windows evidence below is historical.
+
+**Single next task:** resume M0 on the actual local Mac with its installed official
+Hyperion 6.2 SDK; run the documented probes, inspect SDK/terms, implement/build the
+bounded SDK diagnostic and record actual versions/offline checks. Preserve M1 as
+pending physical observation; do not advance production port milestones.
+
+---
+
 # Session handoff — macOS port planning
 
 Planning branch: `codex/handbridge-macos-plan`, based on handoff
