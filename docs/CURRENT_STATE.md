@@ -1,3 +1,20 @@
+## M0 closed out / M2 concurrency authorized — 2026-11-16
+
+SDK-only retry [43962640624](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43962640624)
+at e1fcd18 **PASS**: final diagnostic compiled/linked without warnings on Intel
+macOS 15.7.9 / Xcode 16.4 / Apple Clang 17, genuine Hyperion ClientLibrary 6.2.0,
+missing-library/load-only/no-service exits 2/0/3 and clean shutdown. Service version
+unavailable; physical two-camera/USB/recovery/TD NOT RUN. Arm64 offline execution
+remains BLOCKED by runner allocation, not SDK incompatibility. Final earlier
+repeat 43958755065 failed at network download; it is no longer queued. See M0 report
+for exact inputs, commands, hashes, output and historical failures.
+
+M0 evidence is collected before changing production concurrency. User now authorizes
+only the narrow M2 owned-thread/mutex-snapshot change; C++20/Hyperion 6.2/GUI/legacy
+OSC stay intact. Full M2 IPC/architecture acceptance and M1 physical gate remain open.
+**Next:** implement/test that small compatibility change with exception-safe startup,
+stop/wake/join, immutable snapshots and Windows/Linux regression coverage.
+
 ## M0 evidence follow-up — 2026-11-16
 
 Final repeat 43958755065 completed: SDK download connection reset (curl 56),

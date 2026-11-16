@@ -9,6 +9,28 @@ in `f4f60a5`; automated diagnostic first native-tested at `c9f337d`, ownership c
 Intel offline SDK checks PASS. Physical two-camera tests NOT RUN.
 M2–M5 not started.**
 
+## M0 final Intel evidence collected before M2
+
+[SDK-only retry 43962640624](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43962640624),
+source **e1fcd18**, completed **SUCCESS**, including text artifact upload.
+This confirms the final diagnostic ownership correction and both checksum pins.
+Same actual Intel environment: macOS 15.7.9 (24G830), Xcode 16.4/16F6, Apple Clang
+17.0.0 (clang-1700.0.13.5), SDK 15.5, libc++ headers 190102, CMake 4.4.2.
+Canonical header/dylib hashes match the Intel inventory below. Diagnostic compiled
+and linked without warnings. Missing library exit 2, real client load exit 0
+(**6.2.0**), five-second no-service run exit 3, zero devices/poll errors and clean
+shutdown all passed. **ServerLibrary unavailable; no service/hardware acceptance.**
+Original feature probes were deliberately not repeated; their measured failures
+remain a host code issue, independent of successful SDK loading.
+
+M0 automated evidence is now collected with a precise remaining arm64 allocation
+blocker. The user explicitly authorized the small M2 concurrency compatibility
+slice next, retaining C++20, Hyperion 6.2 and the GUI. M1 remains NOT RUN; full M2
+(especially protected Mac IPC), M3 real loading, M4 packaging and M5 hardware
+acceptance are not delivered by this result. Historical attempts below remain
+traceable; the old pending repeat 43958755065 is resolved as a network failure,
+then superseded by this successful retry.
+
 ## Actual Apple compiler results
 
 [Run 43955399147](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43955399147),
@@ -202,8 +224,8 @@ passed at preserved checkpoint f4f60a5. Windows physical acceptance remains open
 
 ## Single next task
 
-Finish remaining **M0** evidence: collect the queued exact-source Intel repeat
-43958755065, then complete arm64 canonical diagnostic build/load/no-service checks on the owner's Mac or an available arm64 runner using the pinned official
+Implement only the user-authorized M2 concurrency compatibility slice; preserve
+arm64 M0 diagnostic build/load/no-service checks as BLOCKED on runner allocation on the owner's Mac or an available arm64 runner using the pinned official
 SDK; record actual client and unavailable/connected service versions. Keep the
 measured Xcode 16.4 library failures open for M2's later owned-thread/snapshot
 compatibility decision. Do not implement that decision in M0. Physical M1 and all
