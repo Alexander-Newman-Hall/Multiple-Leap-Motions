@@ -19,7 +19,7 @@ separates new results from [historical M0](reports/MACOS_M0.md) and
 | Acceptance | Current result |
 |---|---|
 | Linux local regression | Build, legacy OSC **8/8 PASS** (0.05 s), full native suite **64/64 PASS** (22.49 s); not Darwin/arm64 evidence |
-| Native arm64 engine / unchanged GUI / genuine 6.2 SDK | Native-only jobs 43971199255 (macos-15) and 43972156771 (macos-26) awaiting assigned runners; no step executed or Intel substitution |
+| Native arm64 engine / unchanged GUI / genuine 6.2 SDK | macos-15 job 43971199255 **BLOCKED**: GitHub failed runner acquisition after 15m03s, no step executed. macos-26 alternative 43972156771 also failed acquisition after 15m02s, no step executed. Both arm64 validation attempts are **BLOCKED** on hosted capacity. No Intel substitution or arm64 acceptance |
 | Local Apple Silicon access | Not available; attached machine is Linux x86_64 |
 | Physical Mac service / two cameras / recovery / TD | **NOT RUN** |
 
@@ -30,12 +30,16 @@ The arm64 job builds/tests engine and GUI, checks application slices, loads the
 pinned genuine arm64 SDK in the owned diagnostic, and exercises a separate native
 Cocoa GUI/engine/UDP lifecycle smoke. SDK-header/injected tests are software tests;
 production Mac loader integration remains M3. No test is skipped to hide SIGPIPE.
-If hosted capacity fails, report exact blocker and leave arm64 checks unrun.
+Hosted capacity failed for both pools; engine/GUI/SDK/native SIGPIPE checks are
+**NOT RUN on arm64**. The Darwin fix is implemented but not natively verified.
+Local machine is Linux x86_64; no Apple Silicon host is attached.
 
 **Milestones:** arm64 M0/M2 acceptance pending; protected Mac IPC remains open;
 M1 physical NOT RUN; M3 real integration and M4/M5 packaging/hardware not delivered.
-**Next exact task:** collect arm64 CI evidence (or its concrete capacity blocker),
-record compiler/platform/SDK and GUI outcomes, then hand off remaining gates.
+**Next exact task:** complete the same arm64 engine/GUI/SDK validation on an
+available native hosted runner or an owner-authorized local Apple Silicon Mac.
+Both hosted attempts have concrete acquisition/capacity failures;
+never use Intel history as arm64 acceptance. Physical and protected-IPC gates stay open.
 
 ## Preserved Windows and planning history
 

@@ -61,14 +61,70 @@ passes. No native GUI test was executed on Linux.
 Native-only attempts at the same source:
 [macos-15 arm64 43971199255](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43971199255),
 [macos-26 arm64 43972156771](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43972156771).
-Both currently queue without assigned runners or job-step execution. Await actual
-outcomes/annotations; do not label queued checks successful or infer an SDK issue.
+The macos-15 run completed **FAILURE before any step executed**, after 15m03s
+queued (2026-11-16 14:33:31–14:48:34 America/Los_Angeles). Actual GitHub annotation:
+“The job was not acquired by Runner of type hosted even after multiple attempts”,
+with “Due to capacity constraints, jobs targeting macOS arm64 runners may
+experience longer queue times.” No runner was assigned. This is an **infrastructure
+BLOCKER**, not compilation/GUI/SIGPIPE/SDK failure.
+
+The macos-26 arm64 alternative also completed **FAILURE before any steps ran**:
+job queued 2026-11-16 14:39:32–14:54:34 America/Los_Angeles (15m02s); job conclusion
+cancelled, overall run failure, no runner assigned. It reports the same acquisition
+and arm64-capacity annotations. **Both arm64 attempts are BLOCKED on hosted
+allocation.** No Intel substitute was run and no arm64 success is inferred from
+historical results. The SIGPIPE fix is implemented/static-reviewed; its Darwin
+compilation/runtime regression is not verified until native execution occurs.
+
+| Required native arm64 evidence | Actual status |
+|---|---|
+| Actual Mac model/macOS/Xcode/Clang/libc++ inputs | NOT MEASURED on these unassigned jobs |
+| Darwin SO_NOSIGPIPE compile and default-signal regression | NOT RUN — allocation blocked |
+| Engine build/mock/lifecycle tests | NOT RUN — allocation blocked |
+| Existing GUI build/offscreen tests and native Cocoa smoke | NOT RUN — allocation blocked |
+| Genuine arm64 SDK/diagnostic load, client version and no-service cleanup | NOT RUN — allocation blocked |
+| Running service/version, physical two-camera streams, recovery, TD | NOT RUN — physical gate remains open |
+
 
 There is no local Apple Silicon execution environment attached: `uname -sm` is
 Linux x86_64. If hosted arm64 cannot acquire a runner, record its actual job
 annotation/status as BLOCKED, leaving engine/GUI/SDK arm64 checks NOT RUN. Do not
 fall back to an Intel runner or Rosetta. The same commands can be executed on an
 owner-authorized local Apple Silicon Mac with its official SDK.
+
+## Next exact task: native arm64 execution
+
+Run the committed validation on an available native arm64 hosted runner or an
+owner-authorized local Apple Silicon Mac. No machine/toolchain/SDK outcome should
+be copied from the historical Intel report. On the actual Mac, record chip/macOS,
+Xcode/Clang/libc++/SDK and tool versions before running these commands. Set
+CMAKE_PREFIX_PATH to the actual installed Qt 6.8.3 prefix; use CMake 3.31.6/Ninja
+1.11.1.4 as in CI. No Rosetta execution or Intel build is part of the task.
+
+```sh
+cmake --preset macos-arm64-core
+cmake --build --preset macos-arm64-core --parallel 2
+ctest --preset macos-arm64-core
+bash probes/macos-m0/fetch-sdk.sh
+python3 probes/macos-m0/run-sdk.py
+cmake --preset macos-arm64-control -DHANDBRIDGE_WITH_LEAPC=ON \
+  -DLEAP_SDK_ROOT="$(cat work/macos-m0/sdk-root.txt)"
+cmake --build --preset macos-arm64-control --parallel 2
+ctest --preset macos-arm64-control
+lipo -archs out/build/macos-arm64-control/handbridge-engine
+lipo -archs out/build/macos-arm64-control/handbridge-control
+python3 tests/test_MacNativeGui.py out/build/macos-arm64-control/handbridge-engine \
+  out/build/macos-arm64-control/handbridge-control
+```
+
+Require arm64-only application/SDK/diagnostic slices, surviving default SIGPIPE,
+unchanged signal policy/error counters, GUI/IPC/profile/golden/lifecycle cases and
+native Cocoa evidence. The no-service SDK harness expects no service on CI. On a
+Mac with a running tracking service, **do not stop a shared service just to satisfy
+that expectation**; retain the actual connected version/result and check client
+loading separately. No package/service installation is performed by the fetch
+helper. Production Mac SDK loading integration remains M3; an SDK-header adapter
+build plus the separate thin-client load is not real engine tracking acceptance.
 
 ## Open gates
 

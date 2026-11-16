@@ -9,7 +9,8 @@
   and cleanup; preserved global signal policy and Windows/Linux/legacy OSC paths.
 - Added default/unblocked SIGPIPE regression and arm64 engine/GUI/SDK checks,
   including native Cocoa lifecycle evidence. Actual native execution/capacity is
-  recorded in reports/MACOS_ARM64.md; no unexecuted check is declared passed.
+  recorded in reports/MACOS_ARM64.md. Both arm64 pools failed acquisition before
+  any step; validation is BLOCKED, and no unexecuted check is declared passed.
 
 ## Unreleased — M0 evidence and narrow M2 concurrency slice, 2026-11-16
 
