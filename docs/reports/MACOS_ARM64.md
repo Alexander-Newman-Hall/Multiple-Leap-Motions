@@ -49,6 +49,21 @@ This does not compile or exercise the Darwin branch or establish arm64 acceptanc
 `git diff --check` passed. Full local native suite **64/64 PASS**, no skips/failures, **22.49 s**. Windows
 regressions and native arm64 CI results are pending; none is inferred from Intel history.
 
+At source **fae90ed**, existing Windows/Linux core/native controller jobs and
+Windows Release/package CI all completed **PASS**:
+[core 43971198928](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43971198928),
+[native 43971198982](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43971198982),
+[Windows Release 43971198934](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43971198934).
+These are regression evidence only, not arm64 validation. Workflow YAML and preset
+JSON parsed successfully; Python smoke/SDK scripts compile and SDK shell syntax
+passes. No native GUI test was executed on Linux.
+
+Native-only attempts at the same source:
+[macos-15 arm64 43971199255](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43971199255),
+[macos-26 arm64 43972156771](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43972156771).
+Both currently queue without assigned runners or job-step execution. Await actual
+outcomes/annotations; do not label queued checks successful or infer an SDK issue.
+
 There is no local Apple Silicon execution environment attached: `uname -sm` is
 Linux x86_64. If hosted arm64 cannot acquire a runner, record its actual job
 annotation/status as BLOCKED, leaving engine/GUI/SDK arm64 checks NOT RUN. Do not

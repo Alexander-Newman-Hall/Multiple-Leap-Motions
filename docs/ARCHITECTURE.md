@@ -4,6 +4,16 @@
 physical hardware acceptance remains open. Windows Release packaging is a separate
 deployment gate, documented in WINDOWS_RELEASE.md and CURRENT_STATE.md.
 
+## Native Mac scope and send-error boundary (2026-11-16)
+
+Planned Mac product is native Apple Silicon arm64 only; Intel/Rosetta/universal
+release acceptance is out of scope. Historical Intel tests do not satisfy arm64
+acceptance. The Darwin OSC socket opts into SO_NOSIGPIPE before connect/send,
+preserving global signal policy and existing false-return/error counters. Other
+platform paths, OSC bytes/config and engine ownership remain intact (ADR-018).
+Actual engine/GUI/SDK arm64 execution or hosted allocation blockers are recorded
+in reports/MACOS_ARM64.md; physical service/two-device acceptance remains open.
+
 ## Implemented boundary (2026-11-15)
 
 `handbridge-core` compiles the preserved raw-mm processor, aliases, legacy config,

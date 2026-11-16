@@ -1,5 +1,16 @@
 # Hand Bridge 2.0 changelog
 
+## Unreleased — native Apple Silicon scope and Darwin SIGPIPE, 2026-11-16
+
+- Narrowed planned Mac product to native arm64; removed Intel presets/runner
+  fallback and Rosetta/universal-release requirements. Intel history is retained
+  but is not arm64 acceptance.
+- Set Darwin SO_NOSIGPIPE per OSC socket before connect/send with checked failure
+  and cleanup; preserved global signal policy and Windows/Linux/legacy OSC paths.
+- Added default/unblocked SIGPIPE regression and arm64 engine/GUI/SDK checks,
+  including native Cocoa lifecycle evidence. Actual native execution/capacity is
+  recorded in reports/MACOS_ARM64.md; no unexecuted check is declared passed.
+
 ## Unreleased — M0 evidence and narrow M2 concurrency slice, 2026-11-16
 
 - Verified final owned SDK diagnostic on Intel with genuine Mac Hyperion 6.2.0:

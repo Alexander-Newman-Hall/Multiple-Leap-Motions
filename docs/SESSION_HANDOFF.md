@@ -19,9 +19,12 @@ separates new results from [historical M0](reports/MACOS_M0.md) and
 | Acceptance | Current result |
 |---|---|
 | Linux local regression | Build, legacy OSC **8/8 PASS** (0.05 s), full native suite **64/64 PASS** (22.49 s); not Darwin/arm64 evidence |
-| Native arm64 engine / unchanged GUI / genuine 6.2 SDK | CI prepared; actual arm64 results pending; no Intel substitution |
+| Native arm64 engine / unchanged GUI / genuine 6.2 SDK | Native-only jobs 43971199255 (macos-15) and 43972156771 (macos-26) awaiting assigned runners; no step executed or Intel substitution |
 | Local Apple Silicon access | Not available; attached machine is Linux x86_64 |
 | Physical Mac service / two cameras / recovery / TD | **NOT RUN** |
+
+Windows/Linux core/native CI and Windows Release CI at fae90ed **PASS**. These
+are supplemental regression checks, not arm64 acceptance.
 
 The arm64 job builds/tests engine and GUI, checks application slices, loads the
 pinned genuine arm64 SDK in the owned diagnostic, and exercises a separate native

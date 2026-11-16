@@ -151,10 +151,21 @@ verify output continuity across controller close/kill/reopen.
 ctest --preset control-debug -R 'WorkerConcurrency|WorkerLifecycle' --output-on-failure
 ```
 
-The Intel Mac concurrency workflow builds Qt-free and QtCore/Network hosts directly
-and records both suites independently. It keeps every observed failing case and
-fails its final gate if either suite fails, even though steps continue to collect
-worker evidence. An observed existing Darwin broadcast-error test SIGPIPE is a
-separate unresolved transport result. Full M2 protected IPC/arm64/native UI and
-physical M1 acceptance remain open; see reports/MACOS_M2_CONCURRENCY.md. No ASan/
-TSan coverage is claimed by these ordinary builds.
+The current Mac validation workflow targets **native Apple Silicon arm64 only**.
+It builds the Qt-free engine and the existing Qt engine/GUI, checks application
+slices and executes full mock/control/UI/OSC/lifecycle suites. It separately loads
+the genuine pinned arm64 SDK; adapter/header injected tests are enabled only when
+that SDK step passes. A native Cocoa GUI smoke checks captures and continuing
+simulated UDP after GUI close/kill/reopen. None establishes physical camera health.
+
+The existing broadcast error case remains enabled. A new Darwin-only death-test
+child explicitly defaults and unblocks SIGPIPE and checks failed sends/counters,
+zero accepted packets and unchanged global disposition. Production sets only
+SO_NOSIGPIPE per socket. No SIG_IGN or skip hides the original failure. Every
+independent workflow outcome participates in its final failure gate.
+
+Arm64 acceptance needs actual arm64 execution. Historical Intel results and Linux
+regressions are not substitutes; if hosted native capacity fails, record BLOCKED.
+No Intel, Rosetta or universal-release requirement remains. See MACOS_ARM64 report
+for actual outcomes, commands and open protected-IPC/physical gates. No ASan/TSan
+coverage is claimed by these ordinary builds.
