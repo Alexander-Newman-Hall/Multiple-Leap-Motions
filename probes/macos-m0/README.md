@@ -35,11 +35,43 @@ licence/sample instructions, `ls -l` symlink targets, `file`, `lipo -info`, `oto
 vendor files and private machine evidence in ignored `work/`. Do not use the
 Windows extraction helper or commit vendor samples.
 
-The SDK-only diagnostic is **not yet prepared or built**: this execution environment
-has no installed Mac SDK to establish its exact API/ABI or sample terms. Complete
-it on the Mac using the installed header and explicit absolute dylib path. Require
-bounded polling/runtime, client and connected ServerLibrary 6.2+ within 6.x checks,
-distinct device serials, per-device counters/ages including zero-hand frames,
-reported errors and cleanup on timeout/Ctrl-C. Test missing-library and genuine
-no-service paths separately. Do not substitute the Windows production loader.
-See [actual blocked evidence](../../docs/reports/MACOS_M0.md).
+The owned `sdk-diagnostic.cpp` is isolated from production and uses only the
+selected official `LeapC.h`, the standard library and Darwin `dlopen`. It resolves
+twelve functions with signatures obtained from that header. It checks the client
+and connected ServerLibrary independently for 6.2+ within 6.x, bounds inventory to
+64 devices, rejects duplicate serials, reports counters/ages and zero-hand frames,
+and releases subscriptions/devices/connection before unloading. It runs for five
+seconds or until Ctrl-C; it does not implement production recovery or OSC.
+
+```sh
+xcrun clang++ -std=c++20 -Wall -Wextra -pthread -I "/actual/sdk/include" \
+  probes/macos-m0/sdk-diagnostic.cpp -o work/macos-m0/sdk-diagnostic
+./work/macos-m0/sdk-diagnostic /absolute/path/to/libLeapC.dylib --load-only
+./work/macos-m0/sdk-diagnostic /absolute/path/to/libLeapC.dylib
+```
+
+Exit codes: 0 accepted client (load-only) or observed accepted service connection;
+2 usage/library/export failure; 3 no service connection event within five seconds;
+4 unavailable/unsupported API version; 5 SDK connection/poll failure. A zero exit
+never asserts that devices exist or frames arrived. Logs include device serials
+when hardware is present; review/redact before sharing. Shutdown is orderly on
+SIGINT/SIGTERM; the outer harness enforces a 15-second deadline and records a hang
+as failure if SDK cleanup itself blocks.
+
+`.github/workflows/macos-m0.yml` selects `macos-15` (one actual runner architecture,
+not a universal claim), runs the Apple probes independently, retrieves the official
+architecture-specific 6.2.0 Mac package linked by the LMC2 download page, records
+its SHA-256/signature and expands it without installing or starting a service.
+`run-sdk.py` rejects ambiguous SDK layouts, hashes the actual header/resolved dylib,
+inspects binary metadata/exports and sample/terms filenames/hashes, builds the
+owned client, checks a missing absolute path, loads the real library, then requires
+exit 3 for the genuine no-service run. An unexpected live service fails this
+particular no-service check and must be investigated rather than reclassified.
+No vendor source/package/header/library is uploaded; artifacts contain diagnostic
+text only. Package hashes are evidence of the retrieved input; initial retrieval
+uses official HTTPS plus Apple's package signature inspection, not a pre-existing
+Mac checksum pin. Do not replace a failing official package with Windows files.
+
+See [recorded evidence and limitations](../../docs/reports/MACOS_M0.md). CI cannot
+establish the owner's Mac configuration, physical multi-device streaming, USB
+recovery or TouchDesigner receipt. Physical two-camera tests remain NOT RUN.
