@@ -62,15 +62,18 @@ as failure if SDK cleanup itself blocks.
 not a universal claim), runs the Apple probes independently, retrieves the official
 architecture-specific 6.2.0 Mac package linked by the LMC2 download page, records
 its SHA-256/signature and expands it without installing or starting a service.
-`run-sdk.py` rejects ambiguous SDK layouts, hashes the actual header/resolved dylib,
+`run-sdk.py` selects only the inspected canonical `LeapSDK/include/LeapC.h` and
+`LeapSDK/lib/libLeapC.6.dylib`, rejects ambiguous matching roots, hashes both files,
 inspects binary metadata/exports and sample/terms filenames/hashes, builds the
 owned client, checks a missing absolute path, loads the real library, then requires
 exit 3 for the genuine no-service run. An unexpected live service fails this
 particular no-service check and must be investigated rather than reclassified.
 No vendor source/package/header/library is uploaded; artifacts contain diagnostic
-text only. Package hashes are evidence of the retrieved input; initial retrieval
-uses official HTTPS plus Apple's package signature inspection, not a pre-existing
-Mac checksum pin. Do not replace a failing official package with Windows files.
+text only. The Apple Silicon 6.2.0 package SHA-256 is pinned from the first signed/notarized
+inspection. Any Intel package retrieval records its independent signature/hash;
+no Intel checksum baseline is inferred from the Apple Silicon input. Manual
+dispatch permits `macos-26` or `macos-15-intel` when the default pool is queued.
+Each runner's results are a separate matrix entry, never a universal claim. Do not replace a failing official package with Windows files.
 
 See [recorded evidence and limitations](../../docs/reports/MACOS_M0.md). CI cannot
 establish the owner's Mac configuration, physical multi-device streaming, USB

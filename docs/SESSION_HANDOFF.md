@@ -14,7 +14,11 @@ inspection/offline harness and `.github/workflows/macos-m0.yml`; no production
 source/build/GUI/OSC/config changes. Official Apple Silicon 6.2.0 package signature
 and notarization verified; SHA-256 pinned from that actual run. Initial diagnostic
 selection blocked on multiple SDK/plugin copies; corrected to the inspected
-canonical LeapSDK/include header and LeapSDK/lib/libLeapC.6.dylib. Re-run pending.
+canonical LeapSDK/include header and LeapSDK/lib/libLeapC.6.dylib. Re-run pending; optional macOS 26/Intel runner pools are separate M0 entries,
+not application support claims. Linux GCC also compiled the owned diagnostic
+against the genuine Mac header (hash
+`40b2943f5be3271b98ad96de987f85396136af9522b2dbb7fdf5bbbd79e8265c`);
+that establishes no Apple/dylib/runtime behavior.
 Physical two-camera/service/recovery/TouchDesigner checks **NOT RUN**.
 Full final results will supersede this checkpoint in [M0 report](reports/MACOS_M0.md).
 
