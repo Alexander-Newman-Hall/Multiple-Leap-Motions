@@ -38,11 +38,14 @@ jobs:
           setup-python: false
           cache: false
       - name: Build and test Qt-free host
+        id: core
+        continue-on-error: true
         run: |
           cmake --preset macos-intel-core
           cmake --build --preset macos-intel-core --parallel 2
           ctest --preset macos-intel-core --output-junit "$GITHUB_WORKSPACE/work/macos-core.xml"
       - name: Build existing QtCore/Network engine and SDK-free tests (no GUI target)
+        id: control_build
         run: |
           cmake --preset macos-intel-control
           cmake --build --preset macos-intel-control --parallel 2 --target \
@@ -50,6 +53,8 @@ jobs:
             test_DeviceAliasManager test_LeapSorter test_LegacyOscContract \
             test_EngineRuntime test_ControlSettings test_Processing
       - name: Host concurrency, shutdown, legacy UDP and core regressions
+        id: control_tests
+        continue-on-error: true
         run: |
           ctest --preset macos-intel-control -E '^(ControllerModel|ControlUi|ControlIntegration)$' \
             --output-junit "$GITHUB_WORKSPACE/work/macos-control-host.xml"
@@ -61,3 +66,6 @@ jobs:
             work/macos-*.xml
             out/build/macos-intel-*/Testing/Temporary/LastTest.log
           retention-days: 14
+      - name: Preserve failures from both independent suites
+        if: always() && (steps.core.outcome != 'success' || steps.control_build.outcome != 'success' || steps.control_tests.outcome != 'success')
+        run: exit 1

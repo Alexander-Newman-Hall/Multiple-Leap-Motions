@@ -5,7 +5,7 @@ Scope authorized after collecting M0 evidence, on
 on Intel Mac: [run 43962640624](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43962640624).
 The client reports 6.2.0; connected ServerLibrary remains unavailable. Apple
 Silicon offline loading is still blocked by hosted allocation, not an SDK failure.
-Original Xcode 16.4 feature probes are not repeated; no downgrade or GUI rebuild.
+Original Xcode 16.4 feature probes are not repeated; no downgrade or GUI redesign.
 
 ## Change and ownership
 
@@ -28,7 +28,14 @@ occurs while the snapshot mutex is held.
 
 Local configure/build PASS with GCC 14.2.0 / Qt 6.8.3 / CMake 3.31.6 / Ninja
 1.11.1 on Linux x86_64. Focused CTest **3/3 PASS**, 0.36 s, including both snapshot
-cases and WorkerLifecycle. Full suite and Mac/Windows CI pending at this checkpoint.
+cases and WorkerLifecycle. Full native Linux suite **64/64 PASS**, no skips/failures, **22.12 s**, including
+actual GUI close/kill/reopen with continuing simulated UDP. Tested application
+source **536a018b485e54b0eabbd250d01fcde72bc86545**. New tests use no real SDK or cameras.
+[Mac host CI 43964527004](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43964527004),
+[Windows/Linux native CI 43964526847](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43964526847),
+[core CI 43964526874](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43964526874)
+and [Windows Release CI 43964527518](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43964527518)
+are running at this source; no remote result claimed until collected.
 Initial local setup lacked CMake/Qt and OpenGL development headers; pinned tools
 were installed under ignored work/, and Debian libglvnd 1.7.0-1+b2 development
 packages extracted under work/qt-deps (no system install). Configure selected
@@ -54,6 +61,27 @@ Qt 6.8.3, CMake 3.31.6, Ninja 1.11.1.4 and dependency Actions. It records actual
 Apple toolchain inputs and tests the replacement directly without rerunning the
 known original-library probes. Mac GUI suites are excluded because no GUI target
 is built. Windows/Linux GUI lifecycle regressions remain mandatory.
+
+## First Apple run: a separate transport blocker
+
+At application source 536a018, Mac CI 43964527004 compiled/linked the Qt-free host
+and all core tests; **59/60 passed** (5.98 s). Both replacement SnapshotMailbox
+tests and HeadlessUdp passed. The existing
+`LegacyOscContract.NativeBroadcastPermissionErrorIsNotReportedAsSuccess` test
+terminated with **SIGPIPE** on Darwin. This is a real Mac transport portability
+finding, not a compiler/threading/SDK failure. The failed core step prevented the
+QtCore/Network host step from executing; its result was **NOT RUN**, not a build
+failure. No tests were removed and no sender behavior changed to hide this.
+
+The workflow now runs core and Qt-host suites independently, preserves their
+individual results and fails a final gate if either suite/build fails. This lets
+startup/join and native host tests execute without reclassifying the known
+SIGPIPE case as a pass. A new Mac run is pending. Full M2 must resolve that actual
+Darwin error path separately before a passing Mac-suite claim or distribution.
+Windows/Ubuntu native CI and Windows Release packaging passed at 536a018.
+Log/artifact downloads intermittently returned HTTP 403; the failed Mac step log
+was retrieved and established the exact failing test. No inaccessible remote
+per-case totals are inferred from job success.
 
 ## Limits
 
