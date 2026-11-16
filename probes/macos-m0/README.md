@@ -69,9 +69,8 @@ owned client, checks a missing absolute path, loads the real library, then requi
 exit 3 for the genuine no-service run. An unexpected live service fails this
 particular no-service check and must be investigated rather than reclassified.
 No vendor source/package/header/library is uploaded; artifacts contain diagnostic
-text only. The Apple Silicon 6.2.0 package SHA-256 is pinned from the first signed/notarized
-inspection. Any Intel package retrieval records its independent signature/hash;
-no Intel checksum baseline is inferred from the Apple Silicon input. Manual
+text only. Both official 6.2.0 package SHA-256 values are pinned from separate actual
+signed/notarized inspections on their matching architectures. Manual
 dispatch permits `macos-26` or `macos-15-intel` when the default pool is queued.
 Each runner's results are a separate matrix entry, never a universal claim. Do not replace a failing official package with Windows files.
 

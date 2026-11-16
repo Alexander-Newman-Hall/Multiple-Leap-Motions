@@ -52,6 +52,8 @@ jobs:
           shasum -a 256 work/macos-m0/hyperion.pkg
           if [ "$platform" = apple-silicon ]; then
             echo '9cad82a6282e322d2acd71f3746e50b472f3ed83bb5f9fa6f54d554f404c5531  work/macos-m0/hyperion.pkg' | shasum -a 256 -c -
+          else
+            echo 'cb6279bacbda12b0e2db2eda5f1e1fd1988f77f568680150e63aee474d6552bc  work/macos-m0/hyperion.pkg' | shasum -a 256 -c -
           fi
           pkgutil --check-signature work/macos-m0/hyperion.pkg
           pkgutil --expand-full work/macos-m0/hyperion.pkg work/macos-m0/sdk
