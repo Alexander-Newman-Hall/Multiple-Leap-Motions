@@ -1,6 +1,7 @@
 # Session handoff — Hyperion 6 adapter / Windows Release preview
 
 Branch: `codex/handbridge-leapc-release`.
+Draft review: https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/pull/3.
 Validated source: **`c8596f20b35bb0e4d09446933c543f689417f36c`**. Final handoff is docs/screenshots only.
 Started at controller `3825ecd`; all prior branches and original ImGui source remain
 recoverable. User authorized the adapter and package, then explicitly required

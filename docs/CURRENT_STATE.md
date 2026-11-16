@@ -1,6 +1,8 @@
 # Current state — Hyperion 6 adapter and Windows portable preview
 
 Branch: `codex/handbridge-leapc-release`.
+Draft [PR #3](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/pull/3)
+is stacked on the preserved native-controller branch.
 Validated application/packager source: **`c8596f20b35bb0e4d09446933c543f689417f36c`**.
 The final handoff follows with documentation/screenshots only; application code is
 identical to the tested source. Original master `054e578`, handbridge-v2 5f54718,
