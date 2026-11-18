@@ -1,3 +1,4 @@
+#include "ipc/Endpoint.hpp"
 #include "control/Controller.hpp"
 #include "ipc/Framing.hpp"
 
@@ -66,7 +67,7 @@ private:
 private slots:
     void init() {
         endpoint_ = "handbridge-controller-test-" + QUuid::createUuid().toString(QUuid::WithoutBraces);
-        QVERIFY(server_.listen(endpoint_));
+        QVERIFY(server_.listen(handbridge::ipc::socketName(endpoint_)));
         connect(&server_, &QLocalServer::newConnection, this, [this] {
             peer_ = server_.nextPendingConnection();
             connect(peer_, &QLocalSocket::readyRead, this, &ControllerTest::receive);
@@ -86,7 +87,7 @@ private slots:
         if (peer_) { peer_->abort(); delete peer_; peer_ = nullptr; }
         server_.close();
         server_.disconnect(this);
-        QLocalServer::removeServer(endpoint_);
+        QLocalServer::removeServer(handbridge::ipc::socketName(endpoint_));
         bytes_.clear(); requests_.clear();
     }
     void editorIsNotAppliedUntilAcknowledged() {

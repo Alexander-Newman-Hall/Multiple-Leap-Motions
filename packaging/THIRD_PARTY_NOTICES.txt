@@ -35,8 +35,7 @@ its terms. The real adapter loads an absolute installed LeapC.dll path; use
 --leapc-library when auto-discovery does not find your installation. This package
 does not grant redistribution rights to Ultraleap's components.
 
-The repository has not declared a general open-source license for the Hand
-Bridge application. These dependency notices do not grant additional rights to
-the application. Preserve the application's copyright notices and repository
-history. Physical cameras, Hyperion, USB recovery and TouchDesigner receipt remain
+Hand Bridge's own code is licensed under the MIT License in the repository's
+LICENSE file. Preserve the copyright and license notices for the application
+and its dependencies. Windows physical cameras, Hyperion, USB recovery and TouchDesigner receipt remain
 UNTESTED ON HARDWARE until recorded in the hardware acceptance checklist.

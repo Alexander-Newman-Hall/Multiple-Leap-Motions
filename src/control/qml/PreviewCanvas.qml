@@ -5,6 +5,12 @@ Item {
     property var devices: []
     property bool processed: false
     property string units: "mm"
+    function project(point, centerX) {
+        // In desktop mode positive Z points toward the user (down on screen).
+        const pixelsPerMm = Math.min(width / 2 / 400, Math.max(1, height - 56) / 320);
+        const scale = pixelsPerMm * (processed && units === "m" ? 1000 : 1);
+        return Qt.point(centerX + point[0] * scale, height / 2 + point[2] * scale);
+    }
     Canvas {
         id: view
         anchors.fill: parent
@@ -60,44 +66,47 @@ Item {
                     c.fillText(dev ? "NO LIVE HAND" : "WAITING FOR ENGINE", cx, cy);
                     continue;
                 }
-                const meters = root.processed && root.units === "m";
-                const scl = meters ? 900 : 0.9;
-                function project(v) {
-                    return [cx + (Number(v[0]) - (meters ? 0.06 : 60)) * scl, cy - (Number(v[1]) - (meters ? 0.19 : 190)) * scl];
-                }
-                const palm = project(p.palm), wrist = project(p.wrist);
+                c.save();
+                c.beginPath();
+                c.rect(d * width / 2, 28, width / 2, Math.max(0, height - 56));
+                c.clip();
+                const palm = root.project(p.palm, cx);
                 const tint = root.processed ? "#bbaff3" : (d === 0 ? "#b1edbc" : "#9fcbdc");
                 c.strokeStyle = tint;
                 c.lineWidth = 2;
                 c.lineCap = "round";
-                c.beginPath();
-                c.moveTo(wrist[0], wrist[1]);
-                c.lineTo(palm[0], palm[1]);
-                c.stroke();
+                if (p.wrist) {
+                    const wrist = root.project(p.wrist, cx);
+                    c.beginPath();
+                    c.moveTo(wrist.x, wrist.y);
+                    c.lineTo(palm.x, palm.y);
+                    c.stroke();
+                }
                 const tips = p.tips || [];
                 for (let i = 0; i < tips.length; i++) {
-                    const t = project(tips[i]);
+                    const t = root.project(tips[i], cx);
                     c.globalAlpha = 0.65;
                     c.beginPath();
-                    c.moveTo(palm[0], palm[1]);
-                    c.lineTo(t[0], t[1]);
+                    c.moveTo(palm.x, palm.y);
+                    c.lineTo(t.x, t.y);
                     c.stroke();
                     c.globalAlpha = 1;
                     c.fillStyle = "#15191e";
                     c.beginPath();
-                    c.arc(t[0], t[1], 4, 0, Math.PI * 2);
+                    c.arc(t.x, t.y, 4, 0, Math.PI * 2);
                     c.fill();
                     c.stroke();
                 }
                 c.fillStyle = "#171d1c";
                 c.beginPath();
-                c.arc(palm[0], palm[1], 10, 0, Math.PI * 2);
+                c.arc(palm.x, palm.y, 10, 0, Math.PI * 2);
                 c.fill();
                 c.stroke();
                 c.fillStyle = tint;
                 c.beginPath();
-                c.arc(palm[0], palm[1], 3, 0, Math.PI * 2);
+                c.arc(palm.x, palm.y, 3, 0, Math.PI * 2);
                 c.fill();
+                c.restore();
                 c.fillStyle = "#9ca5b5";
                 c.font = "10px monospace";
                 c.fillText(p.hand + " / " + Number(p.palm[0]).toFixed(1) + ", " + Number(p.palm[1]).toFixed(1) + ", " + Number(p.palm[2]).toFixed(1), cx, height - 14);

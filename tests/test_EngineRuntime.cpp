@@ -53,6 +53,52 @@ protected:
         }));
     }
 };
+TEST_F(RuntimeTest, SlowFirstFrameGetsTimeToArriveThenStreamingWatchdogApplies) {
+    connect(false);
+    runtime->tick(500);
+    runtime->tick(600);
+    const auto& camera = runtime->devices().at("A");
+    EXPECT_EQ(camera.state, DeviceState::Subscribed);
+    EXPECT_FALSE(camera.framesFresh);
+    EXPECT_TRUE(source.restartTimes.empty());
+
+    source.ready = {frame("A", 0, 878, false)};
+    runtime->tick(878);
+    ASSERT_TRUE(camera.framesFresh);
+    EXPECT_FALSE(camera.handsVisible);
+    runtime->tick(1377);
+    EXPECT_TRUE(camera.framesFresh);
+    runtime->tick(1378);
+    EXPECT_FALSE(camera.framesFresh);
+    EXPECT_EQ(camera.reason, "frame_stale");
+}
+TEST_F(RuntimeTest, SilentSubscriptionRetriesAfterDeadlineAndAllowsWarmupAgain) {
+    connect();
+    for (Millis now = 0; now < 3000; now += 100) {
+        source.ready = {frame("B", now, now, false)};
+        runtime->tick(now);
+    }
+    const auto& silent = runtime->devices().at("A");
+    const auto& healthy = runtime->devices().at("B");
+    runtime->tick(2999);
+    EXPECT_EQ(silent.state, DeviceState::Subscribed);
+    runtime->tick(3000);
+    EXPECT_EQ(silent.reason, "first_frame_timeout");
+    runtime->tick(3099);
+    EXPECT_TRUE(source.restartTimes.empty());
+    runtime->tick(3100);
+    EXPECT_EQ(silent.state, DeviceState::Subscribed);
+    for (Millis now = 3200; now <= 4000; now += 100) {
+        source.ready = {frame("B", now, now, false)};
+        runtime->tick(now);
+    }
+    source.ready = {frame("A", 0, 4001)};
+    runtime->tick(4001);
+    EXPECT_TRUE(silent.framesFresh);
+    EXPECT_TRUE(healthy.framesFresh);
+    EXPECT_EQ(source.restartTimes, (std::vector<Millis>{3100}));
+    EXPECT_EQ(healthy.reconnectAttempts, 0u);
+}
 TEST_F(RuntimeTest, StaleAEmitsLossOnceWhileBContinuesAndRecovers) {
     connect(); source.ready = {frame("A",1,0),frame("B",1,0)}; runtime->tick(0); messages.clear();
     source.ready = {frame("B",2,500)}; runtime->tick(500);
@@ -97,6 +143,16 @@ TEST_F(RuntimeTest, SubscriptionFailureRetriesWithCappedBackoff) {
     EXPECT_FALSE(runtime->devices().at("A").subscribed);
     EXPECT_EQ(runtime->devices().at("A").reason,"retry_failed");
     EXPECT_LT(logs.size(),5u); // Repeated retry failure is a single meaningful transition.
+
+    source.ready = {signal(TrackingEventKind::DeviceLost, "A")};
+    runtime->tick(2601);
+    source.ready = {signal(TrackingEventKind::DeviceConnected, "A"),
+                    signal(TrackingEventKind::SubscriptionFailed, "A")};
+    runtime->tick(2700);
+    source.restartTimes.clear();
+    runtime->tick(2800);
+    runtime->tick(2900);
+    EXPECT_EQ(source.restartTimes, (std::vector<Millis>{2800, 2900}));
 }
 TEST_F(RuntimeTest, ServiceRecoveryRequiresRediscoveryAndDoesNotInventMissingDevice) {
     connect(); source.ready = {frame("A",1,0),frame("B",1,0)}; runtime->tick(0); messages.clear();

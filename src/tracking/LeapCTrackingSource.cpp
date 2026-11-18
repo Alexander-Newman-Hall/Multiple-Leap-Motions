@@ -189,14 +189,17 @@ bool LeapCTrackingSource::openAndSubscribe(std::uint32_t id, Millis now) {
     }
     device.serial = foundSerial;
     device.duplicate = false;
-    if (!device.announced) {
+    const bool firstAttemptForSerial = !device.announced;
+    if (firstAttemptForSerial) {
         add(TrackingEventKind::DeviceConnected, device.serial);
         device.announced = true;
     }
     const auto subscribed = api_.subscribeEvents(connection_, device.handle);
     if (subscribed != eLeapRS_Success) {
         error("LeapSubscribeEvents id=" + std::to_string(id), subscribed);
-        add(TrackingEventKind::SubscriptionFailed, device.serial);
+        // Discovery reports failure through poll(). For an announced serial,
+        // restartDevice() returns the failure directly to the retry scheduler.
+        if (firstAttemptForSerial) add(TrackingEventKind::SubscriptionFailed, device.serial);
         release(device);
         return false; // The runtime now owns retries for this identified device.
     }

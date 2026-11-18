@@ -3,7 +3,13 @@
 The new engine supports independent real LeapC devices when built with
 `HANDBRIDGE_WITH_LEAPC=ON`. The adapter uses the exact supplied `LeapC.h` declarations,
 not a replacement SDK header. It is separate from the preserved original ImGui app.
-Physical camera/service/TouchDesigner behavior remains **UNTESTED ON HARDWARE**.
+On Apple Silicon, the default loaded client is
+`/Applications/Ultraleap Hand Tracking.app/Contents/LeapSDK/lib/libLeapC.6.dylib`.
+An explicit absolute `--leapc-library` overrides `HANDBRIDGE_LEAPC_LIBRARY`,
+which overrides the dylib under `LEAP_SDK_ROOT`. Both client and connected
+service must report a supported 6.2+ version within 6.x. See the
+[Mac hardware and OSC results](reports/MACOS_ARM64.md). Physical Windows
+acceptance and TouchDesigner receiver acceptance remain open.
 
 ## Which SDK was actually used
 

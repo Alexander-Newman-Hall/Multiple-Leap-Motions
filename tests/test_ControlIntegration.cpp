@@ -1,3 +1,4 @@
+#include "ipc/Endpoint.hpp"
 #include <QtTest>
 #include <QCoreApplication>
 #include <QDirIterator>
@@ -70,7 +71,7 @@ public:
                 socket.abort(); // Bound each incomplete attempt; retry cleanly.
             if (socket.state() == QLocalSocket::UnconnectedState && now - lastAttempt >= 100) {
                 lastAttempt = now;
-                socket.connectToServer(endpoint);
+                socket.connectToServer(handbridge::ipc::socketName(endpoint));
             }
             return socket.state() == QLocalSocket::ConnectedState;
         });
@@ -434,7 +435,7 @@ private slots:
         bool listening = false;
         // The server is intentionally absent at the first connection attempt.
         // Its timer must still run while the test client waits asynchronously.
-        QTimer::singleShot(150, &delayed, [&] { listening = delayed.listen(endpoint); });
+        QTimer::singleShot(150, &delayed, [&] { listening = delayed.listen(handbridge::ipc::socketName(endpoint)); });
         Client reconnecting;
         QVERIFY2(reconnecting.connect(endpoint), qPrintable(reconnecting.error));
         QVERIFY(listening);
@@ -446,12 +447,12 @@ private slots:
 
     void malformedClientsAndDuplicateEngineDoNotStopTracking() {
         QLocalSocket malformed;
-        malformed.connectToServer(endpoint_);
+        malformed.connectToServer(handbridge::ipc::socketName(endpoint_));
         QVERIFY(malformed.waitForConnected(1000));
         malformed.write(QByteArray::fromHex("00010001")); // 65537 exceeds the documented maximum.
         QVERIFY(eventually([&] { return malformed.state() == QLocalSocket::UnconnectedState; }));
         QLocalSocket invalidJson;
-        invalidJson.connectToServer(endpoint_);
+        invalidJson.connectToServer(handbridge::ipc::socketName(endpoint_));
         QVERIFY(invalidJson.waitForConnected(1000));
         invalidJson.write(QByteArray::fromHex("00000001") + '{');
         QVERIFY(eventually([&] { return invalidJson.state() == QLocalSocket::UnconnectedState; }));
@@ -499,7 +500,7 @@ private slots:
 
         QLocalSocket unread;
         unread.setReadBufferSize(1);
-        unread.connectToServer(endpoint_);
+        unread.connectToServer(handbridge::ipc::socketName(endpoint_));
         QVERIFY(unread.waitForConnected(1000));
         QByteArray flood;
         for (qint64 id = 60000; id < 61000; ++id)

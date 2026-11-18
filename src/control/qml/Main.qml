@@ -10,7 +10,7 @@ ApplicationWindow {
     minimumWidth: 1100
     minimumHeight: 720
     visible: true
-    title: "Hand Bridge 2.0 — Native Control"
+    title: "Hand Bridge " + Qt.application.version + " — Native Control"
     color: theme.background
     font.family: theme.family
     font.pixelSize: 12
@@ -175,7 +175,7 @@ ApplicationWindow {
                         font.letterSpacing: 1.7
                     }
                     Text {
-                        text: "NATIVE TRACKING CONTROL  /  2.0"
+                        text: "NATIVE TRACKING CONTROL  /  " + Qt.application.version
                         color: "#828b9c"
                         font.pixelSize: 7
                         font.letterSpacing: 1.2
@@ -576,7 +576,7 @@ ApplicationWindow {
                             Layout.preferredHeight: 296
                             title: "Live coordinate monitor"
                             subtitle: "Palm, wrist and measured fingertips · independent camera spaces"
-                            badge: "XY PROJECTION"
+                            badge: "TOP VIEW · XZ"
                             ColumnLayout {
                                 anchors.fill: parent
                                 spacing: 7
@@ -1428,7 +1428,7 @@ Raw observations remain unchanged."
                         Layout.fillWidth: true
                         Layout.preferredHeight: providerDetails.implicitHeight + 85
                         title: "LeapC provider diagnostics"
-                        subtitle: "Loaded library metadata; physical tracking remains unverified"
+                        subtitle: Qt.platform.os === "osx" ? "Installed Hyperion runtime and live service status" : "Loaded library metadata; physical tracking remains unverified"
                         badge: "NATIVE PROVIDER"
                         ColumnLayout {
                             id: providerDetails
@@ -1577,7 +1577,7 @@ Raw observations remain unchanged."
                         }
                     }
                     Text {
-                        text: !controller.connected ? "UNTESTED ON HARDWARE · Connect to a local engine, or start the simulator without cameras." : controller.status.simulated === true ? "UNTESTED ON HARDWARE · The current source is simulated. Real Hyperion, USB recovery and TouchDesigner receipt need local Windows verification." : "UNTESTED ON HARDWARE · LeapC provider selected. Verify physical tracking, USB recovery and TouchDesigner receipt on this Windows PC."
+                        text: Qt.platform.os === "osx" ? "For two cameras, connect the first, wait for tracking, then connect the second." : !controller.connected ? "UNTESTED ON HARDWARE · Connect to a local engine, or start the simulator without cameras." : controller.status.simulated === true ? "UNTESTED ON HARDWARE · The current source is simulated. Real Hyperion, USB recovery and TouchDesigner receipt need local Windows verification." : "UNTESTED ON HARDWARE · LeapC provider selected. Verify physical tracking, USB recovery and TouchDesigner receipt on this Windows PC."
                         color: "#8d96a5"
                         font.pixelSize: 10
                         Layout.fillWidth: true
@@ -1619,6 +1619,7 @@ Raw observations remain unchanged."
                 elide: Text.ElideRight
             }
             Text {
+                visible: Qt.platform.os !== "osx"
                 text: "UNTESTED ON HARDWARE"
                 color: "#7e899a"
                 font.pixelSize: 8

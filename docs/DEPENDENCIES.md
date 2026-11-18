@@ -108,8 +108,10 @@ Qt library replacement is permitted; manifest hashes are diagnostic. See
 The package excludes LeapC.dll, SDK headers/import libraries, Hyperion service,
 camera firmware, debug CRT/Qt libraries and build tools. Users obtain Ultraleap's
 runtime separately under its terms. Development retrieval is not permission to
-publish SDK-only archives. The application repository has no general open-source
-licence; dependency licences do not grant additional rights to application code.
+publish SDK-only archives. Hand Bridge's own source is distributed under the
+[MIT License](../LICENSE). The Mac release provides the corresponding source
+for its bundled Qt Base, Qt Declarative and Qt SVG libraries alongside the app.
+[Mac dependency notices](../packaging/macos/Third%20Party%20Notices.txt)
 Never store signing keys, tokens or private camera identifiers in source control.
 
 Current Linux evidence is 82 SDK-enabled CTest entries passed, including 21 tests

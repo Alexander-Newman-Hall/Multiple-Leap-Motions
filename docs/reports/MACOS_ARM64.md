@@ -1,135 +1,53 @@
-# Native Apple Silicon arm64 scope and SIGPIPE validation — 2026-11-16
+# Native Apple Silicon build and validation
 
-Branch: `codex/handbridge-macos-feasibility`, starting at 48f2e17. User scope now
-supersedes the earlier Intel test plan: **native Apple Silicon arm64 only**. No
-Intel product build, Rosetta execution or universal release requirement. Existing
-Intel reports are historical diagnostics, never arm64 acceptance. Windows x64,
-C++20, Qt 6.8.3, Hyperion 6.2+ within 6.x and legacy OSC/config remain preserved.
+Hand Bridge 2.0.1 targets macOS 12 or newer on Apple Silicon. The controller
+and engine are arm64. Qt 6.8.3 is bundled. Real cameras require the separately
+installed Ultraleap Hyperion 6.2.0 runtime for Apple Silicon.
 
-## Implementation
+## Verification
 
-`src/pipeline/04_OscSender.cpp` enables Darwin SO_NOSIGPIPE per socket immediately
-after socket creation and before connect. Failure uses the existing checked error
-and RAII cleanup path. Send errors remain false returns/counters, not a global
-signal-policy change. Windows/Linux code and OSC bytes are unchanged.
-The existing broadcast permission failure case stays enabled. A new Darwin-only
-GTest child explicitly defaults/unblocks SIGPIPE, checks three failed sends,
-zero accepted packets, three errors, nonempty error text and unchanged default
-signal disposition before/after socket cleanup. See ADR-018.
+The release build passed all 89 native tests, including delayed first frames,
+missing frames, repeated subscription failures and reattachment. Two physical
+Leap Motion Controller 2 cameras streamed continuously for 153 seconds. The
+loopback receiver decoded palm positions from both. The engine recorded zero
+reconnect attempts, SDK poll errors and OSC send errors.
 
-## Arm64-only validation path
+Earlier cold-attachment trials recorded 681–878 ms from subscription to the
+first frame. One early dual-camera startup left a camera silent. Connecting
+the cameras in sequence and reconnecting the silent camera restored both
+streams. A standalone probe also observed one physical unplug/reconnect with
+continued frames from the other camera. Physical recovery on the 2.0.1 release
+and a show-length soak remain open. [Release hardware results](../HARDWARE_TEST_RESULTS.md)
 
-- Presets `macos-arm64-core` and `macos-arm64-control` select only arm64. Intel
-  presets are removed. Deployment target 12.0 remains a CI configuration, not an
-  application minimum acceptance claim.
-- Arm64 workflow requires native uname/Python architecture and rejects translation.
-  Engine/controller, SDK dylib and diagnostic slices must be exactly arm64.
-- Genuine `tracking-software-apple-silicon-6.2.0.pkg` is verified by pinned SHA-256
-  `9cad82a6282e322d2acd71f3746e50b472f3ed83bb5f9fa6f54d554f404c5531`, plus actual
-  installer signature inspection, and expanded without installing/starting a service.
-  The owned thin diagnostic checks actual client and connected service version
-  availability independently; no proprietary SDK files are committed/uploaded.
-- Engine/GUI mock suites run in full, including legacy OSC, profiles, snapshot/
-  worker, control model, UI and GUI/engine lifetime cases. If SDK retrieval passes,
-  the existing adapter also compiles against the exact Mac header and runs its
-  injected-API tests. Production Mac runtime loading remains a later M3 gate.
-- A separate native Cocoa smoke checks rendered GUI captures, close/kill/reopen and
-  continuing decoded simulated UDP from the independent engine. Offscreen Qt tests
-  alone do not establish native Cocoa rendering.
-- Every suite remains in the final failure gate; no SIGPIPE failure is suppressed
-  by skipping a test or reclassifying overall success. Historical compiler probes
-  are not repeated; the production replacement itself is compiled/executed.
+The public ZIP passed archive-integrity and strict code-signature checks after
+extraction. Its controller and engine contain the same arm64 machine code as
+the binaries used for the camera test. The public bundle also passed the
+installed-client preflight and the simulated UDP stall/recovery test. The
+application uses a local ad hoc signature. [Installation instructions](../../packaging/MACOS_START_HERE.txt)
 
-## Actual results at this checkpoint
+The SHA-256 digest of `Hand-Bridge-2.0.1-Apple-Silicon.zip` is
+`730ebc629bc2211131ccd47e239ffd8a5b504c351a2297763eede1f649bbd2db`.
 
-Local environment is Linux x86_64, GCC 14.2 / Qt 6.8.3 / CMake 3.31.6. The sender
-and test changes built, and focused legacy OSC regressions **8/8 PASS**, 0.05 s.
-This does not compile or exercise the Darwin branch or establish arm64 acceptance.
-`python3 -m py_compile probes/macos-m0/run-sdk.py`, `bash -n` SDK fetch helper and
-`git diff --check` passed. Full local native suite **64/64 PASS**, no skips/failures, **22.49 s**. Windows
-regressions and native arm64 CI results are pending; none is inferred from Intel history.
+## Rebuild the local preview
 
-At source **fae90ed**, existing Windows/Linux core/native controller jobs and
-Windows Release/package CI all completed **PASS**:
-[core 43971198928](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43971198928),
-[native 43971198982](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43971198982),
-[Windows Release 43971198934](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43971198934).
-These are regression evidence only, not arm64 validation. Workflow YAML and preset
-JSON parsed successfully; Python smoke/SDK scripts compile and SDK shell syntax
-passes. No native GUI test was executed on Linux.
-
-Native-only attempts at the same source:
-[macos-15 arm64 43971199255](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43971199255),
-[macos-26 arm64 43972156771](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/actions/runs/43972156771).
-The macos-15 run completed **FAILURE before any step executed**, after 15m03s
-queued (2026-11-16 14:33:31–14:48:34 America/Los_Angeles). Actual GitHub annotation:
-“The job was not acquired by Runner of type hosted even after multiple attempts”,
-with “Due to capacity constraints, jobs targeting macOS arm64 runners may
-experience longer queue times.” No runner was assigned. This is an **infrastructure
-BLOCKER**, not compilation/GUI/SIGPIPE/SDK failure.
-
-The macos-26 arm64 alternative also completed **FAILURE before any steps ran**:
-job queued 2026-11-16 14:39:32–14:54:34 America/Los_Angeles (15m02s); job conclusion
-cancelled, overall run failure, no runner assigned. It reports the same acquisition
-and arm64-capacity annotations. **Both arm64 attempts are BLOCKED on hosted
-allocation.** No Intel substitute was run and no arm64 success is inferred from
-historical results. The SIGPIPE fix is implemented/static-reviewed; its Darwin
-compilation/runtime regression is not verified until native execution occurs.
-
-| Required native arm64 evidence | Actual status |
-|---|---|
-| Actual Mac model/macOS/Xcode/Clang/libc++ inputs | NOT MEASURED on these unassigned jobs |
-| Darwin SO_NOSIGPIPE compile and default-signal regression | NOT RUN — allocation blocked |
-| Engine build/mock/lifecycle tests | NOT RUN — allocation blocked |
-| Existing GUI build/offscreen tests and native Cocoa smoke | NOT RUN — allocation blocked |
-| Genuine arm64 SDK/diagnostic load, client version and no-service cleanup | NOT RUN — allocation blocked |
-| Running service/version, physical two-camera streams, recovery, TD | NOT RUN — physical gate remains open |
-
-
-There is no local Apple Silicon execution environment attached: `uname -sm` is
-Linux x86_64. If hosted arm64 cannot acquire a runner, record its actual job
-annotation/status as BLOCKED, leaving engine/GUI/SDK arm64 checks NOT RUN. Do not
-fall back to an Intel runner or Rosetta. The same commands can be executed on an
-owner-authorized local Apple Silicon Mac with its official SDK.
-
-## Next exact task: native arm64 execution
-
-Run the committed validation on an available native arm64 hosted runner or an
-owner-authorized local Apple Silicon Mac. No machine/toolchain/SDK outcome should
-be copied from the historical Intel report. On the actual Mac, record chip/macOS,
-Xcode/Clang/libc++/SDK and tool versions before running these commands. Set
-CMAKE_PREFIX_PATH to the actual installed Qt 6.8.3 prefix; use CMake 3.31.6/Ninja
-1.11.1.4 as in CI. No Rosetta execution or Intel build is part of the task.
+From the repository root, install the Xcode Command Line Tools, CMake, Ninja,
+Python 3.9 or newer, Qt 6.8.3 for macOS and the Ultraleap SDK. Set `qt` to
+your Qt macOS prefix, for example `qt=/path/to/Qt/6.8.3/macos`.
 
 ```sh
-cmake --preset macos-arm64-core
-cmake --build --preset macos-arm64-core --parallel 2
-ctest --preset macos-arm64-core
-bash probes/macos-m0/fetch-sdk.sh
-python3 probes/macos-m0/run-sdk.py
-cmake --preset macos-arm64-control -DHANDBRIDGE_WITH_LEAPC=ON \
-  -DLEAP_SDK_ROOT="$(cat work/macos-m0/sdk-root.txt)"
-cmake --build --preset macos-arm64-control --parallel 2
-ctest --preset macos-arm64-control
-lipo -archs out/build/macos-arm64-control/handbridge-engine
-lipo -archs out/build/macos-arm64-control/handbridge-control
-python3 tests/test_MacNativeGui.py out/build/macos-arm64-control/handbridge-engine \
-  out/build/macos-arm64-control/handbridge-control
+sdk='/Applications/Ultraleap Hand Tracking.app/Contents/LeapSDK'
+cmake --preset macos-arm64-control -B out/mac-desktop -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_PREFIX_PATH="$qt" -DHANDBRIDGE_WITH_LEAPC=ON -DLEAP_SDK_ROOT="$sdk"
+cmake --build out/mac-desktop --parallel 5
+ctest --test-dir out/mac-desktop --output-on-failure
+python3 scripts/package-macos.py out/mac-desktop "$qt" "out/Hand Bridge.app"
+python3 scripts/archive-macos.py "out/Hand Bridge.app" "out/Hand-Bridge-2.0.1-Apple-Silicon.zip"
+"out/Hand Bridge.app/Contents/MacOS/handbridge-engine" --check-leapc
+open "out/Hand Bridge.app" --args --start-engine
 ```
 
-Require arm64-only application/SDK/diagnostic slices, surviving default SIGPIPE,
-unchanged signal policy/error counters, GUI/IPC/profile/golden/lifecycle cases and
-native Cocoa evidence. The no-service SDK harness expects no service on CI. On a
-Mac with a running tracking service, **do not stop a shared service just to satisfy
-that expectation**; retain the actual connected version/result and check client
-loading separately. No package/service installation is performed by the fetch
-helper. Production Mac SDK loading integration remains M3; an SDK-header adapter
-build plus the separate thin-client load is not real engine tracking acceptance.
+The ZIP contains the application and its operator guide. The archive helper
+preserves Qt's framework symlinks, excludes Finder metadata files, and runs
+strict code-signature verification on a fresh extraction before publishing.
 
-## Open gates
-
-Running Mac service and accepted ServerLibrary, physical two-camera independent
-streams, no-hands, recovery, sleep/wake, soak and TouchDesigner receipt **NOT RUN**.
-SDK/client load, mock frames, Cocoa rendering and compilation cannot pass those
-physical gates. Protected same-user Mac IPC and packaging/signing remain open;
-no Mac release is distributed by this work.
+[Historical macOS feasibility checks](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/blob/3c02372976bde8b58467441f5dd25d4a43063a1a/docs/reports/MACOS_ARM64.md)

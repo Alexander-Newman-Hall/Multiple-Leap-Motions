@@ -1,0 +1,37 @@
+Hand Bridge for Apple Silicon
+
+Hand Bridge's own source is licensed under the MIT License in LICENSE.
+The bundled libraries and their contributors retain their own licenses.
+
+Qt 6.8.3
+
+The controller and engine dynamically use Qt libraries. The app includes
+frameworks, plugins and QML resources from Qt Base, Qt Declarative and Qt SVG.
+Qt is copyright The Qt Company and the respective contributors. This build
+uses the open-source libraries under the GNU Lesser General Public License,
+version 3. The license texts and Qt exception are under licenses/.
+
+The 2.0.1 release provides the corresponding source archives for all three
+Qt modules alongside the packaged app. Their filenames, upstream URLs and
+SHA-256 checksums are in qt-sources.json. The source archives include the
+modules' third-party code and license notices.
+https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/releases
+
+You can rebuild Hand Bridge against compatible modified Qt libraries. The
+Mac build instructions use CMAKE_PREFIX_PATH to select your Qt installation,
+and the packaging script takes the same installation as its qt_prefix.
+The LGPL permits reverse engineering to debug your Qt modifications.
+Qt documents its source build at https://doc.qt.io/qt-6.8/build-sources.html
+
+nlohmann/json and oscpack
+
+nlohmann/json 3.11.3 by Niels Lohmann and oscpack by Ross Bencina both use
+the MIT License. Their copyright and license notices are in
+licenses/nlohmann-json-MIT.txt and licenses/oscpack-MIT.txt.
+
+Ultraleap Hyperion
+
+For live tracking, Hand Bridge loads LeapC from Ultraleap's separately
+installed Hyperion distribution. Obtain the tracking software and SDK from
+Ultraleap under its terms.
+https://www.ultraleap.com/downloads/leap-motion-controller-2/

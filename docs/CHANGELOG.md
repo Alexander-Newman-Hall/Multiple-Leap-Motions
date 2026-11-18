@@ -1,5 +1,14 @@
 # Hand Bridge 2.0 changelog
 
+## 2.0.1 — Apple Silicon installation update, 2026-11-18
+
+- Give each camera three seconds to deliver its first frame after subscribing.
+  Once streaming starts, stop using a pose after 500 ms without a fresh frame.
+- Preserve the increasing retry delay when the SDK refuses a subscription.
+  Reconnecting a camera starts a new retry schedule for that camera.
+- Ship an operator ZIP that verifies the extracted application's code signature,
+  includes the upgrade instructions and declares macOS 12 as the minimum version.
+
 ## Unreleased — native Apple Silicon scope and Darwin SIGPIPE, 2026-11-16
 
 - Narrowed planned Mac product to native arm64; removed Intel presets/runner

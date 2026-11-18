@@ -6,7 +6,10 @@ version remains 1; provider diagnostics below are additive fields.
 
 ## Transport and ownership
 
-QLocalServer/QLocalSocket uses same-user UserAccessOption. The default endpoint is
+QLocalServer/QLocalSocket requests UserAccessOption. On macOS the socket lives
+in `/private/tmp/handbridge-<effective UID>/`. Both peers require a real
+directory owned by that UID with mode 0700. The filename is the first 32 hex
+characters of SHA-256 of the UTF-8 endpoint token. The default endpoint is
 `handbridge-<first16 SHA256(homePath)>-v1`; explicit endpoint tokens use 1–80 ASCII
 letters/digits/dot/underscore/hyphen. An endpoint lock in private per-user appdata
 is independent of `--state-dir`; a second engine cannot replace an active endpoint.

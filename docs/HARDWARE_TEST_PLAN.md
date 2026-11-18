@@ -73,8 +73,9 @@ addresses/types before interpreting CHOP channels. A sender counter is not recei
 - [ ] Restart Hyperion service in a controlled test environment, then observe full
       cleanup, re-enumeration and resubscription. Record actual detection/recovery
       delays and SDK results. No automatic OS service restart is implemented.
-- [ ] Keep frame-stale timing distinct from service-lost notification: the runtime
-      uses a 500 ms frame threshold, while the 6.2 SDK documents that service-lost
+- [ ] Measure time to first frame after each successful subscription. The runtime
+      allows three seconds for startup and detects a 500 ms interruption in an
+      established stream. The 6.2 SDK documents that service-lost
       notification can take up to five seconds without another service transaction.
 - [ ] Observe capped retries under unavailable service/device conditions; no tight
       retry/log loop. Pending service acknowledgement has a three-second deadline.

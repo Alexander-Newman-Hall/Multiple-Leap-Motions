@@ -20,7 +20,7 @@ int main(int argc, char** argv) {
     QGuiApplication app(argc, argv);
     QCoreApplication::setApplicationName(QStringLiteral("HandBridgeControl"));
     QCoreApplication::setOrganizationName(QStringLiteral("HandBridge"));
-    QCoreApplication::setApplicationVersion(QStringLiteral("2.0.0"));
+    QCoreApplication::setApplicationVersion(QStringLiteral("2.0.1"));
     QQuickStyle::setStyle(QStringLiteral("Basic"));
     QFont font;
     font.setFamily(QFontDatabase::families().contains(QStringLiteral("Segoe UI")) ? QStringLiteral("Segoe UI") : QStringLiteral("DejaVu Sans"));
@@ -32,6 +32,7 @@ int main(int argc, char** argv) {
     parser.addHelpOption();
     parser.addVersionOption();
     parser.addOption({QStringLiteral("endpoint"), QStringLiteral("Local control endpoint token."), QStringLiteral("token"), handbridge::ipc::defaultEndpoint()});
+    parser.addOption({QStringLiteral("start-engine"), QStringLiteral("Start a detached hardware engine if none is connected.")});
     parser.addOption({QStringLiteral("demo"), QStringLiteral("Start a detached simulated engine if none is connected. No real camera support is implied.")});
     parser.addOption({QStringLiteral("exit-after-ms"), QStringLiteral("Close only the controller after N milliseconds; useful for automated lifecycle tests."), QStringLiteral("N"), QStringLiteral("0")});
     parser.addOption({QStringLiteral("screenshot"), QStringLiteral("Capture the native window to this PNG path after connection/rendering."), QStringLiteral("path")});
@@ -56,9 +57,14 @@ int main(int argc, char** argv) {
     }, Qt::QueuedConnection);
     engine.load(url);
     if (engine.rootObjects().isEmpty()) return 1;
-    if (parser.isSet(QStringLiteral("demo"))) {
-        QTimer::singleShot(350, &controller, [&controller] {
-            if (!controller.connected()) controller.startSimulator();
+    const bool simulate = parser.isSet(QStringLiteral("demo"));
+    const bool hardware = parser.isSet(QStringLiteral("start-engine"));
+    if (simulate && hardware) parser.showHelp(1);
+    if (simulate || hardware) {
+        QTimer::singleShot(350, &controller, [&controller, simulate] {
+            if (controller.connected()) return;
+            if (simulate) controller.startSimulator();
+            else controller.startHardwareEngine();
         });
     }
     if (duration > 0) QTimer::singleShot(duration, &app, &QCoreApplication::quit);

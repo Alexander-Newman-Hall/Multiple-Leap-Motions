@@ -1,15 +1,22 @@
 #include "LeapCLibrary.hpp"
 #include <cstddef>
 #include <stdexcept>
+#include <filesystem>
+#include <cstring>
 #ifdef _WIN32
 #include <windows.h>
 #include <ShlObj.h>
-#include <filesystem>
-#include <cstring>
 #include <vector>
+#elif defined(__APPLE__) && defined(__arm64__)
+#include <cstdlib>
+#include <dlfcn.h>
+#endif
+
+#if defined(_WIN32) || (defined(__APPLE__) && defined(__arm64__))
 
 namespace {
 namespace fs = std::filesystem;
+#ifdef _WIN32
 std::wstring environment(const wchar_t* name) {
     const auto size = GetEnvironmentVariableW(name, nullptr, 0);
     if (!size) return {};
@@ -57,10 +64,47 @@ std::string fileVersion(const fs::path& path) {
     return std::to_string(HIWORD(info->dwFileVersionMS)) + "." + std::to_string(LOWORD(info->dwFileVersionMS)) +
         "." + std::to_string(HIWORD(info->dwFileVersionLS)) + "." + std::to_string(LOWORD(info->dwFileVersionLS));
 }
-template<class Function> Function symbol(HMODULE module, const char* name) {
-    const auto address = GetProcAddress(module, name);
-    if (!address) throw std::runtime_error(std::string("LeapC.dll is missing required SDK export ") + name +
-        "; use a compatible multi-device Ultraleap runtime.");
+HMODULE openModule(const fs::path& selected) {
+    // No CWD or PATH search. Dependencies may resolve beside the selected SDK
+    // DLL, in the application folder, or in normal trusted Windows locations.
+    const auto module = LoadLibraryExW(selected.c_str(), nullptr,
+        LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+    if (!module) {
+        const auto error = GetLastError();
+        throw std::runtime_error("Cannot load LeapC.dll at " + utf8(selected) +
+            " (Windows error " + std::to_string(error) + "). Check x64 architecture and installed runtime dependencies.");
+    }
+    return module;
+}
+void closeModule(void* module) { FreeLibrary(static_cast<HMODULE>(module)); }
+auto lookup(HMODULE module, const char* name) { return GetProcAddress(module, name); }
+#else
+fs::path libraryPath(const std::string& explicitPath) {
+    fs::path selected = explicitPath;
+    if (selected.empty()) {
+        if (const char* configured = std::getenv("HANDBRIDGE_LEAPC_LIBRARY")) selected = configured;
+    }
+    if (selected.empty()) {
+        const char* root = std::getenv("LEAP_SDK_ROOT");
+        selected = root && *root ? fs::path(root) :
+            fs::path("/Applications/Ultraleap Hand Tracking.app/Contents/LeapSDK");
+        selected /= "lib/libLeapC.6.dylib";
+    }
+    if (!selected.is_absolute()) throw std::invalid_argument("LeapC library path must be absolute");
+    return selected.lexically_normal();
+}
+void* openModule(const fs::path& selected) {
+    if (auto* module = dlopen(selected.c_str(), RTLD_NOW | RTLD_LOCAL)) return module;
+    throw std::runtime_error("Cannot load Hyperion from " + selected.string() + ": " + dlerror());
+}
+void closeModule(void* module) { dlclose(module); }
+void* lookup(void* module, const char* name) { return dlsym(module, name); }
+std::string utf8(const fs::path& path) { return path.string(); }
+std::string fileVersion(const fs::path&) { return "unavailable"; }
+#endif
+template<class Function, class Module> Function symbol(Module module, const char* name) {
+    const auto address = lookup(module, name);
+    if (!address) throw std::runtime_error(std::string("LeapC is missing required SDK export ") + name);
     static_assert(sizeof(Function) == sizeof(address));
     Function function = nullptr;
     std::memcpy(&function, &address, sizeof(function));
@@ -71,17 +115,9 @@ template<class Function> Function symbol(HMODULE module, const char* name) {
 
 namespace handbridge {
 LeapCLibrary::LeapCLibrary(const std::string& path) {
-#ifdef _WIN32
+#if defined(_WIN32) || (defined(__APPLE__) && defined(__arm64__))
     const auto selected = libraryPath(path);
-    // No CWD or PATH search. Dependencies may resolve beside the selected SDK
-    // DLL, in the application folder, or in normal trusted Windows locations.
-    const auto module = LoadLibraryExW(selected.c_str(), nullptr,
-        LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
-    if (!module) {
-        const auto error = GetLastError();
-        throw std::runtime_error("Cannot load LeapC.dll at " + utf8(selected) +
-            " (Windows error " + std::to_string(error) + "). Check x64 architecture and installed runtime dependencies.");
-    }
+    const auto module = openModule(selected);
     try {
         api_.createConnection = symbol<decltype(api_.createConnection)>(module, "LeapCreateConnection");
         api_.openConnection = symbol<decltype(api_.openConnection)>(module, "LeapOpenConnection");
@@ -103,17 +139,17 @@ LeapCLibrary::LeapCLibrary(const std::string& path) {
         info_ = {utf8(selected), fileVersion(selected), apiVersion};
         module_ = module;
     } catch (...) {
-        FreeLibrary(module);
+        closeModule(module);
         throw;
     }
 #else
     (void)path;
-    throw std::runtime_error("The real LeapC runtime loader requires Windows x64. This platform supports the SDK-header adapter tests and --simulate.");
+    throw std::runtime_error("The real LeapC runtime loader requires Windows x64 or native Apple Silicon. This platform supports the SDK-header adapter tests and --simulate.");
 #endif
 }
 LeapCLibrary::~LeapCLibrary() {
-#ifdef _WIN32
-    if (module_) FreeLibrary(static_cast<HMODULE>(module_));
+#if defined(_WIN32) || (defined(__APPLE__) && defined(__arm64__))
+    if (module_) closeModule(module_);
 #endif
 }
 }

@@ -24,7 +24,10 @@ struct DeviceStatus {
     std::uint64_t framesIn = 0, framesProcessed = 0, queueDrops = 0, duplicateFrames = 0;
     std::uint64_t reconnectAttempts = 0, transitions = 0;
 };
-struct RuntimeOptions { Millis staleMs = 500, retryInitialMs = 100, retryMaxMs = 1000; };
+struct RuntimeOptions {
+    Millis staleMs = 500, retryInitialMs = 100, retryMaxMs = 1000;
+    Millis firstFrameTimeoutMs = 3000;
+};
 struct OutputStatus {
     std::uint64_t attempts = 0, successes = 0, errors = 0;
     bool degraded = false;

@@ -11,8 +11,11 @@ release acceptance is out of scope. Historical Intel tests do not satisfy arm64
 acceptance. The Darwin OSC socket opts into SO_NOSIGPIPE before connect/send,
 preserving global signal policy and existing false-return/error counters. Other
 platform paths, OSC bytes/config and engine ownership remain intact (ADR-018).
-Actual engine/GUI/SDK arm64 execution or hosted allocation blockers are recorded
-in reports/MACOS_ARM64.md; physical service/two-device acceptance remains open.
+The local arm64 engine uses `dlopen` on the absolute installed Mac SDK path,
+binds the same twelve exports as Windows, and gates the client and connected
+service separately. The controller and engine use a private per-UID socket
+directory. Physical dual-stream and Desktop OSC evidence is in
+[the Mac report](reports/MACOS_ARM64.md).
 
 ## Implemented boundary (2026-11-15)
 

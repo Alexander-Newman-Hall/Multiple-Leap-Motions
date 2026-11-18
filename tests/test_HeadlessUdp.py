@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import uuid
 from pathlib import Path
 
 
@@ -27,7 +28,7 @@ def decode(packet):
     return address, struct.unpack(">f", packet[offset:])[0]
 
 
-def run_receiver(executable, scenario, config=None):
+def run_receiver(engine, scenario, config=None):
     packets, errors = [], []
     done = threading.Event()
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as receiver:
@@ -46,7 +47,7 @@ def run_receiver(executable, scenario, config=None):
 
         thread = threading.Thread(target=listen)
         thread.start()
-        command = [executable, "--simulate", "--headless", "--host", "127.0.0.1",
+        command = [*engine, "--simulate", "--headless", "--host", "127.0.0.1",
                    "--port", str(receiver.getsockname()[1]), "--duration-ms", "1600",
                    "--scenario", scenario]
         if config:
@@ -67,8 +68,8 @@ def run_receiver(executable, scenario, config=None):
         return packets, summary
 
 
-def main(executable):
-    packets, summary = run_receiver(executable, "stall")
+def check_engine(engine):
+    packets, summary = run_receiver(engine, "stall")
     a = "/leap/dev1/left/palm/tx"
     b = "/leap/dev2/right/palm/tx"
     first_loss = next(index for index, item in enumerate(packets) if item == (a, 0.0))
@@ -90,22 +91,28 @@ def main(executable):
                 "sendRing": False, "sendPinky": False,
                 "sendPinchStrength": False, "sendGrabStrength": False}}), encoding="utf-8")
         before = config.read_bytes()
-        selected, _ = run_receiver(executable, "normal", config)
+        selected, _ = run_receiver(engine, "normal", config)
         assert selected and all(address.startswith(("/leap/dev7/left/palm/", "/leap/dev8/right/palm/"))
                                 for address, _ in selected)
         assert config.read_bytes() == before, "Engine must not silently overwrite config"
         config.write_text('{"schema_version":999,"osc":{"port":7000}}', encoding="utf-8")
-        rejected = subprocess.run([executable, "--simulate", "--config", str(config)],
+        rejected = subprocess.run([*engine, "--simulate", "--config", str(config)],
                                   capture_output=True, text=True, timeout=5)
         assert rejected.returncode != 0, "Unknown future schema must not silently fall back"
 
     missing_library = str((Path(directory) / "missing-LeapC.dll").resolve())
     for arguments in (["--leapc-library", missing_library], ["--simulate", "--port", "0"], ["--simulate", "--host", "bad-host"],
                       ["--simulate", "--unknown"], ["--simulate", "--duration-ms", "-1"]):
-        result = subprocess.run([executable] + arguments, capture_output=True, text=True, timeout=5)
+        result = subprocess.run(engine + arguments, capture_output=True, text=True, timeout=5)
         assert result.returncode != 0, arguments
     print("PASS: headless process, isolated stall recovery, decoded UDP, config routing, CLI rejection")
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    executable = sys.argv[1]
+    with tempfile.TemporaryDirectory(prefix="handbridge-udp-test-") as state:
+        engine = [executable]
+        help_text = subprocess.check_output([executable, "--help"], text=True, timeout=5)
+        if "--endpoint" in help_text:
+            engine += ["--endpoint", "hb-udp-" + uuid.uuid4().hex[:12], "--state-dir", state]
+        check_engine(engine)

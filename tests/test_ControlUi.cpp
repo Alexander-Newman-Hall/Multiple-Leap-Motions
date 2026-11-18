@@ -8,6 +8,9 @@
 #include <QQuickItem>
 #include <QQuickStyle>
 #include <QQuickWindow>
+#include <QQmlComponent>
+#include <QQmlExpression>
+#include <QFileInfo>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QUdpSocket>
@@ -19,6 +22,28 @@
 class ControlUi final : public QObject {
     Q_OBJECT
 private slots:
+    void tabletopPreviewOrientation() {
+        QQmlEngine engine;
+        const auto path = QFileInfo(QString::fromUtf8(TEST_QML_PATH)).dir().filePath("PreviewCanvas.qml");
+        QQmlComponent component(&engine, QUrl::fromLocalFile(path));
+        std::unique_ptr<QObject> view(component.create());
+        QVERIFY2(view, qPrintable(component.errorString()));
+        view->setProperty("width", 400);
+        view->setProperty("height", 240);
+        const auto project = [&](const QString& arguments) {
+            QQmlExpression expression(engine.rootContext(), view.get(), "project(" + arguments + ")");
+            return expression.evaluate().toPointF();
+        };
+        // Flat hand, fingers pointing away. Height above the table does not change the XZ projection.
+        QCOMPARE(project("[0, 190, 0], 100"), QPointF(100, 120));
+        QCOMPARE(project("[0, 160, 80], 100"), QPointF(100, 160));  // wrist
+        QCOMPARE(project("[80, 160, -80], 100"), QPointF(140, 80)); // fingertip
+        QCOMPARE(project("[80, 260, -80], 300"), QPointF(340, 80)); // second camera
+        view->setProperty("processed", true);
+        view->setProperty("units", "m");
+        QCOMPARE(project("[0.08, 0.16, -0.08], 100"), QPointF(140, 80));
+    }
+
     void qmlOutputSwitchChangesActualUdp() {
         QTemporaryDir state;
         QVERIFY(state.isValid());

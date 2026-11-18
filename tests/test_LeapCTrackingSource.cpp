@@ -454,6 +454,30 @@ TEST_F(LeapCTrackingSourceTest, FailedSubscriptionIsVisibleAndTargetedRetryDoesN
     EXPECT_EQ(count(events, TrackingEventKind::Frame), 2u);
 }
 
+TEST_F(LeapCTrackingSourceTest, RepeatedSdkSubscriptionFailuresRespectRuntimeBackoff) {
+    ConfigManager config;
+    EngineRuntime runtime(*source, config, [](const OscMessage&) { return true; });
+    sdk.failSubscribe.insert(11);
+    runtime.start(0);
+    sdk.serviceConnected();
+    runtime.tick(0);
+    EXPECT_EQ(runtime.devices().at("SDK-A").reason, "subscription_failed");
+    std::vector<Millis> attempts;
+    for (Millis now = 1; now <= 2600; ++now) {
+        const auto before = sdk.subscribes[11];
+        if (now % 100 == 0) sdk.tracking(22, now, now * 1000);
+        if (now == 2600) sdk.failSubscribe.clear();
+        runtime.tick(now);
+        if (sdk.subscribes[11] > before) attempts.push_back(now);
+    }
+    EXPECT_EQ(attempts, (std::vector<Millis>{100, 200, 400, 800, 1600, 2600}));
+    sdk.tracking(11, 1, 2601000);
+    runtime.tick(2601);
+    EXPECT_TRUE(runtime.devices().at("SDK-A").framesFresh);
+    EXPECT_TRUE(runtime.devices().at("SDK-B").framesFresh);
+    EXPECT_EQ(sdk.subscribes[22], 1u);
+}
+
 TEST_F(LeapCTrackingSourceTest, ManualRestartReallyReplacesOnlyTheRequestedSubscribedHandle) {
     connect();
     const auto previous = std::find_if(sdk.liveDevices.begin(), sdk.liveDevices.end(), [](const auto& pair) {

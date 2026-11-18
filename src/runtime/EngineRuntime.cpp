@@ -16,7 +16,8 @@ const char* stateName(DeviceState state) {
 EngineRuntime::EngineRuntime(ITrackingSource& source, ConfigManager& config, Output output,
                              RuntimeOptions options, Log log)
     : source_(source), config_(config), output_(std::move(output)), options_(options), log_(std::move(log)) {
-    if (!output_ || !options.staleMs || !options.retryInitialMs || options.retryMaxMs < options.retryInitialMs)
+    if (!output_ || !options.staleMs || !options.firstFrameTimeoutMs ||
+        !options.retryInitialMs || options.retryMaxMs < options.retryInitialMs)
         throw std::invalid_argument("invalid runtime options/output");
     applySettings(ControlSettings::fromLegacy(config));
 }
@@ -200,7 +201,7 @@ void EngineRuntime::event(const TrackingEvent& input, Millis now) {
             if (hand.empty() || hand == "none") hand = "both";
             settings_.devices[input.serial] = {status_.at(input.serial).alias,true,hand};
         }
-        pending_[input.serial].retryMs = options_.retryInitialMs;
+        pending_.try_emplace(input.serial);
     }
     auto& status = status_.at(input.serial);
     auto& pending = pending_.at(input.serial);
@@ -208,7 +209,8 @@ void EngineRuntime::event(const TrackingEvent& input, Millis now) {
     case TrackingEventKind::DeviceConnected:
         if (status.present) break; // Duplicate connect must not reset live frame sequence/subscription.
         status.present = true; pending.activityMs = now; pending.lastFrameId.reset();
-        pending.nextRetryMs = now + options_.retryInitialMs;
+        pending.retryMs = options_.retryInitialMs;
+        pending.nextRetryMs = now + pending.retryMs;
         transition(input.serial, DeviceState::Recovering, "device_connected", now); break;
     case TrackingEventKind::DeviceLost:
         if (!status.present) break;
@@ -272,10 +274,12 @@ void EngineRuntime::tick(Millis now) {
             processFrame(serial,std::move(frame),arrivalMs,now); ++status.framesProcessed;
             transition(serial, DeviceState::Streaming, "frames_fresh", now);
         }
-        if (status.present && status.subscribed && now - pending.activityMs >= options_.staleMs) {
+        const bool awaitingFirstFrame = !pending.lastFrameId.has_value();
+        const Millis frameTimeoutMs = awaitingFirstFrame ? options_.firstFrameTimeoutMs : options_.staleMs;
+        if (status.present && status.subscribed && now - pending.activityMs >= frameTimeoutMs) {
             invalidate(serial); status.subscribed = false;
             pending.nextRetryMs = now + options_.retryInitialMs;
-            transition(serial, DeviceState::Recovering, "frame_stale", now);
+            transition(serial, DeviceState::Recovering, awaitingFirstFrame ? "first_frame_timeout" : "frame_stale", now);
         }
         if (status.present && !status.subscribed && now >= pending.nextRetryMs) {
             ++status.reconnectAttempts;

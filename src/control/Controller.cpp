@@ -5,6 +5,7 @@
 #include <windows.h>
 #endif
 #include "Controller.hpp"
+#include "ipc/Endpoint.hpp"
 #include "ipc/Framing.hpp"
 
 #include <QCoreApplication>
@@ -110,8 +111,13 @@ QString Controller::statusText() const {
 void Controller::connectToEngine() {
     if (socket_.state() != QLocalSocket::UnconnectedState) return;
     received_.clear();
+    const auto name = handbridge::ipc::socketName(endpoint_);
+    if (name.isEmpty()) {
+        setError(QStringLiteral("Cannot open the private control socket directory."));
+        return;
+    }
     connecting_ = true;
-    socket_.connectToServer(endpoint_, QIODevice::ReadWrite);
+    socket_.connectToServer(name, QIODevice::ReadWrite);
     emit connectionChanged();
     emit uiChanged();
 }

@@ -2,6 +2,7 @@
 #include <LeapC.h>
 #include <dlfcn.h>
 #include <algorithm>
+#include <charconv>
 #include <chrono>
 #include <csignal>
 #include <cstdint>
@@ -61,12 +62,20 @@ struct Device {
     bool subscribed = false;
     std::uint64_t frames = 0;
     std::uint32_t hands = 0;
+    std::uint64_t handFrames = 0;
+    std::uint64_t nonadvancing = 0;
+    std::int64_t frameId = 0;
+    std::int64_t timestamp = 0;
+    float sdkFps = 0;
     Clock::time_point last{};
+    Clock::time_point subscriptionRequest{};
 };
 struct Session {
     Api& api;
     LEAP_CONNECTION connection{};
     std::map<std::uint32_t, Device> devices;
+    const Clock::time_point start = Clock::now();
+    std::uint64_t unrouted = 0;
     explicit Session(Api& functions) : api(functions) {}
     ~Session() {
         clear();
@@ -121,9 +130,11 @@ struct Session {
                 remove(ref.id); return;
             }
         }
+        owned.subscriptionRequest = Clock::now();
         result = api.LeapSubscribeEvents(connection, owned.handle);
         owned.subscribed = result == eLeapRS_Success;
         std::cout << "device id=" << ref.id << " serial=" << owned.serial
+                  << " pid=" << static_cast<unsigned>(info.pid)
                   << " subscribe_result=" << static_cast<unsigned>(result) << '\n';
     }
     void enumerate() {
@@ -142,12 +153,19 @@ struct Session {
         for (std::uint32_t i = 0; i < count; ++i) add(refs[i]);
     }
     void report() {
+        const auto now = Clock::now();
         for (const auto& [id, d] : devices) {
-            std::cout << "device id=" << id << " serial=" << d.serial
-                      << " subscribed=" << d.subscribed << " frames=" << d.frames
-                      << " hands=" << d.hands << " age_ms=";
-            if (d.frames) std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now()-d.last).count();
-            else std::cout << "unavailable";
+            std::cout << "elapsed_ms=" << std::chrono::duration_cast<std::chrono::milliseconds>(now-start).count()
+                      << " id=" << id << " serial=" << d.serial
+                      << " subscribed=" << d.subscribed << " frames=" << d.frames;
+            if (d.frames) {
+                std::cout << " tracking_id=" << d.frameId << " timestamp_us=" << d.timestamp
+                          << " sdk_fps=" << d.sdkFps << " hands=" << d.hands
+                          << " hand_frames=" << d.handFrames << " nonadvancing=" << d.nonadvancing
+                          << " age_ms=" << std::chrono::duration_cast<std::chrono::milliseconds>(now-d.last).count();
+            } else {
+                std::cout << " hands=unavailable age_ms=unavailable";
+            }
             std::cout << '\n';
         }
     }
@@ -155,8 +173,16 @@ struct Session {
 }
 int main(int argc, char** argv) {
     try {
-        if (argc < 2 || argc > 3 || (argc == 3 && std::string(argv[2]) != "--load-only")) {
-            std::cerr << "usage: sdk-diagnostic /absolute/libLeapC.dylib [--load-only]\n"; return 2;
+        int seconds = 5;
+        const bool loadOnly = argc == 3 && std::string(argv[2]) == "--load-only";
+        if (argc == 4 && std::string(argv[2]) == "--seconds") {
+            const char* end = argv[3] + std::strlen(argv[3]);
+            const auto parsed = std::from_chars(argv[3], end, seconds);
+            if (parsed.ec != std::errc{} || parsed.ptr != end || seconds < 1 || seconds > 3600) {
+                std::cerr << "--seconds must be an integer from 1 to 3600\n"; return 2;
+            }
+        } else if (argc != 2 && !loadOnly) {
+            std::cerr << "usage: sdk-diagnostic /absolute/libLeapC.dylib [--load-only | --seconds N]\n"; return 2;
         }
         std::cout.setf(std::ios::unitbuf);
         Library library(argv[1]);
@@ -165,7 +191,7 @@ int main(int argc, char** argv) {
         const auto result = api.LeapGetVersion(nullptr, eLeapVersionPart_ClientLibrary, &client);
         version("client", result, client);
         if (result != eLeapRS_Success || !accepted(client)) return 4;
-        if (argc == 3) return 0;
+        if (loadOnly) return 0;
         std::signal(SIGINT, interrupt);
         std::signal(SIGTERM, interrupt);
         Session session{api};
@@ -180,7 +206,7 @@ int main(int argc, char** argv) {
         if (status != eLeapRS_Success) {
             std::cout << "open error=" << static_cast<unsigned>(status) << '\n'; return 5;
         }
-        const auto deadline = Clock::now() + std::chrono::seconds(5);
+        const auto deadline = Clock::now() + std::chrono::seconds(seconds);
         auto nextReport = Clock::now();
         bool connected = false, everConnected = false;
         unsigned errors = 0;
@@ -206,13 +232,32 @@ int main(int argc, char** argv) {
                 } else if (connected && msg.type == eLeapEventType_Device && msg.device_event) {
                     session.add(msg.device_event->device);
                 } else if (connected && msg.type == eLeapEventType_DeviceLost && msg.device_event) {
+                    std::cout << "device lost id=" << msg.device_event->device.id << '\n';
+                    session.report();
                     session.remove(msg.device_event->device.id);
                 } else if (connected && msg.type == eLeapEventType_Tracking && msg.tracking_event) {
                     auto it = session.devices.find(msg.device_id);
                     if (it != session.devices.end() && it->second.subscribed) {
-                        ++it->second.frames;
-                        it->second.hands = msg.tracking_event->nHands;
-                        it->second.last = Clock::now();
+                        auto& device = it->second;
+                        const auto& frame = *msg.tracking_event;
+                        if (device.frames && (frame.tracking_frame_id <= device.frameId ||
+                                              frame.info.timestamp <= device.timestamp)) ++device.nonadvancing;
+                        const auto received = Clock::now();
+                        if (!device.frames) {
+                            const auto delay = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                received - device.subscriptionRequest);
+                            std::cout << "first_frame id=" << msg.device_id << " serial=" << device.serial
+                                      << " subscribe_to_frame_ms=" << delay.count() << '\n';
+                        }
+                        ++device.frames;
+                        device.frameId = frame.tracking_frame_id;
+                        device.timestamp = frame.info.timestamp;
+                        device.sdkFps = frame.framerate;
+                        device.hands = frame.nHands;
+                        if (device.hands) ++device.handFrames;
+                        device.last = received;
+                    } else {
+                        if (++session.unrouted <= 5) std::cout << "unrouted tracking id=" << msg.device_id << '\n';
                     }
                 }
             }
@@ -220,13 +265,15 @@ int main(int argc, char** argv) {
                 session.report();
                 nextReport = Clock::now() + std::chrono::seconds(1);
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            if (status != eLeapRS_Success && status != eLeapRS_Timeout)
+                std::this_thread::sleep_for(std::chrono::milliseconds(2));
         }
         session.report();
         std::cout << "summary ever_connected=" << everConnected << " connected=" << connected
                   << " devices=" << session.devices.size() << " poll_errors=" << errors
+                  << " unrouted=" << session.unrouted
                   << " interrupted=" << interrupted << '\n';
-        if (!everConnected) std::cout << "service version=unavailable (no connection event within 5s)\n";
+        if (!everConnected) std::cout << "service version=unavailable (no connection event during observation)\n";
         return everConnected ? 0 : 3;
     } catch (const std::exception& e) {
         std::cerr << "diagnostic error: " << e.what() << '\n'; return 2;

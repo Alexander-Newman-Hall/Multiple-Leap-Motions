@@ -63,11 +63,17 @@ connection. Borrowed SDK device references are never treated as owned handles.
   loss releases all handles and requires discovery in the new service session.
 - Manual and stale recovery of a subscribed device actually unsubscribe/close and
   reopen/resubscribe that device. The unaffected camera is not restarted.
-- Runtime stale detection is **500 ms** since the latest accepted frame, or since
-  subscription before the first frame. Empty-hand frames refresh liveness.
+- Each new or renewed camera subscription has **3 seconds** to deliver its first
+  frame. The [physical startup trials](reports/MACOS_ARM64.md) observed first
+  frames 681–878 ms after subscription. A camera that misses the deadline
+  reports `first_frame_timeout`. Once a frame arrives, the watchdog reports
+  `frame_stale` after **500 ms** without a fresh frame. Empty-hand frames
+  refresh liveness.
   First targeted retry follows after **100 ms**; failure delays are
-  **100/200/400/800/1000 ms**, capped at 1000 ms. The deterministic schedule has no
-  jitter. Successful subscription still waits for fresh frames before STREAMING.
+  **100/200/400/800/1000 ms**, capped at 1000 ms. Failed SDK subscription
+  attempts follow this schedule until the camera subscribes or disconnects.
+  A reattached camera starts a fresh retry schedule. Successful subscription
+  still waits for fresh frames before STREAMING.
 - One pending frame per serial replaces older pending work and counts overwrites.
   Duplicate/regressing frame IDs and already stale samples do not refresh health.
   Source `tracking_frame_id` and SDK microsecond timestamp are preserved separately

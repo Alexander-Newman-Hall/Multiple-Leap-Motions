@@ -1,7 +1,32 @@
-# Hand Bridge 2.0
+# Hand Bridge 2.0.1
 
 A native C++20 tracking bridge and modern Qt6 controller for independent Ultraleap
-camera streams → OSC/UDP → TouchDesigner on the same Windows PC.
+camera streams over OSC/UDP to a local receiver on Windows or Apple Silicon.
+
+**Run on Apple Silicon.** Download `Hand-Bridge-2.0.1-Apple-Silicon.zip`, unzip it
+in Finder and double-click **Hand Bridge**. The ZIP includes Qt and the setup
+guide. Live tracking uses Ultraleap Hyperion 6.2.0 for Apple Silicon, installed
+separately. [Download the Mac release](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/releases/tag/v2.0.1)
+· [Get Hyperion](https://www.ultraleap.com/downloads/leap-motion-controller-2/)
+
+**Work on this version.** Download **Source code (zip)** from the same release
+or clone the tagged source and create a working branch:
+
+```sh
+git clone --branch v2.0.1 https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions.git
+cd Multiple-Leap-Motions
+git switch -c my-hand-bridge-changes
+```
+
+The native source lives in `src/`, automated tests in `tests/`, and example
+settings in `configs/`. On Apple Silicon, use the Xcode Command Line Tools,
+CMake, Ninja, Python 3.9+, Qt 6.8.3 for macOS and the SDK from Hyperion for
+real camera support. CMake retrieves the pinned open-source dependencies.
+[Mac build, test and packaging commands](docs/reports/MACOS_ARM64.md#rebuild-the-local-preview)
+
+Hand Bridge's own code is available under MIT. The Qt sources that match the
+Mac app are attached to the release. Third-party components retain their
+respective licenses. [MIT license](LICENSE) · [Mac dependency notices](packaging/macos/Third%20Party%20Notices.txt)
 
 The new **VST-style controller is implemented**: rotary processing controls,
 per-camera routing, all supported channel switches, OSC settings, profiles and
@@ -9,13 +34,33 @@ live diagnostics. It connects to a separate engine; closing or crashing the
 window leaves tracking/OSC running.
 
 The engine has an optional **real LeapC adapter** and an explicit simulator.
-It compiles against a genuine official SDK header; physical two-camera tracking,
-USB / Hyperion recovery and TouchDesigner receipt remain **UNTESTED ON HARDWARE**.
+On Apple Silicon, the desktop build received two real streams and a local UDP
+receiver decoded both cameras. Physical Windows acceptance and receipt inside
+TouchDesigner remain open.
 The original ImGui application/source/README remain available for rollback;
 master and handbridge-v2 are unchanged. Read [current state](docs/CURRENT_STATE.md)
 for exact verified builds and remaining work.
 
 ![Native Hand Bridge processing controls](docs/screenshots/processing.png)
+
+## Use the Apple Silicon desktop app
+
+For a fresh Mac or an upgrade, follow the **Start Here.txt** included with the
+Apple Silicon ZIP. On upgrade, quit both the controller and the detached
+`handbridge-engine` in Activity Monitor before replacing the app.
+The controller title shows the installed version.
+[Installation guide](packaging/MACOS_START_HERE.txt)
+
+Open **Hand Bridge.app** in Applications. Click **Start engine** if the window
+shows disconnected. On the Overview page, look for a fresh stream from each
+device. If one camera stays at zero frames, leave the working camera attached
+and reconnect the silent camera. Check Devices for the mapping between cameras and OSC aliases.
+
+The default OSC destination is `127.0.0.1:9000`. Set an OSC In CHOP or OSC In
+DAT in TouchDesigner to UDP port 9000. Move a hand over each camera to produce
+palm and finger channels. Closing the controller leaves tracking running.
+To stop it intentionally, quit `handbridge-engine` in Activity Monitor.
+See the [local Mac build and hardware results](docs/reports/MACOS_ARM64.md).
 
 ## Run the native controller
 
@@ -129,12 +174,8 @@ the independent engine; **Start simulator** remains separate.
 
 ## Documentation
 
-- [macOS port plan](docs/MACOS_PORT_PLAN.md), [M0 SDK evidence](docs/reports/MACOS_M0.md)
-  and [M2 concurrency slice](docs/reports/MACOS_M2_CONCURRENCY.md): the Mac product
-  target is **Apple Silicon, native arm64 only**. Historical Intel findings do not
-  establish arm64 acceptance. Engine, unchanged GUI and genuine Hyperion 6.2 SDK
-  checks require arm64 evidence; physical Mac/two-camera service support remains
-  unverified. No Mac package is delivered.
+- [Apple Silicon desktop results and build instructions](docs/reports/MACOS_ARM64.md),
+  [macOS port plan](docs/MACOS_PORT_PLAN.md) and [earlier hosted checks](docs/reports/MACOS_M0.md).
 - [Specification](PROJECT_SPEC.md), [plan](PLANS.md), [agent instructions](AGENTS.md)
 - [Current state](docs/CURRENT_STATE.md), [handoff](docs/SESSION_HANDOFF.md), [GUI build evidence](docs/reports/GUI_BUILD.md)
 - [Architecture](docs/ARCHITECTURE.md), [local IPC](docs/CONTROL_PROTOCOL.md), [configuration](docs/CONFIG_SCHEMA.md), [UI](docs/UI_SPEC.md)

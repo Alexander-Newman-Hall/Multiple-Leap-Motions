@@ -14,7 +14,12 @@ Apply/Revert separates draft editing, acknowledged application, rejection and
 persisted profile state. Views do not own the engine.
 
 Overview shows two independent live camera tiles, measured frame/packet rates,
-frame age/drop counts and raw/processed measured palm/wrist/tip previews. Devices
+frame age/drop counts and raw/processed measured palm/wrist/tip previews.
+The tabletop preview projects X horizontally and positive Z downward in each
+sensor's panel. With fingers pointing away, fingertips appear above the palm
+and wrist. Raising a flat hand changes the displayed Y coordinate while its
+top-down footprint stays in place. Processed meters use the same display scale
+as the equivalent millimeters. Devices
 controls aliases, per-camera mute and handedness plus actual restart. Processing
 controls bypass, smoothing/deadzone, scale/XYZ rotation/offset/units and optional
 pinch/grab hysteresis. OSC Output controls target, enable/rate and all14 supported

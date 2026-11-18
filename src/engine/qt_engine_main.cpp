@@ -1,3 +1,4 @@
+#include "ipc/Endpoint.hpp"
 #include "ipc/Framing.hpp"
 #include "ConfigurationStore.hpp"
 #include "SnapshotMailbox.hpp"
@@ -328,16 +329,18 @@ public:
         if (!lock_.tryLock()) throw std::runtime_error("An engine already owns this endpoint");
         server_.setSocketOptions(QLocalServer::UserAccessOption);
         server_.setMaxPendingConnections(8);
-        if (!server_.listen(endpoint)) {
+        const auto name = handbridge::ipc::socketName(endpoint);
+        if (name.isEmpty()) throw std::runtime_error("Cannot open the private control socket directory");
+        if (!server_.listen(name)) {
             QLocalSocket probe;
-            probe.connectToServer(endpoint);
+            probe.connectToServer(name);
             if (probe.waitForConnected(150)) throw std::runtime_error("Endpoint is already active");
 #ifdef _WIN32
             throw std::runtime_error("Cannot create local-only control endpoint");
 #else
             const bool staleEndpoint = server_.serverError() == QAbstractSocket::AddressInUseError &&
                 (probe.error() == QLocalSocket::ServerNotFoundError || probe.error() == QLocalSocket::ConnectionRefusedError);
-            if (!staleEndpoint || !QLocalServer::removeServer(endpoint) || !server_.listen(endpoint))
+            if (!staleEndpoint || !QLocalServer::removeServer(name) || !server_.listen(name))
                 throw std::runtime_error("Cannot create local-only control endpoint");
 #endif
         }
@@ -530,7 +533,7 @@ private:
 int main(int argc, char** argv) {
     QCoreApplication app(argc, argv);
     QCoreApplication::setApplicationName("HandBridge");
-    QCoreApplication::setApplicationVersion("2.0.0");
+    QCoreApplication::setApplicationVersion("2.0.1");
     try {
         QCommandLineParser parser;
         parser.setApplicationDescription("Hand Bridge native headless engine. LeapC tracking by default; --simulate selects mock cameras. UNTESTED ON HARDWARE.");
