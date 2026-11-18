@@ -32,7 +32,8 @@ class Controller final : public QObject {
     Q_PROPERTY(qint64 savedRevision READ savedRevision NOTIFY uiChanged)
     Q_PROPERTY(QString endpoint READ endpoint CONSTANT)
 public:
-    explicit Controller(QString endpoint, QObject* parent = nullptr);
+    enum class Startup { AttachOnly, Hardware, Simulator };
+    explicit Controller(QString endpoint, QObject* parent = nullptr, Startup startup = Startup::AttachOnly);
     ~Controller() override; // Never owns or stops the engine process.
 
     bool connected() const { return connected_; }
@@ -92,6 +93,7 @@ private:
     static bool isMutation(const QString& command);
 
     QString endpoint_;
+    Startup startup_;
     QLocalSocket socket_;
     QByteArray received_;
     QTimer reconnectTimer_, timeoutTimer_;

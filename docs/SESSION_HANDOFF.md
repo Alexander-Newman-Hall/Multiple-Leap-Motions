@@ -1,4 +1,21 @@
-# Hand Bridge 2.0.1 release handoff
+# Hand Bridge development handoff
+
+## 2.0.2 local Mac build
+
+The branch `feature/macos-unattended-start` is based on the public 2.0.1
+source at `a24b19c`. The startup policy lives in `control_main.cpp` and
+`Controller.cpp`. The engine publishes exact OSC totals in `qt_engine_main.cpp`;
+`Main.qml` displays them at the available width. The packager produces an
+arm64 app for manual, scheduled or login-item launch. Scheduling is configured
+by the operator on the installation Mac.
+
+The arm64 suite passed all 90 CTest entries. `MacControllerStartup` exercises
+the actual executable against a stub engine. `ControlUi` exercises the
+dashboard with totals up to 18446744073709551615. The next deployment check
+is a cold login with the operator's scheduler and OSC receiver, followed by
+a show-length soak. [Mac verification](reports/MACOS_ARM64.md)
+
+## 2.0.1 public release
 
 The Apple Silicon release contains the MIT-licensed controller and independent
 tracking engine. A user can run the compiled app or build the tagged source.

@@ -188,6 +188,11 @@ handbridge-control process owns the QtQuick scene and C++ draft/ack model; it ca
 exit or crash while the worker continues. Default Qt-free host is still built
 when the option is off.
 
+The Mac app starts the detached hardware engine when its first local connection
+finds no listener. An existing engine keeps its current session. A Login Item
+or a scheduler can open the same app after login. The engine owns retries for
+a delayed Hyperion service or cameras as it does after a manual start.
+
 Settings are validated plain C++ values; the runtime applies a whole candidate at
 a frame boundary. Socket destination readiness is checked before committing.
 Raw observations and processed preview frames remain separate. Source identity

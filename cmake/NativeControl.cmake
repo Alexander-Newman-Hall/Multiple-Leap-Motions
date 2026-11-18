@@ -25,6 +25,11 @@ qt_add_resources(handbridge-control "handbridge_ui"
 
 if(BUILD_TESTING)
     find_package(Qt6 6.8 REQUIRED COMPONENTS Test)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+        add_test(NAME MacControllerStartup COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_MacControllerStartup.py $<TARGET_FILE:handbridge-control>)
+        set_tests_properties(MacControllerStartup PROPERTIES TIMEOUT 30)
+    endif()
     add_executable(test_Controller tests/test_Controller.cpp)
     set_target_properties(test_Controller PROPERTIES AUTOMOC ON)
     target_link_libraries(test_Controller PRIVATE handbridge-control-client Qt6::Test)

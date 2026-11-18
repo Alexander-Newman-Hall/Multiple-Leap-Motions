@@ -179,6 +179,7 @@ public:
                     }
                     const auto stats = sender->getStats();
                     const auto packets = packetOffset + stats.packetsSent;
+                    const auto sendErrors = errorOffset + stats.sendErrors;
                     const auto packetDelta = packets >= previousPackets ? packets - previousPackets : 0;
                     const auto& output = runtime.outputStatus();
                     const auto tracking = source->diagnostics();
@@ -195,7 +196,9 @@ public:
                         {"output", QJsonObject{{"enabled", runtime.settings().osc.enabled}, {"host", QString::fromStdString(runtime.settings().osc.host)},
                             {"port", runtime.settings().osc.port}, {"target", QString::fromStdString(runtime.settings().osc.host) + ":" + QString::number(runtime.settings().osc.port)},
                             {"socket_ready", sender->isInitialized()}, {"packets_sent", static_cast<qint64>(packets)},
-                            {"send_errors", static_cast<qint64>(errorOffset + stats.sendErrors)}, {"bytes_sent", static_cast<qint64>(byteOffset + stats.bytesSent)},
+                            {"send_errors", static_cast<qint64>(sendErrors)}, {"bytes_sent", static_cast<qint64>(byteOffset + stats.bytesSent)},
+                            // QML numbers lose integer precision above 2^53.
+                            {"packets_sent_exact", QString::number(packets)}, {"send_errors_exact", QString::number(sendErrors)},
                             {"socket_generation", static_cast<qint64>(socketGeneration)},
                             {"packet_fps", span ? double(packetDelta) * 1000.0 / double(span) : 0.0}, {"degraded", output.degraded},
                             {"attempts", static_cast<qint64>(output.attempts)}, {"successes", static_cast<qint64>(output.successes)},
@@ -533,7 +536,7 @@ private:
 int main(int argc, char** argv) {
     QCoreApplication app(argc, argv);
     QCoreApplication::setApplicationName("HandBridge");
-    QCoreApplication::setApplicationVersion("2.0.1");
+    QCoreApplication::setApplicationVersion("2.0.2");
     try {
         QCommandLineParser parser;
         parser.setApplicationDescription("Hand Bridge native headless engine. LeapC tracking by default; --simulate selects mock cameras. UNTESTED ON HARDWARE.");

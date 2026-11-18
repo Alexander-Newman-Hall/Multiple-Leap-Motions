@@ -1,4 +1,4 @@
-Hand Bridge 2.0.1 for Apple Silicon
+Hand Bridge 2.0.2 for Apple Silicon
 
 Installation
 
@@ -21,11 +21,25 @@ Installation
    If macOS reports the app is damaged, obtain a fresh copy of the ZIP.
    Apple's guide is at https://support.apple.com/en-us/102445
 
+Automatic startup
+
+Opening Hand Bridge starts the tracking engine and restores its saved settings.
+If the engine is already running, the window reconnects to it. Cameras can be
+connected before or after launch. A muted output stays muted.
+
+For unattended startup after you log in, add Hand Bridge.app to your Mac's
+Login Items. If you use a scheduler, have it open the app in your logged-in
+session. With the app in Applications, the command is
+
+    /usr/bin/open "/Applications/Hand Bridge.app"
+
+Complete the first launch and Hyperion setup once before relying on the schedule.
+
 Verify tracking
 
-1. Click Start engine if Hand Bridge shows disconnected. Connect the first
-   Leap Motion Controller 2 with a USB data cable and watch Overview for
-   frames. Once it is streaming, attach the second camera.
+1. Open Hand Bridge and connect the cameras with USB data cables. Watch
+   Overview for frames. If the app reports a missing runtime, install
+   Hyperion and click Start engine to retry.
 
 2. With both attached, Overview should show Cameras streaming 2 / 2. Each
    camera should show a frame rate even with no hands in view. If one stays
@@ -39,13 +53,17 @@ Verify tracking
    save a named profile in Profiles & Logs. On the next launch, the engine
    restores those assignments even if the cameras connect in a different order.
 
+Send errors counts failed OSC sends since the engine started. When the total
+gets large, the dashboard abbreviates it. Hover over the number to read the
+full count. The Output stage badge shows whether sending has recovered.
+
 Source and licenses
 
-Download the Hand Bridge source, build scripts and instructions from
+The companion Hand-Bridge-2.0.2-Source.zip includes the source, tests and
+build instructions for this build. Published Hand Bridge releases are at
 https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/releases
-Choose the source code for this version to work on the application.
 
 Hand Bridge's own code uses the MIT License. The app dynamically links Qt
-6.8.3 under LGPLv3. The release includes corresponding Qt source downloads.
+6.8.3 under LGPLv3. The v2.0.1 release includes the matching Qt sources.
 In Finder, choose Show Package Contents on the app and open Contents/Resources
 for LICENSE, Third Party Notices.txt, the Qt source manifest and license texts.

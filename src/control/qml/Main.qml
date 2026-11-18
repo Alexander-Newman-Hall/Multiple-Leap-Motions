@@ -27,6 +27,7 @@ ApplicationWindow {
     readonly property var pageSubtitles: ["Independent cameras. One dependable signal path.", "Identity, routing, and recovery for each camera.", "Shape the output. Keep the raw observation intact.", "Choose exactly what TouchDesigner receives.", "Recall a session. Inspect the engine's actual state."]
     readonly property var deviceRows: controller.devices || []
     readonly property var output: controller.status.output || ({})
+    readonly property var sendErrors: output.send_errors_exact ?? output.send_errors
     readonly property var tracking: controller.status.tracking || ({})
     readonly property string lastTrackingError: tracking.last_error || ""
     readonly property bool processingBypass: setting("processing.bypass", true)
@@ -90,19 +91,48 @@ ApplicationWindow {
     component MetricCell: ColumnLayout {
         id: metricRoot
         property string label: ""
-        property string value: "—"
+        property var total
+        readonly property string exactTotal: total === undefined || total === null ? "" : String(total)
+        property string value: compactCount(exactTotal)
         property string unit: ""
         property color tint: "#e7ebf2"
+        // Work directly with decimal digits so the tooltip can show every
+        // increment, including totals beyond JavaScript's safe integer range.
+        function compactCount(digits) {
+            if (!digits)
+                return "—";
+            if (digits.length <= 4)
+                return digits;
+            const group = Math.floor((digits.length - 1) / 3);
+            const suffixes = ["", "K", "M", "B", "T"];
+            if (group >= suffixes.length)
+                return digits[0] + "." + digits[1] + "e" + (digits.length - 1);
+            const whole = digits.length - 3 * group;
+            const tenth = digits[whole];
+            return digits.slice(0, whole) + (whole < 3 && tenth !== "0" ? "." + tenth : "") + suffixes[group];
+        }
+        activeFocusOnTab: exactTotal.length > 0 && value !== exactTotal
+        Accessible.role: Accessible.StaticText
+        Accessible.name: label + " " + (exactTotal || value) + " " + unit
+        HoverHandler { id: hover }
+        ToolTip.visible: activeFocusOnTab && (hover.hovered || activeFocus)
+        ToolTip.text: label + " · " + exactTotal
         spacing: 8
         SmallLabel {
             text: metricRoot.label
         }
         RowLayout {
+            Layout.fillWidth: true
             spacing: 6
             Text {
+                Layout.minimumWidth: 0
+                Layout.maximumWidth: implicitWidth
                 text: metricRoot.value
                 color: metricRoot.tint
                 font.pixelSize: 27
+                fontSizeMode: Text.HorizontalFit
+                minimumPixelSize: 13
+                elide: Text.ElideRight
                 font.weight: Font.Medium
             }
             Text {
@@ -490,7 +520,7 @@ ApplicationWindow {
                             }
                             MetricCell {
                                 label: "PROCESSED FRAMES"
-                                value: controller.connected ? String(framesProcessed()) : "—"
+                                total: controller.connected ? framesProcessed() : undefined
                                 unit: "total"
                                 Layout.fillWidth: true
                             }
@@ -512,9 +542,10 @@ ApplicationWindow {
                                 color: "#343a45"
                             }
                             MetricCell {
+                                objectName: "overviewSendErrors"
                                 label: "SEND ERRORS"
-                                value: controller.connected ? metric(output.send_errors, 0) : "—"
-                                tint: output.send_errors > 0 ? theme.amber : "#d9e1ed"
+                                total: controller.connected ? sendErrors : undefined
+                                tint: Number(total) > 0 ? theme.amber : "#d9e1ed"
                                 Layout.fillWidth: true
                             }
                         }
@@ -1307,18 +1338,20 @@ Raw observations remain unchanged."
                                 RowLayout {
                                     Layout.fillWidth: true
                                     MetricCell {
+                                        objectName: "transportPacketsSent"
                                         Layout.fillWidth: true
                                         label: "PACKETS SENT"
-                                        value: metric(output.packets_sent, 0)
+                                        total: output.packets_sent_exact ?? output.packets_sent
                                         unit: "total"
                                         tint: theme.accent
                                     }
                                     MetricCell {
+                                        objectName: "transportSendErrors"
                                         Layout.fillWidth: true
                                         label: "SEND ERRORS"
-                                        value: metric(output.send_errors, 0)
+                                        total: sendErrors
                                         unit: "total"
-                                        tint: output.send_errors > 0 ? theme.amber : theme.text
+                                        tint: Number(total) > 0 ? theme.amber : theme.text
                                     }
                                     MetricCell {
                                         Layout.fillWidth: true

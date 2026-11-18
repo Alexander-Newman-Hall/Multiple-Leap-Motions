@@ -1,5 +1,20 @@
 # Current state — Apple Silicon Desktop preview
 
+## 2.0.2 local Mac build, 2026-11-18
+
+The Mac app starts its own hardware engine on a cold launch and reconnects to
+the existing engine on subsequent launches. Login Items and schedulers can use
+the same app entry point. A running engine keeps its session counters when the
+UI closes. Both Send errors displays abbreviate large totals and show the full
+decimal value on hover or keyboard focus.
+
+The arm64 Release build with Qt 6.8.3 and the Hyperion 6.2.0 SDK passed all
+90 CTest entries with `ctest --test-dir <build> --output-on-failure`.
+Coverage includes hardware startup selection, explicit simulator and attach-only
+modes, engine lifetime across GUI restarts, and the full 64-bit counter display
+at minimum window width. The extracted app started real tracking without a
+button press and received 5,073 frames from two physical cameras. [Mac build and verification](reports/MACOS_ARM64.md)
+
 ## Apple Silicon installation update, 2026-11-18
 
 The public `v2.0.1` release includes the Mac app and corresponding sources

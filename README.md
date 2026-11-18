@@ -1,22 +1,16 @@
-# Hand Bridge 2.0.1
+# Hand Bridge 2.0.2
 
 A native C++20 tracking bridge and modern Qt6 controller for independent Ultraleap
 camera streams over OSC/UDP to a local receiver on Windows or Apple Silicon.
 
-**Run on Apple Silicon.** Download `Hand-Bridge-2.0.1-Apple-Silicon.zip`, unzip it
+**Run on Apple Silicon.** Unzip `Hand-Bridge-2.0.2-Apple-Silicon.zip`
 in Finder and double-click **Hand Bridge**. The ZIP includes Qt and the setup
 guide. Live tracking uses Ultraleap Hyperion 6.2.0 for Apple Silicon, installed
-separately. [Download the Mac release](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/releases/tag/v2.0.1)
+separately. [Published Mac releases](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/releases)
 · [Get Hyperion](https://www.ultraleap.com/downloads/leap-motion-controller-2/)
 
-**Work on this version.** Download **Source code (zip)** from the same release
-or clone the tagged source and create a working branch:
-
-```sh
-git clone --branch v2.0.1 https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions.git
-cd Multiple-Leap-Motions
-git switch -c my-hand-bridge-changes
-```
+**Work on this version.** Extract the companion `Hand-Bridge-2.0.2-Source.zip`
+and follow the Mac build instructions below.
 
 The native source lives in `src/`, automated tests in `tests/`, and example
 settings in `configs/`. On Apple Silicon, use the Xcode Command Line Tools,
@@ -24,8 +18,8 @@ CMake, Ninja, Python 3.9+, Qt 6.8.3 for macOS and the SDK from Hyperion for
 real camera support. CMake retrieves the pinned open-source dependencies.
 [Mac build, test and packaging commands](docs/reports/MACOS_ARM64.md#rebuild-the-local-preview)
 
-Hand Bridge's own code is available under MIT. The Qt sources that match the
-Mac app are attached to the release. Third-party components retain their
+Hand Bridge's own code is available under MIT. The Qt 6.8.3 sources that match
+this build are attached to the public v2.0.1 release. Third-party components retain their
 respective licenses. [MIT license](LICENSE) · [Mac dependency notices](packaging/macos/Third%20Party%20Notices.txt)
 
 The new **VST-style controller is implemented**: rotary processing controls,
@@ -51,8 +45,13 @@ Apple Silicon ZIP. On upgrade, quit both the controller and the detached
 The controller title shows the installed version.
 [Installation guide](packaging/MACOS_START_HERE.txt)
 
-Open **Hand Bridge.app** in Applications. Click **Start engine** if the window
-shows disconnected. On the Overview page, look for a fresh stream from each
+Open **Hand Bridge.app** in Applications. On macOS the controller starts the
+hardware engine automatically or connects to the engine already running. The
+engine waits for the tracking service and cameras and uses the saved settings.
+For unattended startup after login, add the app to macOS Login Items, or have
+your scheduler run `/usr/bin/open "/Applications/Hand Bridge.app"` from the
+logged-in user's session. Complete Hyperion setup and the app's first launch
+before relying on a schedule. On Overview, look for a fresh stream from each
 device. If one camera stays at zero frames, leave the working camera attached
 and reconnect the silent camera. Check Devices for the mapping between cameras and OSC aliases.
 

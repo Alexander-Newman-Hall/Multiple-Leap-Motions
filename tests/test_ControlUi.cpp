@@ -2,6 +2,7 @@
 #include <QGuiApplication>
 #include <QImage>
 #include <QJsonObject>
+#include <QMetaProperty>
 #include <QProcess>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
@@ -22,6 +23,59 @@
 class ControlUi final : public QObject {
     Q_OBJECT
 private slots:
+    void initTestCase() { QQuickStyle::setStyle(QStringLiteral("Basic")); }
+
+    void largeTransportTotalsFitAndKeepExactDigits() {
+        Controller offline("hb-counter-test-" + QUuid::createUuid().toString(QUuid::Id128));
+        QVariantMap presentation;
+        const auto& meta = Controller::staticMetaObject;
+        for (int i = meta.propertyOffset(); i < meta.propertyCount(); ++i) {
+            const auto property = meta.property(i);
+            presentation.insert(QString::fromLatin1(property.name()), property.read(&offline));
+        }
+        presentation["connected"] = true;
+        QQmlApplicationEngine view;
+        auto publish = [&](QVariantMap output) {
+            presentation["status"] = QVariantMap{{"output", output}};
+            view.rootContext()->setContextProperty("controller", presentation);
+        };
+        // Also exercise the numeric fields supplied by earlier engines.
+        publish({{"send_errors", 9999}, {"packets_sent", 10000}});
+        view.load(QUrl::fromLocalFile(QString::fromUtf8(TEST_QML_PATH)));
+        QVERIFY(!view.rootObjects().isEmpty());
+        auto* window = qobject_cast<QQuickWindow*>(view.rootObjects().first());
+        QVERIFY(window);
+        window->resize(window->minimumSize());
+        auto* overview = window->findChild<QQuickItem*>("overviewSendErrors");
+        auto* errors = window->findChild<QQuickItem*>("transportSendErrors");
+        auto* packets = window->findChild<QQuickItem*>("transportPacketsSent");
+        QVERIFY(overview && errors && packets);
+        QCOMPARE(overview->property("value").toString(), "9999");
+        QCOMPARE(packets->property("value").toString(), "10K");
+
+        QVariantMap output{{"send_errors", -1}, {"send_errors_exact", "18446744073709551614"},
+                           {"packets_sent_exact", "12345678901"}, {"bytes_sent", 1234567890123456LL}};
+        publish(output);
+        QCOMPARE(overview->property("value").toString(), "1.8e19");
+        QCOMPARE(errors->property("value"), overview->property("value"));
+        QCOMPARE(packets->property("value").toString(), "12.3B");
+        output["send_errors_exact"] = "18446744073709551615";
+        publish(output);
+        for (auto* cell : {overview, errors}) {
+            // The compact label can stay the same while the exact, live tooltip changes.
+            QCOMPARE(cell->property("value").toString(), "1.8e19");
+            QQmlExpression tooltip(QQmlEngine::contextForObject(cell), cell, "ToolTip.text");
+            QVERIFY(tooltip.evaluate().toString().contains("18446744073709551615"));
+            QVERIFY(!tooltip.hasError());
+        }
+        window->setProperty("pageIndex", 3);
+        QTRY_VERIFY(packets->width() > 0 && errors->isVisible());
+        for (auto* cell : {packets, errors}) {
+            const auto right = cell->mapToScene(QPointF(cell->width(), 0)).x();
+            QVERIFY(right <= window->width() + 1);
+        }
+    }
+
     void tabletopPreviewOrientation() {
         QQmlEngine engine;
         const auto path = QFileInfo(QString::fromUtf8(TEST_QML_PATH)).dir().filePath("PreviewCanvas.qml");
@@ -58,7 +112,6 @@ private slots:
         QVERIFY(process.waitForStarted());
         Controller controller(endpoint);
         QTRY_VERIFY_WITH_TIMEOUT(controller.connected(), 7000);
-        QQuickStyle::setStyle(QStringLiteral("Basic"));
         QQmlApplicationEngine view;
         view.rootContext()->setContextProperty(QStringLiteral("controller"), &controller);
         view.rootContext()->setContextProperty(QStringLiteral("initialPage"), QStringLiteral("overview"));

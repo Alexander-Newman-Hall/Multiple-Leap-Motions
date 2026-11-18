@@ -15,7 +15,7 @@ The 2.0.1 release provides the corresponding source archives for all three
 Qt modules alongside the packaged app. Their filenames, upstream URLs and
 SHA-256 checksums are in qt-sources.json. The source archives include the
 modules' third-party code and license notices.
-https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/releases
+https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/releases/tag/v2.0.1
 
 You can rebuild Hand Bridge against compatible modified Qt libraries. The
 Mac build instructions use CMAKE_PREFIX_PATH to select your Qt installation,

@@ -30,6 +30,17 @@ client with `--check-leapc`, then launches the real engine detached on success.
 killing or restarting the controller leaves an already running engine alive; an
 owned preflight process is not the tracking engine.
 
+On macOS, opening the desktop controller first attempts to attach to its local
+engine. If the endpoint is absent or refuses the connection, the controller
+runs the same preflight and starts the hardware engine. Use `--attach-only`
+for a controller that only reconnects. The engine's endpoint lock protects
+against two launchers starting simultaneous hardware streams.
+
+Output snapshots include `packets_sent_exact` and `send_errors_exact` as
+decimal strings alongside the numeric session totals. Consumers can use the
+strings to show every digit of a 64-bit counter. These counters start at zero
+when the engine starts and retain their totals across output socket resets.
+
 ## Requests and responses
 
 ```json

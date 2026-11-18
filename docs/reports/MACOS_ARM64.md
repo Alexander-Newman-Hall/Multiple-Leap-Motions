@@ -1,10 +1,29 @@
 # Native Apple Silicon build and validation
 
-Hand Bridge 2.0.1 targets macOS 12 or newer on Apple Silicon. The controller
+Hand Bridge targets macOS 12 or newer on Apple Silicon. The controller
 and engine are arm64. Qt 6.8.3 is bundled. Real cameras require the separately
 installed Ultraleap Hyperion 6.2.0 runtime for Apple Silicon.
 
-## Verification
+## Version 2.0.2 local build
+
+The Release build passed all 90 CTest entries on Apple Silicon. The cold-launch
+test observed the LeapC preflight followed by the hardware engine invocation.
+Separate cases cover explicit startup, simulator selection and attach-only
+monitoring. The UI test exercises counters through 18446744073709551615 with
+the window at its minimum size.
+
+The ZIP passed its integrity check and strict code-signature verification on the
+extracted app. Its SHA-256 is
+`219c7a6fdf80a686aa2eda3e65e6ff2992282620b58a7882664d3159809a970a`.
+
+Launching the controller from that extraction with an isolated control endpoint
+connected to the real Hyperion 6.2.0 service in 2.33 seconds. Two physical
+cameras produced 5,073 tracking frames with no operator input. Closing and
+reopening the controller reconnected to the same engine process. No hand-derived
+OSC packets were observed during this launch check. A scheduled login and a
+show-length soak remain deployment checks.
+
+## Version 2.0.1 verification
 
 The release build passed all 89 native tests, including delayed first frames,
 missing frames, repeated subscription failures and reattachment. Two physical
@@ -41,9 +60,9 @@ cmake --preset macos-arm64-control -B out/mac-desktop -DCMAKE_BUILD_TYPE=Release
 cmake --build out/mac-desktop --parallel 5
 ctest --test-dir out/mac-desktop --output-on-failure
 python3 scripts/package-macos.py out/mac-desktop "$qt" "out/Hand Bridge.app"
-python3 scripts/archive-macos.py "out/Hand Bridge.app" "out/Hand-Bridge-2.0.1-Apple-Silicon.zip"
+python3 scripts/archive-macos.py "out/Hand Bridge.app" "out/Hand-Bridge-2.0.2-Apple-Silicon.zip"
 "out/Hand Bridge.app/Contents/MacOS/handbridge-engine" --check-leapc
-open "out/Hand Bridge.app" --args --start-engine
+open "out/Hand Bridge.app"
 ```
 
 The ZIP contains the application and its operator guide. The archive helper

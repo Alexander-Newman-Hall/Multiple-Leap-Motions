@@ -48,13 +48,14 @@ QStringList stringList(const QJsonValue& value) {
 }
 }
 
-Controller::Controller(QString endpoint, QObject* parent)
-    : QObject(parent), endpoint_(std::move(endpoint)) {
+Controller::Controller(QString endpoint, QObject* parent, Startup startup)
+    : QObject(parent), endpoint_(std::move(endpoint)), startup_(startup) {
     clock_.start();
     socket_.setReadBufferSize(256 * 1024);
     reconnectTimer_.setInterval(1000);
     timeoutTimer_.setInterval(250);
     connect(&socket_, &QLocalSocket::connected, this, [this] {
+        startup_ = Startup::AttachOnly;
         connecting_ = false;
         errorMessage_.clear();
         if (!dirty()) rejected_ = false;
@@ -64,9 +65,13 @@ Controller::Controller(QString endpoint, QObject* parent)
     });
     connect(&socket_, &QLocalSocket::readyRead, this, &Controller::receive);
     connect(&socket_, &QLocalSocket::disconnected, this, &Controller::disconnected);
-    connect(&socket_, &QLocalSocket::errorOccurred, this, [this](QLocalSocket::LocalSocketError) {
+    connect(&socket_, &QLocalSocket::errorOccurred, this, [this](QLocalSocket::LocalSocketError error) {
         connecting_ = false;
         if (connected_) disconnected();
+        if (startup_ != Startup::AttachOnly &&
+            (error == QLocalSocket::ServerNotFoundError || error == QLocalSocket::ConnectionRefusedError)) {
+            startEngine(startup_ == Startup::Simulator);
+        }
         emit connectionChanged();
         emit uiChanged();
     });
@@ -361,6 +366,7 @@ void Controller::startSimulator() { startEngine(true); }
 void Controller::startHardwareEngine() { startEngine(false); }
 void Controller::startEngine(bool simulate) {
     if (connected_ || busy()) return;
+    startup_ = Startup::AttachOnly;
     if (connecting_) { socket_.abort(); connecting_ = false; }
     const auto executable = QDir(QCoreApplication::applicationDirPath()).filePath(
 #ifdef Q_OS_WIN

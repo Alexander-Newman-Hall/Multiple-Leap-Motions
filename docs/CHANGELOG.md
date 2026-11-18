@@ -1,5 +1,14 @@
 # Hand Bridge 2.0 changelog
 
+## 2.0.2 — unattended Mac startup, 2026-11-18
+
+- Opening the Mac app now starts hardware tracking when the control endpoint
+  has no listener. Reopening it attaches to the running session.
+- A login item or scheduler can open the app with its normal settings.
+  The controller accepts `--attach-only` for monitoring an existing session.
+- Large OSC send-error and packet totals use compact labels. Hover over a
+  counter to see its full session total.
+
 ## 2.0.1 — Apple Silicon installation update, 2026-11-18
 
 - Give each camera three seconds to deliver its first frame after subscribing.
