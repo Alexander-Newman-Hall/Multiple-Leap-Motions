@@ -1,15 +1,17 @@
-# Hand Bridge 2.0.2
+# Hand Bridge 2.0.3
 
 A native C++20 tracking bridge and modern Qt6 controller for independent Ultraleap
 camera streams over OSC/UDP to a local receiver on Windows or Apple Silicon.
 
-**Run on Apple Silicon.** Unzip `Hand-Bridge-2.0.2-Apple-Silicon.zip`
-in Finder and double-click **Hand Bridge**. The ZIP includes Qt and the setup
-guide. Live tracking uses Ultraleap Hyperion 6.2.0 for Apple Silicon, installed
+**Run on Apple Silicon.** Unzip `Hand-Bridge-2.0.3-Apple-Silicon.zip`
+in Finder and double-click **Hand Bridge**. Tracking starts in the background.
+Click the hand in the Mac menu bar and choose **Open Hand Bridge** to see the
+controls. The ZIP includes Qt and the setup guide. Live tracking uses
+Ultraleap Hyperion 6.2.0 for Apple Silicon, installed
 separately. [Published Mac releases](https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/releases)
 · [Get Hyperion](https://www.ultraleap.com/downloads/leap-motion-controller-2/)
 
-**Work on this version.** Extract the companion `Hand-Bridge-2.0.2-Source.zip`
+**Work on this version.** Extract the companion `Hand-Bridge-2.0.3-Source.zip`
 and follow the Mac build instructions below.
 
 The native source lives in `src/`, automated tests in `tests/`, and example
@@ -47,7 +49,11 @@ The controller title shows the installed version.
 
 Open **Hand Bridge.app** in Applications. On macOS the controller starts the
 hardware engine automatically or connects to the engine already running. The
-engine waits for the tracking service and cameras and uses the saved settings.
+window starts hidden. Use the hand icon in the menu bar to open it, or
+double-click the running app in Finder to bring its controls to the front.
+Close the window to hide it again. **Quit Controller** removes the menu
+bar icon and leaves the engine tracking. The engine waits for the tracking
+service and cameras and uses the saved settings.
 For unattended startup after login, add the app to macOS Login Items, or have
 your scheduler run `/usr/bin/open "/Applications/Hand Bridge.app"` from the
 logged-in user's session. Complete Hyperion setup and the app's first launch

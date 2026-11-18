@@ -1,5 +1,15 @@
 # Current state — Apple Silicon Desktop preview
 
+## 2.0.3 Mac menu bar build, 2026-11-18
+
+On Apple Silicon, the app starts its hardware engine with the dashboard hidden.
+The menu bar hand opens the controls. Closing the window keeps the menu active.
+Quitting the controller leaves the engine running. The native menu test exercises
+opening the dashboard and restoring it after a close or minimize.
+All 91 CTest entries passed. Two physical cameras streamed 3,586 frames in
+the extracted-app launch and reopen check.
+See the [Mac verification report](reports/MACOS_ARM64.md).
+
 ## 2.0.2 local Mac build, 2026-11-18
 
 The Mac app starts its own hardware engine on a cold launch and reconnects to

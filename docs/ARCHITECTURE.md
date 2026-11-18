@@ -193,6 +193,11 @@ finds no listener. An existing engine keeps its current session. A Login Item
 or a scheduler can open the same app after login. The engine owns retries for
 a delayed Hyperion service or cameras as it does after a manual start.
 
+The packaged Mac controller runs as a menu bar app. Its menu and dashboard
+share the existing controller connection. Showing or closing the dashboard
+only changes window visibility. Quitting the menu bar app closes that
+connection and leaves the independent engine running.
+
 Settings are validated plain C++ values; the runtime applies a whole candidate at
 a frame boundary. Socket destination readiness is checked before committing.
 Raw observations and processed preview frames remain separate. Source identity

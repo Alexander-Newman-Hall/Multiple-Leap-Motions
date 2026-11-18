@@ -1,5 +1,12 @@
 # Hand Bridge 2.0 changelog
 
+## 2.0.3 — Mac menu bar controls, 2026-11-18
+
+- The Mac app starts with its controls hidden. The hand icon in the menu bar
+  provides access to the dashboard while the engine tracks in the background.
+- Closing the dashboard keeps the menu available. **Quit Controller** removes
+  the menu bar icon and leaves the tracking engine running.
+
 ## 2.0.2 — unattended Mac startup, 2026-11-18
 
 - Opening the Mac app now starts hardware tracking when the control endpoint

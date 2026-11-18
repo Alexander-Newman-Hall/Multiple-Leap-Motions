@@ -16,12 +16,19 @@
 #include <QRegularExpression>
 #include <QTimer>
 #include <memory>
+#ifdef Q_OS_MACOS
+#include "MacMenuBar.hpp"
+#endif
 
 int main(int argc, char** argv) {
+#ifdef Q_OS_MACOS
+    // Qt's Cocoa plugin otherwise activates the app even with LSUIElement set.
+    qputenv("QT_MAC_DISABLE_FOREGROUND_APPLICATION_TRANSFORM", "1");
+#endif
     QGuiApplication app(argc, argv);
     QCoreApplication::setApplicationName(QStringLiteral("HandBridgeControl"));
     QCoreApplication::setOrganizationName(QStringLiteral("HandBridge"));
-    QCoreApplication::setApplicationVersion(QStringLiteral("2.0.2"));
+    QCoreApplication::setApplicationVersion(QStringLiteral("2.0.3"));
     QQuickStyle::setStyle(QStringLiteral("Basic"));
     QFont font;
     font.setFamily(QFontDatabase::families().contains(QStringLiteral("Segoe UI")) ? QStringLiteral("Segoe UI") : QStringLiteral("DejaVu Sans"));
@@ -39,6 +46,9 @@ int main(int argc, char** argv) {
     parser.addOption({QStringLiteral("exit-after-ms"), QStringLiteral("Close only the controller after N milliseconds; useful for automated lifecycle tests."), QStringLiteral("N"), QStringLiteral("0")});
     parser.addOption({QStringLiteral("screenshot"), QStringLiteral("Capture the native window to this PNG path after connection/rendering."), QStringLiteral("path")});
     parser.addOption({QStringLiteral("page"), QStringLiteral("Initial page: overview, devices, processing, osc, profiles."), QStringLiteral("name"), QStringLiteral("overview")});
+#ifdef Q_OS_MACOS
+    parser.addOption({QStringLiteral("show-window"), QStringLiteral("Open the controller window immediately on macOS.")});
+#endif
     parser.process(app);
 
     const auto endpoint = parser.value(QStringLiteral("endpoint"));
@@ -61,12 +71,26 @@ int main(int argc, char** argv) {
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty(QStringLiteral("controller"), &controller);
     engine.rootContext()->setContextProperty(QStringLiteral("initialPage"), parser.value(QStringLiteral("page")));
+#ifdef Q_OS_MACOS
+    const bool menuBarMode = app.platformName() == QStringLiteral("cocoa");
+    const bool showAtLaunch = parser.isSet(QStringLiteral("show-window")) || parser.isSet(QStringLiteral("page"))
+                             || parser.isSet(QStringLiteral("screenshot"));
+    if (menuBarMode)
+        engine.setInitialProperties({{QStringLiteral("visible"), false}});
+#endif
     const QUrl url(QStringLiteral("qrc:/handbridge/Main.qml"));
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated, &app, [url](QObject* object, const QUrl& source) {
         if (!object && source == url) QCoreApplication::exit(1);
     }, Qt::QueuedConnection);
     engine.load(url);
     if (engine.rootObjects().isEmpty()) return 1;
+#ifdef Q_OS_MACOS
+    if (menuBarMode) {
+        auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first());
+        if (!window) return 1;
+        if (!installMacMenuBar(window) || showAtLaunch) showMacControllerWindow(window);
+    }
+#endif
     if (duration > 0) QTimer::singleShot(duration, &app, &QCoreApplication::quit);
     if (parser.isSet(QStringLiteral("screenshot"))) {
         auto timer = new QTimer(&app);

@@ -4,6 +4,25 @@ Hand Bridge targets macOS 12 or newer on Apple Silicon. The controller
 and engine are arm64. Qt 6.8.3 is bundled. Real cameras require the separately
 installed Ultraleap Hyperion 6.2.0 runtime for Apple Silicon.
 
+## Version 2.0.3 menu bar build
+
+The Apple Silicon Release build passed all 91 CTest entries on macOS 26.6.2
+with Qt 6.8.3. `MacMenuBar` invoked the Open Hand Bridge action through the
+native AppKit menu, including after a window close and a minimize. The control
+integration test checked UDP output across controller lifecycles.
+
+The ZIP passed integrity checks and strict signature verification after
+extraction. Its bundle has `LSUIElement` enabled, and the arm64 controller
+targets macOS 12 or newer. App ZIP SHA-256 is
+`8ac4cf9beaf8558f79518653df55045f4eeedbc02129ec9405e27bd7bbfbe68b`.
+
+The extracted app launched with zero visible dashboard windows and left the
+current application in front. Hyperion 6.2.0 connected in 1.62 seconds.
+Two physical cameras streamed 3,586 frames. Reopening the same bundle through
+LaunchServices brought one dashboard window to the front, using the same
+controller and engine processes. The engine recorded zero send errors. No
+hand-derived OSC packets were observed in this check.
+
 ## Version 2.0.2 local build
 
 The Release build passed all 90 CTest entries on Apple Silicon. The cold-launch
@@ -60,7 +79,7 @@ cmake --preset macos-arm64-control -B out/mac-desktop -DCMAKE_BUILD_TYPE=Release
 cmake --build out/mac-desktop --parallel 5
 ctest --test-dir out/mac-desktop --output-on-failure
 python3 scripts/package-macos.py out/mac-desktop "$qt" "out/Hand Bridge.app"
-python3 scripts/archive-macos.py "out/Hand Bridge.app" "out/Hand-Bridge-2.0.2-Apple-Silicon.zip"
+python3 scripts/archive-macos.py "out/Hand Bridge.app" "out/Hand-Bridge-2.0.3-Apple-Silicon.zip"
 "out/Hand Bridge.app/Contents/MacOS/handbridge-engine" --check-leapc
 open "out/Hand Bridge.app"
 ```

@@ -101,7 +101,9 @@ jobs:
         id: native_gui
         if: steps.control_build.outcome == 'success' && steps.slices.outcome == 'success'
         continue-on-error: true
-        run: python tests/test_MacNativeGui.py out/build/macos-arm64-control/handbridge-engine out/build/macos-arm64-control/handbridge-control
+        run: |
+          QT_QPA_PLATFORM=cocoa ctest --preset macos-arm64-control -R '^MacMenuBar$' --output-on-failure
+          python tests/test_MacNativeGui.py out/build/macos-arm64-control/handbridge-engine out/build/macos-arm64-control/handbridge-control
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:

@@ -12,6 +12,16 @@ target_link_libraries(handbridge-control-client PUBLIC Qt6::Core Qt6::Network)
 qt_add_executable(handbridge-control WIN32 src/control/control_main.cpp)
 target_link_libraries(handbridge-control PRIVATE
     handbridge-control-client Qt6::Quick Qt6::Qml Qt6::QuickControls2)
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    enable_language(OBJCXX)
+    find_library(HANDBRIDGE_APPKIT AppKit REQUIRED)
+    add_library(handbridge-mac-menu STATIC src/control/MacMenuBar.mm)
+    set_target_properties(handbridge-mac-menu PROPERTIES OBJCXX_STANDARD 20 OBJCXX_STANDARD_REQUIRED ON)
+    target_compile_options(handbridge-mac-menu PRIVATE -fobjc-arc)
+    target_include_directories(handbridge-mac-menu PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(handbridge-mac-menu PUBLIC Qt6::Gui ${HANDBRIDGE_APPKIT})
+    target_link_libraries(handbridge-control PRIVATE handbridge-mac-menu)
+endif()
 # Local components retain their relative paths and are loaded from qrc; no web UI.
 file(GLOB_RECURSE HANDBRIDGE_CONTROL_QML CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/control/qml/*.qml"
@@ -29,6 +39,11 @@ if(BUILD_TESTING)
         add_test(NAME MacControllerStartup COMMAND ${Python3_EXECUTABLE}
             ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_MacControllerStartup.py $<TARGET_FILE:handbridge-control>)
         set_tests_properties(MacControllerStartup PROPERTIES TIMEOUT 30)
+        add_executable(test_MacMenuBar tests/test_MacMenuBar.mm)
+        set_target_properties(test_MacMenuBar PROPERTIES AUTOMOC ON OBJCXX_STANDARD 20 OBJCXX_STANDARD_REQUIRED ON)
+        target_link_libraries(test_MacMenuBar PRIVATE handbridge-mac-menu Qt6::Test)
+        add_test(NAME MacMenuBar COMMAND test_MacMenuBar)
+        set_tests_properties(MacMenuBar PROPERTIES TIMEOUT 30 SKIP_RETURN_CODE 77)
     endif()
     add_executable(test_Controller tests/test_Controller.cpp)
     set_target_properties(test_Controller PROPERTIES AUTOMOC ON)

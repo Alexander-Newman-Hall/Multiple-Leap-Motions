@@ -1,5 +1,18 @@
 # Hand Bridge development handoff
 
+## 2.0.3 Mac menu bar build
+
+Branch `feature/macos-menu-bar` starts from public `v2.0.2` (`09b04da`).
+`src/control/MacMenuBar.mm` owns the AppKit status item and window actions.
+`control_main.cpp` controls initial visibility and `scripts/package-macos.py`
+marks the bundle as a menu bar agent. The engine continues to own camera
+tracking and OSC independently of the window. The operator guide includes
+instructions for opening the dashboard and quitting the menu bar controller.
+All 91 CTest entries passed. On the extracted build, two physical cameras
+streamed during the hidden launch and Finder-style reopening of the dashboard.
+The remaining field check is a scheduled cold login and show-length soak.
+See the [Mac verification report](reports/MACOS_ARM64.md) for the results.
+
 ## 2.0.2 local Mac build
 
 The branch `feature/macos-unattended-start` is based on the public 2.0.1

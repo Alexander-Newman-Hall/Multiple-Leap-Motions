@@ -1,4 +1,4 @@
-Hand Bridge 2.0.2 for Apple Silicon
+Hand Bridge 2.0.3 for Apple Silicon
 
 Installation
 
@@ -23,9 +23,12 @@ Installation
 
 Automatic startup
 
-Opening Hand Bridge starts the tracking engine and restores its saved settings.
-If the engine is already running, the window reconnects to it. Cameras can be
-connected before or after launch. A muted output stays muted.
+Opening Hand Bridge starts tracking in the background with its saved settings.
+Click the hand icon near the clock in the Mac menu bar and choose Open Hand
+Bridge whenever you want the controls. Close the window to hide it again.
+Quit Controller in the same menu removes the icon and leaves tracking running.
+If the engine is already running, the controller reconnects to it. Cameras
+can be connected before or after launch. A muted output stays muted.
 
 For unattended startup after you log in, add Hand Bridge.app to your Mac's
 Login Items. If you use a scheduler, have it open the app in your logged-in
@@ -37,9 +40,9 @@ Complete the first launch and Hyperion setup once before relying on the schedule
 
 Verify tracking
 
-1. Open Hand Bridge and connect the cameras with USB data cables. Watch
-   Overview for frames. If the app reports a missing runtime, install
-   Hyperion and click Start engine to retry.
+1. Open the controls from the hand in the menu bar and connect the cameras
+   with USB data cables. Watch Overview for frames. If the app reports a
+   missing runtime, install Hyperion and click Start engine to retry.
 
 2. With both attached, Overview should show Cameras streaming 2 / 2. Each
    camera should show a frame rate even with no hands in view. If one stays
@@ -59,7 +62,7 @@ full count. The Output stage badge shows whether sending has recovered.
 
 Source and licenses
 
-The companion Hand-Bridge-2.0.2-Source.zip includes the source, tests and
+The companion Hand-Bridge-2.0.3-Source.zip includes the source, tests and
 build instructions for this build. Published Hand Bridge releases are at
 https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/releases
 

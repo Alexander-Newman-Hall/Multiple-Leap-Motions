@@ -37,8 +37,9 @@ def package(build, qt, destination):
                 "CFBundleDisplayName": "Hand Bridge",
                 "CFBundleExecutable": "handbridge-control",
                 "CFBundleIconFile": "HandBridge.icns",
-                "CFBundleShortVersionString": "2.0.2",
-                "CFBundleVersion": "2.0.2",
+                "CFBundleShortVersionString": "2.0.3",
+                "CFBundleVersion": "2.0.3",
+                "LSUIElement": True,
                 "LSMinimumSystemVersion": "12.0",
                 "NSHighResolutionCapable": True,
             }, stream)
