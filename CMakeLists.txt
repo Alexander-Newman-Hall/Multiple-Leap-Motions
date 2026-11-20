@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(HandBridge VERSION 2.0.3 LANGUAGES CXX)
+project(HandBridge VERSION 2.0.6 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -53,7 +53,8 @@ add_library(handbridge-core STATIC
     src/core/DeviceAliasManager.cpp
     src/pipeline/02_LeapSorter.cpp
     src/pipeline/03_DataProcessor.cpp
-    src/pipeline/04_OscSender.cpp)
+    src/pipeline/04_OscSender.cpp
+    src/transport/osc/SkeletonOsc.cpp)
 target_include_directories(handbridge-core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/transport
@@ -109,7 +110,7 @@ if(BUILD_TESTING)
     FetchContent_MakeAvailable(googletest)
     include(GoogleTest)
     # Explicit list: stale legacy tests are inventoried in BUILD_AUDIT.md.
-    foreach(handbridge_test test_ConfigManager test_DeviceAliasManager test_LeapSorter test_LegacyOscContract test_EngineRuntime test_ControlSettings test_Processing)
+    foreach(handbridge_test test_ConfigManager test_DeviceAliasManager test_LeapSorter test_LegacyOscContract test_SkeletonOsc test_EngineRuntime test_ControlSettings test_Processing)
         add_executable(${handbridge_test} tests/${handbridge_test}.cpp)
         target_link_libraries(${handbridge_test} PRIVATE handbridge-runtime GTest::gtest_main)
         gtest_discover_tests(${handbridge_test} DISCOVERY_TIMEOUT 30)

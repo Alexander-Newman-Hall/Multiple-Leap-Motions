@@ -14,6 +14,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <system_error>
+#include <type_traits>
 
 // oscpack's UdpSocket::Send discards send()'s return value on both platforms.
 // Keep its wire serializer, but check actual OS results here.
@@ -201,12 +202,29 @@ void OscSender::sendBundle(const std::map<std::string, float>&, const std::strin
 }
 
 bool OscSender::sendMessageChecked(const std::string& address, float value) {
+    const OscArgument argument = value;
+    return sendArgumentsChecked(address, {&argument, 1});
+}
+
+bool OscSender::sendArgumentsChecked(const std::string& address, std::span<const OscArgument> arguments) {
     std::lock_guard<std::mutex> lock(mutex_);
     ++stats_.sendAttempts;
     stats_.lastAttemptUs = monotonicUs();
     try {
         osc::OutboundPacketStream packet(buffer_.data(), buffer_.size());
-        packet << osc::BeginMessage(address.c_str()) << value << osc::EndMessage;
+        packet << osc::BeginMessage(address.c_str());
+        for (const auto& argument : arguments) {
+            std::visit([&](auto value) {
+                // oscpack's 64-bit typedef differs across LP64/LLP64 platforms.
+                if constexpr (std::is_same_v<decltype(value), std::int64_t>)
+                    packet << static_cast<osc::int64>(value);
+                else if constexpr (std::is_same_v<decltype(value), std::int32_t>)
+                    packet << static_cast<osc::int32>(value);
+                else
+                    packet << value;
+            }, argument);
+        }
+        packet << osc::EndMessage;
         return sendPacket(packet.Data(), packet.Size());
     } catch (const std::exception& e) {
         ++stats_.sendErrors;
@@ -220,7 +238,11 @@ void OscSender::sendMessage(const std::string& address, float value) {
 }
 
 bool OscSender::sendOscMessageChecked(const OscMessage& message) {
-    if (message.address.empty() || message.values.empty()) return false;
+    if (message.address.empty()) return false;
+    if (!message.arguments.empty()) {
+        return message.values.empty() && sendArgumentsChecked(message.address, message.arguments);
+    }
+    if (message.values.empty()) return false;
     bool success = true;
     // Legacy behavior: even multiple values produce separate scalar datagrams.
     for (float value : message.values) {

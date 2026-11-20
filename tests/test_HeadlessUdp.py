@@ -9,6 +9,9 @@ import threading
 import uuid
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "examples"))
+from handbridge_skeleton import decode_packet
+
 
 def decode(packet):
     offset = 0
@@ -28,7 +31,7 @@ def decode(packet):
     return address, struct.unpack(">f", packet[offset:])[0]
 
 
-def run_receiver(engine, scenario, config=None):
+def run_receiver(engine, scenario, config=None, decoder=decode):
     packets, errors = [], []
     done = threading.Event()
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as receiver:
@@ -38,7 +41,7 @@ def run_receiver(engine, scenario, config=None):
         def listen():
             while not done.is_set():
                 try:
-                    packets.append(decode(receiver.recv(8192)))
+                    packets.append(decoder(receiver.recv(8192)))
                 except socket.timeout:
                     continue
                 except Exception as error:
@@ -95,6 +98,48 @@ def check_engine(engine):
         assert selected and all(address.startswith(("/leap/dev7/left/palm/", "/leap/dev8/right/palm/"))
                                 for address, _ in selected)
         assert config.read_bytes() == before, "Engine must not silently overwrite config"
+        config.write_text(json.dumps({
+            "schema_version": 2,
+            "channels": {"sendFullSkeleton": True},
+            "processing": {"bypass": False, "output_units": "m"},
+        }), encoding="utf-8")
+        def capture(packet):
+            if packet.startswith(b"/leap/"):
+                return decode(packet)
+            assert len(packet) <= 1472
+            sample = decode_packet(packet)
+            assert sample is not None
+            return sample
+        received, _ = run_receiver(engine, "stall", config, capture)
+        assert any(isinstance(item, tuple) and item == ("/leap/dev2/right/wrist/ty", struct.unpack(">f", struct.pack(">f", .15))[0])
+                   for item in received), "Legacy positions must still follow selected units"
+        skeletons = [item for item in received if isinstance(item, dict)]
+        assert {(s["alias"], s["side"], s["hand_id"]) for s in skeletons} == {
+            ("dev1", "left", 100), ("dev2", "right", 101)}
+        for sample in skeletons:
+            if not sample["valid"]:
+                continue
+            assert sample["timestamp_us"] >= 0 and sample["frame_id"] > 0
+            assert sample["arm"]["prev"] == (80, 150, 230)
+            assert sample["arm"]["next"] == (80, 150, -40)
+            assert sample["palm"]["rotation"] == (1, 0, 0, 0)
+            assert sample["palm"]["width"] == 80 and sample["pinch_distance"] == 35
+            for index, digit in enumerate(sample["digits"].values()):
+                assert digit["id"] == index
+                bones = list(digit["bones"].values())
+                assert all(bone is not None for bone in bones)
+                assert all(a["next"] == b["prev"] for a, b in zip(bones, bones[1:]))
+                assert bones[-1]["next"] == (index * 10, 250, -20)
+            thumb = sample["digits"]["thumb"]["bones"]["metacarpal"]
+            assert thumb["prev"] == thumb["next"] and thumb["width"] == 0
+        def transitions(alias):
+            from itertools import groupby
+            return [(valid, len(list(group))) for valid, group in groupby(
+                (s for s in skeletons if s["alias"] == alias), key=lambda s: s["valid"])]
+        left, right = transitions("dev1"), transitions("dev2")
+        assert [valid for valid, count in left] == [True, False, True, False], left
+        assert [valid for valid, count in right] == [True, False], right
+        assert all(count == 1 for valid, count in left + right if not valid)
         config.write_text('{"schema_version":999,"osc":{"port":7000}}', encoding="utf-8")
         rejected = subprocess.run([*engine, "--simulate", "--config", str(config)],
                                   capture_output=True, text=True, timeout=5)

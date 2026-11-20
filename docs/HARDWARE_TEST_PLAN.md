@@ -34,6 +34,13 @@ addresses/types before interpreting CHOP channels. A sender counter is not recei
 
 ## Gate A — one real camera
 
+- [ ] In Overview, introduce one hand, add the other beside it, then withdraw
+      the first while moving the remaining hand. Repeat in reverse order.
+      Check both palm labels on the same camera, independent motion on the
+      receiving rig, and continuous frame counts. Select Both on the camera
+      for this OSC check. Repeat with a second camera observing the same hand
+      and verify that camera aliases remain distinct.
+
 - [ ] Real service connection is acknowledged only after the connected server
       reports an accepted Hyperion version; record both client and service values.
 - [ ] One camera appears with stable serial/alias and separate present/subscribed/
@@ -129,10 +136,16 @@ selectors are implemented. Per-channel processing overrides are not implemented.
 - [ ] Record cold boot, login/session, sleep and optional autostart behavior relevant
       to the installation. Ordinary user-session execution is the intended model.
 
+## Full hand skeleton
+
+- [ ] In an OSC In DAT, receive a physical left and right hand, including a fully tracked forearm and the four segment slots of each digit. Verify the thumb metacarpal has coincident endpoints.
+- [ ] Calibrate an open hand, curl the index, oppose the thumb and roll the wrist independently. Remove and reacquire the hand and check the rig handles validity and identity changes.
+- [ ] Repeat on each camera and measure receiver frame time in the target scene.
+
 ## Future optional checks — not acceptance claims for this build
 
-Per-channel raw/processed overrides, advanced calibration scope, OSC v2 explicit
-validity, bundled/MTU-split packets, recorded replay and automatic output socket
+Per-channel raw/processed overrides, advanced calibration scope,
+bundled/MTU-split packets, recorded replay and automatic output socket
 supervision need their own implementation and tests before physical acceptance.
 Do not mark these as broken or passed by exercising controls that do not exist.
 

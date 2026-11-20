@@ -1,6 +1,7 @@
 #include "ipc/Endpoint.hpp"
 #include "ipc/Framing.hpp"
 #include "ConfigurationStore.hpp"
+#include "Preview.hpp"
 #include "SnapshotMailbox.hpp"
 #include "runtime/ControlSettings.hpp"
 #include "runtime/EngineRuntime.hpp"
@@ -83,19 +84,19 @@ ControlSettings readSettings(const QString& path) {
     if (!legacy.loadConfig(path.toStdString())) throw std::runtime_error("Invalid legacy configuration");
     return ControlSettings::fromLegacy(legacy);
 }
-QJsonArray vector(const Vector3& value) { return {value.x, value.y, value.z}; }
-QJsonValue preview(const FrameData& frame) {
-    if (frame.hands.empty()) return QJsonValue::Null;
-    const auto& hand = frame.hands.front();
-    QJsonArray tips;
-    for (const auto& finger : hand.fingers) {
-        if (finger.isValid() && finger.bones.size() > 3 && finger.bones[3].isValid())
-            tips.push_back(vector(finger.bones[3].nextJoint));
+QJsonObject devicePreview(const EngineRuntime& runtime, const std::string& serial, const DeviceStatus& status) {
+    QJsonArray raw, processed;
+    const auto found = runtime.previews().find(serial);
+    if (status.framesFresh && found != runtime.previews().end()) {
+        raw = engine::previewHands(found->second.raw);
+        processed = engine::previewHands(found->second.processed);
     }
-    return QJsonObject{{"palm", vector(hand.palm.position)},
-        {"wrist", hand.arm.isValid() ? QJsonValue(vector(hand.arm.wristPosition)) : QJsonValue(QJsonValue::Null)},
-        {"tips", tips}, {"hand", QString::fromStdString(hand.handType)},
-        {"pinch", hand.pinchStrength}, {"grab", hand.grabStrength}};
+    // Older dashboards read the first-hand object. New dashboards use the arrays.
+    return {{"serial", QString::fromStdString(serial)}, {"alias", QString::fromStdString(status.alias)},
+        {"present", status.present}, {"frames_fresh", status.framesFresh}, {"hands_visible", status.handsVisible},
+        {"raw", raw.isEmpty() ? QJsonValue(QJsonValue::Null) : raw.first()},
+        {"processed", processed.isEmpty() ? QJsonValue(QJsonValue::Null) : processed.first()},
+        {"raw_hands", raw}, {"processed_hands", processed}};
 }
 struct Snapshot {
     QJsonObject config, state;
@@ -103,7 +104,7 @@ struct Snapshot {
     quint64 revision = 1;
 };
 struct Job {
-    enum Kind { Apply, RestartDevice, ResetOutput } kind = Apply;
+    enum Kind { Apply, RestartDevice, ResetOutput, GetPreview } kind = Apply;
     ControlSettings settings;
     quint64 expectedRevision = 0;
     std::string serial;
@@ -160,21 +161,17 @@ public:
                     const auto span = now > lastSnapshot ? now - lastSnapshot : 0;
                     QJsonArray devices;
                     for (const auto& [serial, status] : runtime.devices()) {
-                        QJsonObject device{{"serial", QString::fromStdString(serial)}, {"alias", QString::fromStdString(status.alias)},
-                            {"state", stateName(status.state)}, {"present", status.present}, {"subscribed", status.subscribed},
-                            {"frames_fresh", status.framesFresh}, {"hands_visible", status.handsVisible},
-                            {"frames_in", static_cast<qint64>(status.framesIn)}, {"frames_processed", static_cast<qint64>(status.framesProcessed)},
-                            {"queue_drops", static_cast<qint64>(status.queueDrops)}, {"reconnect_attempts", static_cast<qint64>(status.reconnectAttempts)},
-                            {"reason", QString::fromStdString(status.reason)},
-                            {"input_fps", span ? double(status.framesIn - previousFrames[serial]) * 1000.0 / double(span) : 0.0},
-                            {"last_frame_age_ms", status.lastFrameMs ? QJsonValue(static_cast<qint64>(now - *status.lastFrameMs)) : QJsonValue(QJsonValue::Null)},
-                            {"raw", QJsonValue::Null}, {"processed", QJsonValue::Null}};
+                        auto device = devicePreview(runtime, serial, status);
+                        device["state"] = stateName(status.state);
+                        device["subscribed"] = status.subscribed;
+                        device["frames_in"] = static_cast<qint64>(status.framesIn);
+                        device["frames_processed"] = static_cast<qint64>(status.framesProcessed);
+                        device["queue_drops"] = static_cast<qint64>(status.queueDrops);
+                        device["reconnect_attempts"] = static_cast<qint64>(status.reconnectAttempts);
+                        device["reason"] = QString::fromStdString(status.reason);
+                        device["input_fps"] = span ? double(status.framesIn - previousFrames[serial]) * 1000.0 / double(span) : 0.0;
+                        device["last_frame_age_ms"] = status.lastFrameMs ? QJsonValue(static_cast<qint64>(now - *status.lastFrameMs)) : QJsonValue(QJsonValue::Null);
                         previousFrames[serial] = status.framesIn;
-                        const auto found = runtime.previews().find(serial);
-                        if (status.framesFresh && found != runtime.previews().end()) {
-                            device["raw"] = preview(found->second.raw);
-                            device["processed"] = preview(found->second.processed);
-                        }
                         devices.push_back(device);
                     }
                     const auto stats = sender->getStats();
@@ -224,6 +221,14 @@ public:
                         work.swap(jobs_);
                     }
                     for (auto& job : work) {
+                        if (job.kind == Job::GetPreview) {
+                            QJsonArray devices;
+                            for (const auto& [serial, status] : runtime.devices())
+                                devices.push_back(devicePreview(runtime, serial, status));
+                            const QJsonObject response{{"ok", true}, {"devices", devices}, {"revision", static_cast<qint64>(revision)}};
+                            QMetaObject::invokeMethod(context_, [done = std::move(job.done), response]() { done(response); }, Qt::QueuedConnection);
+                            continue;
+                        }
                         if (const auto previous = snapshot_.load(); previous && previous->config != object(runtime.settings().toJson())) publish();
                         QJsonObject response;
                         try {
@@ -362,13 +367,21 @@ public:
         });
         telemetry_.setInterval(100);
         connect(&telemetry_, &QTimer::timeout, this, [this]() {
+            if (clients_.isEmpty()) return;
             const auto message = stateMessage(true);
             const auto sockets = clients_.keys();
             for (auto* socket : sockets) transmit(socket, message);
         });
         telemetry_.start();
     }
-    ~ControlServer() override { worker_->stop(); server_.close(); }
+    ~ControlServer() override {
+        worker_->stop();
+        telemetry_.stop();
+        // The server owns its accepted sockets. Their destructors can emit
+        // disconnected after the client map's lifetime ends.
+        for (auto* socket : clients_.keys()) socket->disconnect(this);
+        server_.close();
+    }
     void stop() { worker_->stop(); }
     bool failed() const { return worker_->failed(); }
     QJsonObject summary() const {
@@ -392,7 +405,7 @@ private:
     }
     QJsonObject stateMessage(bool telemetry = false) const {
         const auto current = worker_->snapshot();
-        QJsonObject result{{"version", 1}, {"revision", static_cast<qint64>(current->revision)},
+        QJsonObject result{{"version", 1}, {"preview_available", true}, {"revision", static_cast<qint64>(current->revision)},
             {"saved_revision", static_cast<qint64>(store_.savedRevision())}, {"config", current->config},
             {"state", current->state}, {"logs", current->logs}, {"profiles", profiles()}};
         if (telemetry) result["event"] = "state";
@@ -481,10 +494,17 @@ private:
                 job.kind = Job::RestartDevice;
                 job.serial = request["serial"].toString().toStdString();
             } else if (command == "reset_output") job.kind = Job::ResetOutput;
+            else if (command == "get_preview") job.kind = Job::GetPreview;
             else throw std::invalid_argument("Unknown control command");
             const QPointer<QLocalSocket> guarded(socket);
             const bool loading = command == "load_profile";
-            job.done = [this, guarded, id, loading](QJsonObject response) {
+            job.done = [this, guarded, id, loading, previewOnly = job.kind == Job::GetPreview](QJsonObject response) {
+                if (previewOnly) {
+                    response["version"] = 1;
+                    response["id"] = id;
+                    if (guarded) transmit(guarded, response);
+                    return;
+                }
                 const auto appliedRevision = static_cast<quint64>(response["revision"].toInteger());
                 // Worker completion is queued onto this thread. Another client
                 // may already have saved a later revision before this older
@@ -536,7 +556,7 @@ private:
 int main(int argc, char** argv) {
     QCoreApplication app(argc, argv);
     QCoreApplication::setApplicationName("HandBridge");
-    QCoreApplication::setApplicationVersion("2.0.3");
+    QCoreApplication::setApplicationVersion("2.0.6");
     try {
         QCommandLineParser parser;
         parser.setApplicationDescription("Hand Bridge native headless engine. LeapC tracking by default; --simulate selects mock cameras. UNTESTED ON HARDWARE.");

@@ -1,5 +1,21 @@
 # Hand Bridge 2.0 changelog
 
+## 2.0.6 — Routed hands by default, 2026-11-19
+
+- Overview opens on the hand selection applied to each camera. A right-only camera shows just the right hand. Choose **Raw camera** to see all detections.
+- The routed view clears when output is muted and switches to the acknowledged hand selection as soon as a configuration change is applied.
+
+## 2.0.5 — Two hands in the camera preview, 2026-11-19
+
+- Draw each hand the camera reports. A single connected camera uses the full preview width, and left and right palms have distinct labels.
+- Refresh the visible preview at about 30 Hz and clear it when the dashboard loses contact with the engine.
+- Keep Devices editors in place during telemetry updates and close the engine cleanly with a dashboard client attached.
+
+## 2.0.4 — Full hand skeleton, 2026-11-19
+
+- Added the optional raw skeleton OSC stream, explicit loss events, GUI switch, Python decoder and T2 retargeting guide.
+- Both engine builds load the switch from schema-2 profiles. Existing profiles default to scalar output.
+
 ## 2.0.3 — Mac menu bar controls, 2026-11-18
 
 - The Mac app starts with its controls hidden. The hand icon in the menu bar

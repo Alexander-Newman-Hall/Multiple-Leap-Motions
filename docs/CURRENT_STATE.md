@@ -1,5 +1,19 @@
 # Current state — Apple Silicon Desktop preview
 
+## 2.0.6 routed preview, 2026-11-19
+
+Overview starts on **Routed hands**, showing each camera's applied hand selection. **Raw camera** is available for checking detections. The native arm64 Release build passed 97/97 CTest entries with `ctest --test-dir <build> --output-on-failure`. An isolated native dashboard launch with two simulated camera feeds showed one right hand in the right-only pane and both hands in the other pane. This release changes the dashboard presentation.
+
+## 2.0.5 two-hand preview, 2026-11-19
+
+The dashboard previously discarded every hand after the first in a camera frame. Both the raw and processed previews now draw all reported hands, with independent labels and a full-width pane for a single connected camera. The native arm64 Release build passed 97/97 CTest entries. The Qt-free SDK-off build passed 69/69. Tests replayed left-first and right-first arrivals and checked actual rendered pixels as each hand entered or left. The runtime also passed same-side, same-native-ID isolation across two simulated cameras.
+
+The installed Mac build restored the existing profile and resumed a fresh stream from one physical camera. Its live dashboard displayed both physical hands at once, confirmed visually by the operator and in per-hand telemetry. A separate, disposable copy of the saved T2 project ran at 60 timeline frames per second through a simulated one-hand, two-hand, one-hand sequence. A physical second camera and a show-length soak remain field checks. [Mac validation](reports/MACOS_ARM64.md)
+
+## 2.0.4 full hand skeleton, 2026-11-19
+
+The controller and both engines support a raw, opt-in skeleton message. The SDK-enabled Apple Silicon Release build passed 95 CTest entries. The Qt-free SDK-off Release build also passed its suite. The UDP suite uses decoded packets from two simulated devices and checks 20 segment slots, raw millimeters alongside processed legacy meters, and loss/reacquisition. The documented receiver callback also decoded real UDP bytes in TouchDesigner's bundled Python using stand-ins for DAT storage and module lookup. The in-project receiver remains unverified. A separate eight-second run using the installed LeapC provider reported zero devices, so physical full-hand tracking is pending. [Protocol and decoder](FULL_HAND_OSC.md) · [Mac build report](reports/MACOS_ARM64.md)
+
 ## 2.0.3 Mac menu bar build, 2026-11-18
 
 On Apple Silicon, the app starts its hardware engine with the dashboard hidden.

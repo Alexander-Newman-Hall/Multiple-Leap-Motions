@@ -59,7 +59,8 @@ private:
     };
     void event(const TrackingEvent& event, Millis now);
     void emitOutput(const OscMessage& message);
-    void clearOutput(const std::string& serial);
+    void clearLegacyOutput(const std::string& serial);
+    void clearSkeletonOutput(const std::string& serial);
     void processFrame(const std::string& serial, FrameData frame, Millis arrivalMs, Millis now);
     void updateOutputHealth(std::uint64_t previousErrors);
     void invalidate(const std::string& serial);
@@ -77,6 +78,11 @@ private:
     std::map<std::string, FramePreview> previews_;
     std::map<std::string, Millis> lastOutputMs_;
     std::map<std::string, std::set<std::string>> emittedHands_;
+    // LeapC can report several hands of the same chirality from one device.
+    using SkeletonHand = std::pair<std::string, std::optional<std::uint32_t>>;
+    using SkeletonHands = std::set<SkeletonHand>;
+    std::map<std::string, SkeletonHands> emittedSkeletons_;
+    void emitSkeletonLoss(const DeviceStatus& device, const SkeletonHand& hand);
     std::map<std::string, DeviceStatus> status_;
     std::map<std::string, Pending> pending_;
     bool running_ = false, serviceConnected_ = false;

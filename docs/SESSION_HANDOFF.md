@@ -1,5 +1,23 @@
 # Hand Bridge development handoff
 
+## 2.0.6 routed hand selection
+
+Local branch `feature/full-hand-skeleton-osc` starts at `6d80da2`. `src/control/qml/Main.qml` sets the initial preview and passes the acknowledged OSC and device settings to `PreviewCanvas.qml`. The canvas draws the existing engine-provided filtered hands or, on request, raw detections. `Controller.cpp` replaces cached preview data with the acknowledged state when routing revisions change.
+
+The native Release suite passed 97/97, including the new render and revision checks in `test_ControlUi.cpp` and `test_Controller.cpp`. The native launch check used a private endpoint with two simulated cameras, one right-only and the other set to both. The next physical two-camera check is to repeat those assignments against a receiver with both hands in view.
+
+## 2.0.5 two-hand preview
+
+Local branch `feature/full-hand-skeleton-osc` is based at `6d80da2`. The engine's `Preview.hpp` builds a list for each raw and processed frame. `qt_engine_main.cpp`, `Controller.cpp` and `PreviewCanvas.qml` carry each hand to its camera pane. The visible Overview can request a preview at 33 ms intervals while the 100 ms status stream continues. Older controllers can read their original first-hand fields. The worker still owns device polling and OSC. Disconnecting the controller clears its view, and destroying the control server detaches live socket callbacks before their buffers go out of scope.
+
+The arm64 SDK-enabled and Qt-free builds passed 97 and 69 tests respectively with `ctest --test-dir <build> --output-on-failure`. The amended control, rendering and runtime tests cover the missing second hand and loss of a camera or client. The installed package passed a profile readback and a one-camera test with both hands visible on the dashboard. Next field check: repeat the hand-entry sequence under the installation's usual USB, lighting and two-camera arrangement, and compare the Ultraleap Visualizer with Hand Bridge Raw if physical jitter persists. [Mac results](reports/MACOS_ARM64.md)
+
+## 2.0.4 skeleton output
+
+Local branch `feature/full-hand-skeleton-osc` began at `6d80da2`. The LeapC adapter copies the 6.2 hand fields. The encoder in `src/transport/osc/SkeletonOsc.cpp` builds one fixed-layout live pose or one short loss event. `EngineRuntime` selects raw skeletons by alias, side and native ID. Controller settings expose the feature under OSC Output. The Apple Silicon package includes the Python decoder and [wire/rig guide](FULL_HAND_OSC.md).
+
+Run `ctest --test-dir <build> --output-on-failure` on the arm64 Release build. The SDK-enabled suite passed 95/95, including the controller click, decoded loopback output, SDK field copy and same-side hand identity tests. The published example callback decoded both simulated hands and loss events under TouchDesigner's bundled Python 3.11.15, with stand-ins for the DAT's lookup and storage calls. An in-project OSC In DAT test remains open. The native library loaded on the eight-second real-provider probe. It enumerated zero devices. The next field check is a visible hand through the receiver while curling one digit and rolling the wrist. [Mac verification](reports/MACOS_ARM64.md)
+
 ## 2.0.3 Mac menu bar build
 
 Branch `feature/macos-menu-bar` starts from public `v2.0.2` (`09b04da`).

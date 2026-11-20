@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
     QGuiApplication app(argc, argv);
     QCoreApplication::setApplicationName(QStringLiteral("HandBridgeControl"));
     QCoreApplication::setOrganizationName(QStringLiteral("HandBridge"));
-    QCoreApplication::setApplicationVersion(QStringLiteral("2.0.3"));
+    QCoreApplication::setApplicationVersion(QStringLiteral("2.0.6"));
     QQuickStyle::setStyle(QStringLiteral("Basic"));
     QFont font;
     font.setFamily(QFontDatabase::families().contains(QStringLiteral("Segoe UI")) ? QStringLiteral("Segoe UI") : QStringLiteral("DejaVu Sans"));

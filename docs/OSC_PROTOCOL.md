@@ -37,18 +37,9 @@ The same families exist for other fingers, `right` and other aliases. The exact 
 - Add a tiny test OSC receiver or packet decoder in C++ tests and an optional TouchDesigner receiving example. Assertions should decode OSC packets, not compare UDP payload strings.
 - Preserve default/legacy behavior until an explicit user-selected protocol/profile migration.
 
-## Optional v2 (NOT CURRENTLY IMPLEMENTED)
+## Full hand skeleton in 2.0.4
 
-After compatibility is stable, an opt-in frame-oriented protocol may reduce packet overhead. Proposed examples below are DESIGN EXAMPLES only:
-
-```text
-/handbridge/v2/device/dev1/hand/left/valid               int32(1 or 0)
-/handbridge/v2/device/dev1/hand/left/palm/position       float32(x,y,z)
-/handbridge/v2/device/dev1/hand/left/index/tip_position float32(x,y,z)
-/handbridge/v2/device/dev1/status/frames_fresh          int32(1 or 0)
-```
-
-For v2 define axis convention, units (e.g. meters), hand IDs, validity, sequence and timestamps, bundle framing, maximum packet size, data loss policy and schema version. Never mix v1 scalar fields and v2 vector arguments at the same OSC address. If large OSC bundles approach UDP fragmentation thresholds, split by device/hand/frame with documentation; do not assume unlimited datagram size.
+Enable **OSC Output → Full hand skeleton → Apply changes** for one complete raw hand per UDP datagram. The address is `/handbridge/v2/{alias}/{side}/skeleton`. The first four arguments carry presence, tracking frame ID, capture time and device-local hand ID. The pose carries forearm endpoints, palm and hand data, and four named bone segments for each of five digits. [Wire layout, decoder and T2 rig mapping](FULL_HAND_OSC.md)
 
 ## TouchDesigner connection contract
 - An **OSC In CHOP** can receive scalar numeric channels on the same port; inspect path mapping options and device names. An **OSC In DAT** is useful to inspect message paths and bundles or debug timestamps.
@@ -73,8 +64,7 @@ retaining the scalar loss contract. Optional orientation/velocity/normal may
 still hold their last value at receivers; consult engine freshness state. The
 original hardware path has not gained the new supervisor yet.
 
-Packet order is frozen per fixture; each scalar remains one datagram. No new
-bundle/v2 schema or timestamp packet is enabled. Invalid wrist/finger geometry
+The legacy fixtures define packet order. Each scalar occupies one datagram. The optional v2 stream carries its own capture timestamp. Invalid wrist/finger geometry
 is omitted, and top-level hand validity is not interpreted by the legacy processor.
 Velocity remains mm/s, normal dimensionless, quaternion order WXYZ, visibleTime
 seconds from source microseconds. Multiple DTO values retain historical separate
@@ -107,8 +97,7 @@ Optional gestures_enabled adds two scalar float0/1 addresses per selected hand:
 `/leap/{alias}/{hand}/pinchActive` and `grabActive`. Enter/exit thresholds use
 hysteresis; loss resets once. Native pinchStrength/grabStrength are preserved.
 No smoothing/gesture motion is synthesized after tracking disappears. This
-controller's processing scope is global; per-channel overrides and all-bone/v2
-output remain future work. Full order/bounds: CONFIG_SCHEMA.md.
+controller applies processing globally to legacy values. The optical skeleton uses raw camera space. [Settings and bounds](CONFIG_SCHEMA.md)
 
 Controller shutdown/crash leaves the QtCore/Network engine and OSC worker alive.
 Raw/processed point previews and measured telemetry travel over sampled local IPC;

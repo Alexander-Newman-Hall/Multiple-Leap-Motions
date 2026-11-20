@@ -47,7 +47,7 @@ Do not restart all processes as the first diagnostic step if logs/counters can i
 
 ## Future optional channel version
 
-If a v2 OSC schema is implemented, explicitly label `/handbridge/v2/...` or another reviewed prefix and document exact schema alongside original legacy scheme. Keep legacy default and opt-in selection, and provide TD mappings so existing projects are not broken.
+For a skinned hand, enable **Full hand skeleton** in OSC Output. Use an OSC In DAT to receive one complete hand per message, with explicit validity, capture time, 20 bone segments and the forearm. [TouchDesigner callback, named fields and rig mapping](FULL_HAND_OSC.md)
 
 ## Current simulated smoke test
 

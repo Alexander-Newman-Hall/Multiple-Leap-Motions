@@ -9,6 +9,7 @@
 #include <csignal>
 #include <iostream>
 #include <filesystem>
+#include <fstream>
 #include <optional>
 #include <thread>
 
@@ -48,13 +49,13 @@ int main(int argc, char** argv) {
                 return argv[index];
             };
             if (flag == "--help") {
-                std::cout << "handbridge-engine [--simulate] [--headless] [--config legacy.json]\n"
+                std::cout << "handbridge-engine [--simulate] [--headless] [--config <schema-2-or-legacy.json>]\n"
                     "  [--host 127.0.0.1] [--port 9000] [--duration-ms N] [--scenario normal|stall]\n"
                     "  [--leapc-library <absolute installed-runtime path>] [--check-leapc]\n"
                     "Default: LeapC tracking when enabled at build time. --simulate selects mock cameras.\n"
                     "N=0 runs until Ctrl-C. UNTESTED ON HARDWARE.\n";
                 return 0;
-            } else if (flag == "--version") { std::cout << "Hand Bridge 2.0\n"; return 0; }
+            } else if (flag == "--version") { std::cout << "Hand Bridge 2.0.6\n"; return 0; }
             else if (flag == "--simulate") simulate = true;
             else if (flag == "--check-leapc") checkLeapC = true;
             else if (flag == "--headless") {} // Always headless, accepted explicitly for scripts.
@@ -83,7 +84,19 @@ int main(int argc, char** argv) {
             return 0;
         }
         ConfigManager config;
-        if (configPath && !config.loadConfig(*configPath)) throw std::invalid_argument("cannot load legacy config: " + *configPath);
+        std::optional<handbridge::ControlSettings> profile;
+        if (configPath) {
+            std::ifstream input(*configPath);
+            if (!input) throw std::invalid_argument("cannot read config: " + *configPath);
+            const auto document = nlohmann::json::parse(input);
+            if (document.contains("schema_version")) {
+                profile = handbridge::ControlSettings::fromJson(document);
+                config.setOscIp(profile->osc.host);
+                config.setOscPort(profile->osc.port);
+            } else if (!config.loadConfig(*configPath)) {
+                throw std::invalid_argument("cannot load legacy config: " + *configPath);
+            }
+        }
         if (host) config.setOscIp(*host);
         if (port) config.setOscPort(*port);
         if (!ipv4(config.getOscIp()) || config.getOscPort() < 1 || config.getOscPort() > 65535)
@@ -102,6 +115,11 @@ int main(int argc, char** argv) {
         handbridge::EngineRuntime runtime(*source, config,
             [&](const OscMessage& message) { return sender.sendOscMessageChecked(message); }, {},
             [](const std::string& message) { std::cerr << message << '\n'; });
+        if (profile) {
+            profile->osc.host = config.getOscIp();
+            profile->osc.port = config.getOscPort();
+            runtime.applySettings(*profile);
+        }
         std::cerr << handbridge::trackingSourceName(simulate)
                   << " tracking; UNTESTED ON HARDWARE; UDP send success is not receiver acknowledgement\n";
         std::signal(SIGINT, interrupt); std::signal(SIGTERM, interrupt);

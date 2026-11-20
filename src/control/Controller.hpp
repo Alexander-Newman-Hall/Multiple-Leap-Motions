@@ -23,6 +23,9 @@ class Controller final : public QObject {
     Q_PROPERTY(QVariantMap draft READ draft NOTIFY draftChanged)
     Q_PROPERTY(QVariantMap status READ status NOTIFY statusChanged)
     Q_PROPERTY(QVariantList devices READ devices NOTIFY statusChanged)
+    Q_PROPERTY(QStringList deviceSerials READ deviceSerials NOTIFY deviceSerialsChanged)
+    Q_PROPERTY(bool previewAvailable READ previewAvailable NOTIFY statusChanged)
+    Q_PROPERTY(QVariantList previewDevices READ previewDevices NOTIFY previewChanged)
     Q_PROPERTY(QStringList logEntries READ logEntries NOTIFY logsChanged)
     Q_PROPERTY(QStringList profileNames READ profileNames NOTIFY profilesChanged)
     Q_PROPERTY(QString statusText READ statusText NOTIFY uiChanged)
@@ -43,6 +46,9 @@ public:
     QVariantMap draft() const { return draft_.toVariantMap(); }
     QVariantMap status() const { return status_.toVariantMap(); }
     QVariantList devices() const { return status_.value(QStringLiteral("devices")).toArray().toVariantList(); }
+    QStringList deviceSerials() const { return deviceSerials_; }
+    bool previewAvailable() const { return previewAvailable_; }
+    QVariantList previewDevices() const { return preview_.toVariantList(); }
     QStringList logEntries() const { return logs_; }
     QStringList profileNames() const { return profiles_; }
     QString statusText() const;
@@ -58,6 +64,7 @@ public:
     Q_INVOKABLE void startSimulator();
     Q_INVOKABLE void startHardwareEngine();
     Q_INVOKABLE void connectToEngine();
+    Q_INVOKABLE void refreshPreview();
     Q_INVOKABLE void saveProfile(const QString& name);
     Q_INVOKABLE void loadProfile(const QString& name);
     Q_INVOKABLE void restartDevice(const QString& serial);
@@ -71,6 +78,8 @@ signals:
     void draftChanged();
     void dirtyChanged();
     void statusChanged();
+    void deviceSerialsChanged();
+    void previewChanged();
     void logsChanged();
     void profilesChanged();
     void uiChanged();
@@ -102,6 +111,9 @@ private:
     QProcess* launchProbe_ = nullptr; // Owned nontracking preflight only; never the running engine.
     qint64 nextId_ = 1, revision_ = 0, savedRevision_ = 0, draftRevision_ = 0;
     bool connected_ = false, connecting_ = false, rejected_ = false;
+    bool previewAvailable_ = false;
+    QJsonArray preview_;
+    QStringList deviceSerials_;
     QJsonObject config_, draft_, status_;
     QStringList logs_, profiles_;
     QString errorMessage_, notice_;

@@ -1,4 +1,4 @@
-Hand Bridge 2.0.3 for Apple Silicon
+Hand Bridge 2.0.6 for Apple Silicon
 
 Installation
 
@@ -44,7 +44,13 @@ Verify tracking
    with USB data cables. Watch Overview for frames. If the app reports a
    missing runtime, install Hyperion and click Start engine to retry.
 
-2. With both attached, Overview should show Cameras streaming 2 / 2. Each
+2. Overview opens on Routed hands. In Devices, choose Both hands for your
+   camera and click Apply changes. Hold one hand over the camera, add your
+   other hand beside it, then withdraw the first. Both palms should appear
+   together and the remaining palm should keep moving. Choose Right only
+   and apply it to see just the right hand in that camera's routed preview.
+   Choose Raw camera in Overview to inspect all hands the camera detects.
+   With both cameras attached, Overview should show Cameras streaming 2 / 2. Each
    camera should show a frame rate even with no hands in view. If one stays
    at zero, reconnect just that camera while the other one keeps streaming.
 
@@ -56,13 +62,21 @@ Verify tracking
    save a named profile in Profiles & Logs. On the next launch, the engine
    restores those assignments even if the cameras connect in a different order.
 
+5. To drive a Blender hand rig, open OSC Output, enable Full hand skeleton
+   and apply the change. Each tracked hand sends an extra OSC message at
+   /handbridge/v2/{alias}/{left|right}/skeleton. The message carries raw
+   sensor-space geometry in millimeters. The ZIP includes FULL_HAND_OSC.md
+   with the field order and handbridge_skeleton.py with a Python decoder.
+   When two cameras see one hand, select the calibrated camera alias for that
+   hand in the receiving rig. Each camera has its own coordinate system.
+
 Send errors counts failed OSC sends since the engine started. When the total
 gets large, the dashboard abbreviates it. Hover over the number to read the
 full count. The Output stage badge shows whether sending has recovered.
 
 Source and licenses
 
-The companion Hand-Bridge-2.0.3-Source.zip includes the source, tests and
+The companion Hand-Bridge-2.0.6-Source.zip includes the source, tests and
 build instructions for this build. Published Hand Bridge releases are at
 https://github.com/Alexander-Newman-Hall/Multiple-Leap-Motions/releases
 

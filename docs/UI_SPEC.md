@@ -13,8 +13,20 @@ editable rotary controls, keyboard navigation and engine-backed health. Global
 Apply/Revert separates draft editing, acknowledged application, rejection and
 persisted profile state. Views do not own the engine.
 
-Overview shows two independent live camera tiles, measured frame/packet rates,
+Overview shows independent live camera tiles, measured frame/packet rates,
 frame age/drop counts and raw/processed measured palm/wrist/tip previews.
+One connected camera uses the full preview width. With two connected cameras,
+each has its own pane. Each visible palm carries a left or right label.
+Overview defaults to **Routed hands**. Each camera pane shows the processed
+coordinates of hands that pass its applied hand assignment and output enable.
+The routed view clears when OSC is muted or all data and gesture channels are off.
+**Raw camera** shows all detected hands in camera millimeters. The preview
+identifies routed hands at display refresh rate. Legacy channel switches and
+the OSC send rate govern individual packets. Full skeleton packets use raw
+camera-space measurements for those same selected hands.
+The visible Overview requests a preview about 30 times per second. The engine
+publishes diagnostic counters about ten times per second. Losing the engine
+connection clears the displayed measurements.
 The tabletop preview projects X horizontally and positive Z downward in each
 sensor's panel. With fingers pointing away, fingertips appear above the palm
 and wrist. Raising a flat hand changes the displayed Y coordinate while its
@@ -22,8 +34,8 @@ top-down footprint stays in place. Processed meters use the same display scale
 as the equivalent millimeters. Devices
 controls aliases, per-camera mute and handedness plus actual restart. Processing
 controls bypass, smoothing/deadzone, scale/XYZ rotation/offset/units and optional
-pinch/grab hysteresis. OSC Output controls target, enable/rate and all14 supported
-channel flags. Profiles & Diagnostics saves/loads applied settings, exports
+pinch/grab hysteresis. OSC Output controls target, enable/rate and 14 legacy
+channel flags plus the optional full-skeleton stream. Profiles & Diagnostics saves/loads applied settings, exports
 redacted diagnostics and displays real bounded logs.
 
 Direct typing then clicking Apply commits valid focused editors. Numeric parsing
@@ -32,7 +44,7 @@ Editor controls disable during transactions and backend prevents lost edits duri
 profile loads. Offline views are labeled/disconnected, with separate real-engine start,
 simulator start and reconnect actions; no activity is fabricated. All current
 editable schema fields are represented. Full per-channel processing overrides,
-a full skeletal/3D renderer, OSC bundles/v2 and a full installer remain future
+a full skeletal/3D renderer, OSC bundles and a full installer remain future
 work. The real LeapC source is an optional Windows build whose physical
 acceptance remains unverified.
 

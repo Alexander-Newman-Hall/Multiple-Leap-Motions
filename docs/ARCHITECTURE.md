@@ -1,5 +1,9 @@
 # Architecture — Hand Bridge 2.0
 
+## Optional raw hand stream
+
+The runtime applies device and chirality selection once. The legacy processor receives its configured transforms and channel mask. The full skeleton encoder reads the same selected hands in raw device space. Device-local identities let it send independent loss events for two hands of the same chirality. Both paths share the worker and its checked UDP socket. Typed OSC arguments are serialized together for a single skeleton datagram. [Wire format](FULL_HAND_OSC.md)
+
 **Status:** Native controller/runtime plus an optional real LeapC adapter implemented;
 physical hardware acceptance remains open. Windows Release packaging is a separate
 deployment gate, documented in WINDOWS_RELEASE.md and CURRENT_STATE.md.
@@ -49,7 +53,7 @@ publishes sampled telemetry to the native controller. Actual GUI attach/close/
 kill/reopen has been tested against continuing mock-source UDP output.
 
 Still proposed below: per-channel processing overrides,
-explicit OSCv2 validity, full 3D/all-joint preview and production packaging. The original
+full 3D/all-joint preview and additional production packaging. The original
 ImGui path remains separate and retains its known lifecycle limitations.
 
 ## LeapC adapter and DLL ownership

@@ -88,10 +88,9 @@ leave the last valid engine state. A profile load can apply then encounter a
 persistence error; read its explicit applied-but-unsaved response.
 
 The state/profile directory is private per-user HandBridge data, overridable by
-`--state-dir` on the Qt host. Explicit `--config` accepts legacy or implemented
-schema 2 there. Old flat config is imported without overwriting it. The Qt-free
-host still accepts legacy flat configuration only. Provider selection is a launch
-choice; loading a profile does not silently switch real/mock tracking.
+`--state-dir` on the Qt host. Both the Qt and Qt-free hosts accept schema 2
+profiles and legacy flat JSON through `--config`. Use `--host` or `--port` to
+override the file's OSC destination for a run. Select the tracking provider at launch.
 
 Device restart and output-socket reset are explicit UI commands. The service,
 device presence, subscription, fresh frames, visible hands and OSC send state

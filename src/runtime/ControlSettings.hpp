@@ -17,6 +17,8 @@ struct ChannelSettings {
     bool sendPalmOrientation = false, sendPalmVelocity = false, sendPalmNormal = false;
     bool sendVisibleTime = false, sendFingerIsExtended = false;
     bool sendPinchStrength = true, sendGrabStrength = true;
+    bool sendFullSkeleton = false;
+    bool operator==(const ChannelSettings&) const = default;
 };
 struct ProcessingSettings {
     bool bypass = true;
@@ -25,6 +27,7 @@ struct ProcessingSettings {
     std::string outputUnits = "mm";
     bool gesturesEnabled = false;
     double pinchEnter = .8, pinchExit = .6, grabEnter = .8, grabExit = .6;
+    bool operator==(const ProcessingSettings&) const = default;
 };
 struct DeviceSettings {
     std::string alias;

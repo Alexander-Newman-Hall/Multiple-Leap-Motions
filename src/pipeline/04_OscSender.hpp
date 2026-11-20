@@ -8,6 +8,7 @@
 #include <memory>
 #include <mutex>
 #include <cstdint>
+#include <span>
 
 // Native UDP transport checks errors; oscpack remains the OSC serializer.
 class HandbridgeUdpSocket;
@@ -47,6 +48,7 @@ public:
     std::string getHost() const;
     int getPort() const;
 private:
+    bool sendArgumentsChecked(const std::string& address, std::span<const OscArgument> arguments);
     // Socket creation, packet buffer and status have one owner at a time.
     // Caller holds mutex_ for the following internal helpers.
     void initializeSocket();

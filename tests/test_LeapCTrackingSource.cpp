@@ -267,6 +267,10 @@ LEAP_HAND hand(float x, std::uint32_t id = 42, eLeapHandType side = eLeapHandTyp
     hand.id = id;
     hand.type = side;
     hand.confidence = .75f;
+    hand.flags = eLeapHandFlag_GestureDetectionAvailable | eLeapHandFlag_GesturePinch;
+    hand.pinch_distance = 17.25f;
+    hand.grab_angle = 1.5f;
+    hand.palm.stabilized_position.x = x + 2;
     hand.visible_time = 2500000;
     hand.pinch_strength = .25f;
     hand.grab_strength = .5f;
@@ -416,6 +420,10 @@ TEST_F(LeapCTrackingSourceTest, GenuineSdkHandsAreCopiedBeforeTheNextPollInvalid
     EXPECT_FLOAT_EQ(observed.arm.width, 25); EXPECT_FLOAT_EQ(observed.arm.rotation.w, 1);
     EXPECT_FLOAT_EQ(observed.pinchStrength, .25f); EXPECT_FLOAT_EQ(observed.grabStrength, .5f);
     EXPECT_FLOAT_EQ(observed.confidence, .75f); EXPECT_EQ(observed.visibleTime, 2500000u);
+    EXPECT_EQ(observed.flags, 3u);
+    EXPECT_FLOAT_EQ(observed.pinchDistance, 17.25f);
+    EXPECT_FLOAT_EQ(observed.grabAngle, 1.5f);
+    EXPECT_FLOAT_EQ(observed.palm.stabilizedPosition.x, 125);
     ASSERT_EQ(observed.fingers.size(), 5u);
     EXPECT_EQ(observed.fingers[1].fingerId, 101); EXPECT_FALSE(observed.fingers[1].isExtended);
     ASSERT_EQ(observed.fingers[4].bones.size(), 4u);

@@ -23,7 +23,12 @@ def archive(app, destination):
     if destination.exists() or destination.is_symlink():
         raise SystemExit(f"Destination already exists: {destination}")
 
-    guide = Path(__file__).resolve().parents[1] / "packaging/MACOS_START_HERE.txt"
+    repo = Path(__file__).resolve().parents[1]
+    companion_files = {
+        "Start Here.txt": repo / "packaging/MACOS_START_HERE.txt",
+        "FULL_HAND_OSC.md": repo / "docs/FULL_HAND_OSC.md",
+        "handbridge_skeleton.py": repo / "examples/handbridge_skeleton.py",
+    }
     destination.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as directory, tempfile.TemporaryDirectory(dir=destination.parent) as publishing:
         work = Path(directory)
@@ -31,7 +36,8 @@ def archive(app, destination):
         staged_app = stage / "Hand Bridge.app"
         shutil.copytree(app, staged_app, symlinks=True,
                         ignore=shutil.ignore_patterns("._*", ".DS_Store", "__MACOSX"))
-        shutil.copyfile(guide, stage / "Start Here.txt")
+        for name, source in companion_files.items():
+            shutil.copyfile(source, stage / name)
         verify_app(staged_app)
 
         # Qt frameworks depend on relative symlinks. AppleDouble sidecars next
@@ -41,8 +47,9 @@ def archive(app, destination):
         unpacked = work / "extracted"
         subprocess.run(["/usr/bin/ditto", "-x", "-k", zipped, unpacked], check=True)
         verify_app(unpacked / staged_app.name)
-        if (unpacked / "Start Here.txt").read_bytes() != guide.read_bytes():
-            raise SystemExit("Installation guide failed archive verification")
+        for name, source in companion_files.items():
+            if (unpacked / name).read_bytes() != source.read_bytes():
+                raise SystemExit(f"{name} failed archive verification")
 
         # Same-volume rename publishes only the complete ZIP. -n keeps an
         # earlier archive if two packaging jobs finish at the same destination.

@@ -169,3 +169,13 @@ Qt dependency files may contain multiple slices; that is not an Intel product
 build. Arm64 acceptance requires arm64 execution. Hosted capacity failure is a
 blocker, not a reason to substitute Intel. Physical service/two-camera/USB/TD
 acceptance and protected IPC remain separate gates. Evidence: reports/MACOS_ARM64.md.
+
+## ADR-019 — One raw skeletal pose per tracked hand
+
+The T2 rig needs coherent forearm and finger measurements. An opt-in stream
+packs all of one hand's data into one typed OSC datagram. Integer arguments
+preserve tracking IDs and capture times. A camera alias, side and native ID
+identify one track. Loss uses the same address and identity with a shorter
+payload. Raw camera millimeters give the external rig one place to apply its
+mount and rest-pose calibration. Legacy scalar consumers keep their own
+switches and processing. [Wire contract and decoder](FULL_HAND_OSC.md)

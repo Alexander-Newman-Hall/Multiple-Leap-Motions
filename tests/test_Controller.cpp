@@ -234,13 +234,74 @@ private slots:
     }
     void disconnectPreservesUnappliedDraftAndCannotSaveOffline() {
         controller_->setSetting("osc.port", 9010);
+        QVERIFY(!controller_->devices().isEmpty());
+        QSignalSpy updates(controller_.get(), &Controller::statusChanged);
         peer_->abort();
         QTRY_VERIFY(!controller_->connected());
+        QVERIFY(!updates.isEmpty());
+        QVERIFY(controller_->devices().isEmpty());
+        QVERIFY(controller_->status().isEmpty());
         QCOMPARE(draftPort(), 9010);
         QVERIFY(controller_->dirty());
         QVERIFY(!controller_->busy());
         controller_->saveProfile("Default");
         QCOMPARE(count("save_profile"), 0);
+    }
+    void previewRequestsStayBoundedAndSeparateFromDiagnostics() {
+        controller_->refreshPreview();
+        QCOMPARE(count("get_preview"), 0);
+        auto modern = state(config(), 1);
+        modern["preview_available"] = true;
+        telemetry(modern);
+        QTRY_VERIFY(controller_->previewAvailable());
+        QSignalSpy status(controller_.get(), &Controller::statusChanged);
+        QSignalSpy received(controller_.get(), &Controller::previewChanged);
+        controller_->refreshPreview();
+        controller_->refreshPreview();
+        QTRY_COMPARE(count("get_preview"), 1);
+        QVERIFY(!controller_->busy());
+        QJsonArray devices{QJsonObject{{"serial", "SIM-A"}, {"frames_fresh", true}}};
+        reply(last("get_preview"), {{"revision", 1}, {"devices", devices}});
+        QTRY_COMPARE(received.count(), 1);
+        QCOMPARE(controller_->previewDevices(), devices.toVariantList());
+        QCOMPARE(status.count(), 0);
+        peer_->abort();
+        QTRY_VERIFY(!controller_->connected());
+        QVERIFY(controller_->previewDevices().isEmpty());
+        QVERIFY(!controller_->previewAvailable());
+    }
+    void acknowledgedHandFilterReplacesPreviewBeforeNextFastReply() {
+        const QJsonObject left{{"hand", "left"}}, right{{"hand", "right"}};
+        const QJsonArray both{left, right};
+        const auto camera = [&](const QJsonArray& routed) {
+            return QJsonArray{QJsonObject{{"serial", "SIM-A"}, {"raw_hands", both}, {"processed_hands", routed}}};
+        };
+        auto report = state(config(), 2);
+        report["preview_available"] = true;
+        report["state"] = QJsonObject{{"devices", camera(both)}};
+        telemetry(report);
+        QTRY_COMPARE(controller_->previewDevices(), camera(both).toVariantList());
+        controller_->refreshPreview();
+        QTRY_COMPARE(count("get_preview"), 1);
+        const auto olderRequest = last("get_preview");
+        controller_->setSetting("devices.SIM-A.hand_filter", "right");
+        controller_->apply();
+        QTRY_COMPARE(count("apply_config"), 1);
+        const auto apply = last("apply_config");
+        const auto routed = camera(QJsonArray{right});
+        auto acknowledged = state(apply.value("config").toObject(), 3);
+        acknowledged["preview_available"] = true;
+        acknowledged["state"] = QJsonObject{{"devices", routed}};
+        reply(apply, acknowledged);
+        QTRY_COMPARE(controller_->previewDevices(), routed.toVariantList());
+
+        QSignalSpy samples(controller_.get(), &Controller::previewChanged);
+        QSignalSpy reports(controller_.get(), &Controller::statusChanged);
+        reply(olderRequest, {{"revision", 2}, {"devices", camera(both)}});
+        telemetry(acknowledged); // This later frame confirms the delayed reply was consumed.
+        QTRY_COMPARE(reports.count(), 1);
+        QCOMPARE(samples.count(), 0);
+        QCOMPARE(controller_->previewDevices(), routed.toVariantList());
     }
     void missingHardwareRuntimePreflightIsAsynchronousVisibleAndRetryable() {
         QTemporaryDir directory;

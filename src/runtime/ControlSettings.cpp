@@ -69,7 +69,7 @@ std::string handFilter(std::string hand) {
 #define CHANNEL_MEMBERS(X) \
     X(sendPalm) X(sendWrist) X(sendThumb) X(sendIndex) X(sendMiddle) X(sendRing) X(sendPinky) \
     X(sendPalmOrientation) X(sendPalmVelocity) X(sendPalmNormal) X(sendVisibleTime) \
-    X(sendFingerIsExtended) X(sendPinchStrength) X(sendGrabStrength)
+    X(sendFingerIsExtended) X(sendPinchStrength) X(sendGrabStrength) X(sendFullSkeleton)
 }
 void ControlSettings::validate() const {
     if (!ipv4(osc.host)) throw std::invalid_argument("osc.host must be a numeric IPv4 address");
@@ -144,7 +144,7 @@ ControlSettings ControlSettings::fromJson(const Json& input) {
         const auto& channels = input.at("channels");
         object(channels, {"sendPalm", "sendWrist", "sendThumb", "sendIndex", "sendMiddle", "sendRing", "sendPinky",
             "sendPalmOrientation", "sendPalmVelocity", "sendPalmNormal", "sendVisibleTime", "sendFingerIsExtended",
-            "sendPinchStrength", "sendGrabStrength"}, "channels");
+            "sendPinchStrength", "sendGrabStrength", "sendFullSkeleton"}, "channels");
 #define READ_CHANNEL(member) result.channels.member = boolean(channels, #member, result.channels.member);
         CHANNEL_MEMBERS(READ_CHANNEL)
 #undef READ_CHANNEL

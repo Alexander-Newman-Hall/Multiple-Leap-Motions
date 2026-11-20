@@ -1,10 +1,10 @@
 # Engine settings and profiles
 
-The optional Qt IPC engine implements schema **2**. Configuration version2 does
-not select OSCv2: legacy scalar OSC remains the only output protocol. The plain
-Qt-free console host continues accepting legacy flat JSON only. The old proposed
-`configs/handbridge.example.json` has unsupported design fields; use the working
-[studio default](../configs/studio-default.example.json) for the Qt host.
+Both headless engine builds accept schema **2** and legacy flat configurations.
+The engine sends legacy scalar OSC
+by default. Enable `channels.sendFullSkeleton` for an additional OSC v2 skeleton
+message per tracked hand. Use the [studio default](../configs/studio-default.example.json)
+as a starting point.
 
 ## Implemented schema
 
@@ -17,17 +17,24 @@ boundary; it never partially applies a malformed candidate.
 |---|---|
 | `schema_version` | Integer2 |
 | `osc` | `enabled:true`, `host:"127.0.0.1"` numeric IPv4, integer `port:9000` in1..65535, `rate_hz:0` (source rate) or1..240 |
-| `channels` | 14 booleans named below; legacy defaults preserved |
+| `channels` | 15 booleans listed below |
 | `processing` | Settings below; `bypass:true` by default |
 | `devices` | Map of serial→`{alias,enabled:true,hand_filter:"both"}`; up to64, unique devN aliases |
 
 Channel names: `sendPalm`, `sendWrist`, `sendThumb`, `sendIndex`, `sendMiddle`,
 `sendRing`, `sendPinky`, `sendPinchStrength`, `sendGrabStrength` default true.
 `sendPalmOrientation`, `sendPalmVelocity`, `sendPalmNormal`, `sendVisibleTime`,
-`sendFingerIsExtended` default false. These switches affect emitted OSC, not just
-preview. The current controls are global channel/processing settings, with
-per-device aliases, enable/mute and handedness. Per-channel filter overrides and
-fusion are not implemented.
+`sendFingerIsExtended` and `sendFullSkeleton` default false. These switches
+control OSC output. Channel and processing settings apply globally. Each device
+has its own alias, enable switch and hand filter.
+
+In **OSC Output**, turn on **Full hand skeleton** and click **Apply** to send
+`/handbridge/v2/{alias}/{side}/skeleton`. Each message carries a hand pose in
+the camera's coordinate system, with positions in millimetres. The skeleton
+uses raw tracking data regardless of the processing settings and has its own
+channel switch. The OSC enable switch, destination, send rate, device enable
+and hand filter apply to both outputs. Save the applied settings to a profile
+to restore the switch at startup. See the [OSC contract](OSC_PROTOCOL.md).
 
 | Processing field | Default | Accepted values |
 |---|---|---|
@@ -46,9 +53,11 @@ Processing order: select device/hand → raw-mm deadzone/time smoothing → scal
 Euler rotation → offset → units → legacy channel serialization. Velocity gets
 scale/rotation/unit conversion without offset; normal/direction rotate, and
 orientation quaternions compose the rotation. Native pinch/grab strength stays
-unchanged. Filters reset on loss/restart/settings changes; no extrapolated motion.
-Current DTO has no native hand ID; state is isolated by serial/handedness until
-the real adapter supplies identity. The GUI disables processing controls during
+unchanged. Filters reset on loss, restart, legacy routing changes and edits to
+the processing settings. Switching the full skeleton stream on or off preserves
+the legacy pose, smoothing history and gesture state.
+The real adapter supplies native hand IDs, so a newly tracked hand starts with
+a fresh filter history. The GUI disables processing controls during
 raw bypass; enabling gestures is independent.
 
 A device's `enabled:false` mutes its output while tracking health remains live.
@@ -59,11 +68,11 @@ configuration revision, so newly discovered unsaved identities never show Saved.
 
 ## Migration and persistence
 
-The Qt host imports existing legacy `osc_ip`, `osc_port`, `booleanSettings`,
-`hand_assignments` and repaired alias wrappers via ConfigManager. It does not
-rewrite the legacy input file. See [baseline audit](reports/CONFIG_AUDIT.md).
-The plain host still rejects all schema_version configurations; its behavior is
-preserved and tested separately. Use the Qt build for schema2/profiles/IPC.
+Both hosts import existing legacy `osc_ip`, `osc_port`, `booleanSettings`,
+`hand_assignments` and alias wrappers via ConfigManager. Use `--config <path>`
+to select a file. The `--host` and `--port` options override its destination
+for this run. The Qt build also supports named profiles and controller IPC.
+See the [baseline audit](reports/CONFIG_AUDIT.md).
 
 Profiles and `current.json` are stored beneath the engine's private per-user
 HandBridge data directory; `--state-dir` provides an explicit private override.
@@ -84,12 +93,10 @@ Pending profile loads prevent further editor changes. Decimal fields use a
 consistent explicit parsing locale; validation in the engine remains authoritative.
 
 Legacy direct save is still non-atomic; the new atomic profile mechanism belongs
-to the Qt host. Future per-profile inheritance, all-bone OSC and optional OSCv2
-remain unimplemented. The original proposal is archived under docs/legacy.
+to the Qt host. The original proposal is archived under docs/legacy.
 
 ## Runtime provider selection
 
-This increment does not change schema2, legacy migration or the OSC contract.
 Select real input at engine startup, or use explicit --simulate; select the
 installed SDK client using --leapc-library or the documented environment variables.
 These are process/dependency settings, not additional profile JSON keys. Do not

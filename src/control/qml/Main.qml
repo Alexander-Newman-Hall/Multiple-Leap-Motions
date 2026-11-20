@@ -22,7 +22,7 @@ ApplicationWindow {
         id: theme
     }
     property int pageIndex: 0
-    property bool previewProcessed: false
+    property bool previewProcessed: true
     readonly property var pageNames: ["Overview", "Devices", "Processing", "OSC Output", "Profiles & Diagnostics"]
     readonly property var pageSubtitles: ["Independent cameras. One dependable signal path.", "Identity, routing, and recovery for each camera.", "Shape the output. Keep the raw observation intact.", "Choose exactly what TouchDesigner receives.", "Recall a session. Inspect the engine's actual state."]
     readonly property var deviceRows: controller.devices || []
@@ -34,6 +34,15 @@ ApplicationWindow {
     readonly property var appliedProcessing: controller.config.processing || ({})
     readonly property bool appliedBypass: appliedProcessing.bypass !== false
     readonly property string appliedPreviewUnits: appliedBypass ? "mm" : (appliedProcessing.output_units || "mm")
+    readonly property string routedOutputMessage: {
+        const applied = controller.config;
+        if (applied.osc?.enabled === false)
+            return "OSC MUTED";
+        if (applied.channels && !Object.values(applied.channels).some(enabled => enabled)
+                && !appliedProcessing.gestures_enabled)
+            return "NO OSC CHANNELS ENABLED";
+        return "";
+    }
     function setting(path, fallback) {
         let object = controller.draft;
         const parts = path.split(".");
@@ -606,7 +615,7 @@ ApplicationWindow {
                             Layout.preferredWidth: 720
                             Layout.preferredHeight: 296
                             title: "Live coordinate monitor"
-                            subtitle: "Palm, wrist and measured fingertips · independent camera spaces"
+                            subtitle: previewProcessed ? "Hands selected for OSC by each camera’s applied settings" : "All hands observed by each camera"
                             badge: "TOP VIEW · XZ"
                             ColumnLayout {
                                 anchors.fill: parent
@@ -615,23 +624,25 @@ ApplicationWindow {
                                     Layout.fillWidth: true
                                     spacing: 6
                                     StudioButton {
-                                        text: "Raw"
-                                        compact: true
-                                        primary: !previewProcessed
-                                        onClicked: previewProcessed = false
-                                    }
-                                    StudioButton {
-                                        text: "Processed"
+                                        objectName: "outputPreviewButton"
+                                        text: "Routed hands"
                                         compact: true
                                         primary: previewProcessed
                                         tint: theme.violet
                                         onClicked: previewProcessed = true
                                     }
+                                    StudioButton {
+                                        objectName: "rawPreviewButton"
+                                        text: "Raw camera"
+                                        compact: true
+                                        primary: !previewProcessed
+                                        onClicked: previewProcessed = false
+                                    }
                                     Item {
                                         Layout.fillWidth: true
                                     }
                                     SmallLabel {
-                                        text: previewProcessed ? appliedPreviewUnits.toUpperCase() : "RAW MILLIMETERS"
+                                        text: previewProcessed ? "PROCESSED · " + appliedPreviewUnits.toUpperCase() : "RAW MILLIMETERS"
                                         font.pixelSize: 8
                                     }
                                 }
@@ -639,9 +650,18 @@ ApplicationWindow {
                                     objectName: "coordinatePreview"
                                     Layout.fillWidth: true
                                     Layout.fillHeight: true
-                                    devices: deviceRows
+                                    devices: controller.previewAvailable ? controller.previewDevices : deviceRows
+                                    Timer {
+                                        interval: 33
+                                        repeat: true
+                                        triggeredOnStart: true
+                                        running: window.visible && window.visibility !== Window.Minimized && window.pageIndex === 0 && controller.connected && controller.previewAvailable
+                                        onTriggered: controller.refreshPreview()
+                                    }
                                     processed: previewProcessed
                                     units: appliedPreviewUnits
+                                    outputMessage: routedOutputMessage
+                                    deviceSettings: controller.config.devices || ({})
                                 }
                             }
                         }
@@ -688,7 +708,10 @@ ApplicationWindow {
                                     Layout.fillHeight: true
                                 }
                                 Text {
-                                    text: "Legacy OSC · scalar float32\nOS send success ≠ receiver receipt"
+                                    text: (controller.config.channels?.sendFullSkeleton
+                                           ? "Full hand skeleton enabled · raw sensor mm"
+                                           : "Legacy OSC · scalar float32")
+                                          + "\nOS send success ≠ receiver receipt"
                                     color: "#7d889a"
                                     font.pixelSize: 9
                                     lineHeight: 1.5
@@ -711,18 +734,19 @@ ApplicationWindow {
                     spacing: 16
                     enabled: controller.connected && !controller.busy
                     Repeater {
-                        model: deviceRows
+                        model: controller.deviceSerials
                         delegate: Panel {
                             id: devicePanel
-                            required property var modelData
+                            required property string modelData
                             required property int index
-                            property string serial: modelData.serial
+                            readonly property string serial: modelData
+                            readonly property var device: deviceRows[index] || ({})
                             Layout.fillWidth: true
                             Layout.preferredHeight: 225
-                            title: "Camera " + (index + 1) + " / " + (modelData.alias || serial)
-                            subtitle: serial + " · " + (modelData.reason || modelData.state || "Waiting")
-                            badge: modelData.frames_fresh ? "FRAMES FRESH" : (modelData.state || "OFFLINE").toUpperCase()
-                            badgeColor: modelData.frames_fresh ? theme.accent : theme.amber
+                            title: "Camera " + (index + 1) + " / " + (device.alias || serial)
+                            subtitle: serial + " · " + (device.reason || device.state || "Waiting")
+                            badge: device.frames_fresh ? "FRAMES FRESH" : (device.state || "OFFLINE").toUpperCase()
+                            badgeColor: device.frames_fresh ? theme.accent : theme.amber
                             ColumnLayout {
                                 anchors.fill: parent
                                 spacing: 16
@@ -737,7 +761,7 @@ ApplicationWindow {
                                         StudioField {
                                             objectName: "alias_" + devicePanel.serial
                                             Layout.fillWidth: true
-                                            text: deviceSetting(devicePanel.serial, "alias", devicePanel.modelData.alias)
+                                            text: deviceSetting(devicePanel.serial, "alias", devicePanel.serial)
                                             onEditingFinished: edit("devices." + devicePanel.serial + ".alias", text)
                                             Accessible.name: "Camera OSC alias"
                                         }
@@ -783,23 +807,23 @@ ApplicationWindow {
                                         model: [
                                             {
                                                 n: "INPUT",
-                                                v: metric(devicePanel.modelData.input_fps, 1) + " Hz"
+                                                v: metric(devicePanel.device.input_fps, 1) + " Hz"
                                             },
                                             {
                                                 n: "LAST FRAME",
-                                                v: metric(devicePanel.modelData.last_frame_age_ms, 0) + " ms"
+                                                v: metric(devicePanel.device.last_frame_age_ms, 0) + " ms"
                                             },
                                             {
                                                 n: "PROCESSED",
-                                                v: String(devicePanel.modelData.frames_processed || 0)
+                                                v: String(devicePanel.device.frames_processed || 0)
                                             },
                                             {
                                                 n: "DROPS",
-                                                v: String(devicePanel.modelData.queue_drops || 0)
+                                                v: String(devicePanel.device.queue_drops || 0)
                                             },
                                             {
                                                 n: "RETRIES",
-                                                v: String(devicePanel.modelData.reconnect_attempts || 0)
+                                                v: String(devicePanel.device.reconnect_attempts || 0)
                                             }
                                         ]
                                         delegate: ColumnLayout {
@@ -1094,10 +1118,10 @@ Raw observations remain unchanged."
                         spacing: 15
                         Panel {
                             Layout.preferredWidth: 365
-                            Layout.preferredHeight: 326
+                            Layout.preferredHeight: 340
                             title: "OSC destination"
                             subtitle: "UDP output · same-PC TouchDesigner workflow"
-                            badge: "LEGACY V1"
+                            badge: "OSC / UDP"
                             ColumnLayout {
                                 anchors.fill: parent
                                 spacing: 14
@@ -1187,10 +1211,9 @@ Raw observations remain unchanged."
                         }
                         Panel {
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 326
+                            Layout.preferredHeight: 340
                             title: "Channel routing"
-                            subtitle: "Each enabled scalar is sent as its own OSC datagram"
-                            badge: "14 CHANNEL GROUPS"
+                            subtitle: "Full hand skeleton sends one raw pose per hand in millimetres"
                             GridLayout {
                                 anchors.fill: parent
                                 columns: 2
@@ -1267,6 +1290,11 @@ Raw observations remain unchanged."
                                             n: "Grab strength",
                                             k: "sendGrabStrength",
                                             d: true
+                                        },
+                                        {
+                                            n: "Full hand skeleton",
+                                            k: "sendFullSkeleton",
+                                            d: false
                                         }
                                     ]
                                     delegate: ToggleRow {
@@ -1317,7 +1345,7 @@ Raw observations remain unchanged."
                                         font.pixelSize: 29
                                     }
                                     Text {
-                                        text: "packets / second\nEach hand frame contains\nmultiple scalar packets."
+                                        text: "packets / second"
                                         color: "#8490a3"
                                         font.pixelSize: 9
                                         lineHeight: 1.4

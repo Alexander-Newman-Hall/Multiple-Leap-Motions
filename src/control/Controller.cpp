@@ -90,7 +90,7 @@ Controller::~Controller() {
 }
 
 bool Controller::isMutation(const QString& command) {
-    return command != QStringLiteral("get_state") && command != QStringLiteral("list_profiles");
+    return command != QStringLiteral("get_state") && command != QStringLiteral("list_profiles") && command != QStringLiteral("get_preview");
 }
 bool Controller::busy() const {
     if (launchProbe_) return true;
@@ -131,11 +131,22 @@ void Controller::disconnected() {
     connected_ = connecting_ = false;
     received_.clear();
     pending_.clear();
+    previewAvailable_ = false;
+    preview_ = {};
+    status_ = {};
+    deviceSerials_.clear();
+    emit statusChanged();
+    emit deviceSerialsChanged();
+    emit previewChanged();
     if (wasConnected && errorMessage_.isEmpty())
         errorMessage_ = QStringLiteral("Engine connection lost. Reconnecting; unapplied edits are retained.");
     emit connectionChanged();
     emit busyChanged();
     emit uiChanged();
+}
+void Controller::refreshPreview() {
+    if (!connected_ || !previewAvailable_ || !pending_.isEmpty()) return;
+    request(QStringLiteral("get_preview"));
 }
 void Controller::setError(const QString& message) {
     errorMessage_ = message;
@@ -169,8 +180,10 @@ bool Controller::request(const QString& command, QJsonObject fields) {
         socket_.abort();
         return false;
     }
-    emit busyChanged();
-    emit uiChanged();
+    if (command != QStringLiteral("get_preview")) {
+        emit busyChanged();
+        emit uiChanged();
+    }
     return true;
 }
 
@@ -216,6 +229,11 @@ void Controller::adoptState(const QJsonObject& response, bool replaceDraft) {
             draftRevision_ = revision_;
             if (editorChanged) emit draftChanged();
         }
+        if (configChanged || initialState) {
+            // The last fast preview can still belong to the previous hand assignment.
+            preview_ = response.value(QStringLiteral("state")).toObject().value(QStringLiteral("devices")).toArray();
+            emit previewChanged();
+        }
         if (configChanged) emit this->configChanged();
         if (!connected_) {
             connected_ = true;
@@ -229,6 +247,14 @@ void Controller::adoptState(const QJsonObject& response, bool replaceDraft) {
     }
     if (response.value(QStringLiteral("state")).isObject()) {
         status_ = response.value(QStringLiteral("state")).toObject();
+        previewAvailable_ = response.value(QStringLiteral("preview_available")).toBool();
+        QStringList serials;
+        for (const auto& device : status_.value(QStringLiteral("devices")).toArray())
+            serials.push_back(device.toObject().value(QStringLiteral("serial")).toString());
+        if (serials != deviceSerials_) {
+            deviceSerials_ = serials;
+            emit deviceSerialsChanged();
+        }
         emit statusChanged();
     }
     if (response.value(QStringLiteral("logs")).isArray()) {
@@ -256,6 +282,13 @@ void Controller::message(const QJsonObject& response) {
     if (!pending_.contains(id)) return;
     const auto pending = pending_.take(id);
     const bool success = response.value(QStringLiteral("ok")).toBool(false);
+    if (pending.command == QStringLiteral("get_preview")) {
+        if (success && response.value(QStringLiteral("revision")).toInteger() == revision_) {
+            preview_ = response.value(QStringLiteral("devices")).toArray();
+            emit previewChanged();
+        }
+        return;
+    }
     if (!success) {
         QString error = response.value(QStringLiteral("error")).toString();
         if (error.isEmpty()) error = QStringLiteral("The engine rejected the request.");

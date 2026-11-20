@@ -192,7 +192,7 @@ private:
     QString endpoint_;
     QString startupError_;
 
-    bool startEngine(bool explicitPort = true) {
+    bool startEngine(bool explicitPort = true, int durationMs = 0) {
         // QTest can leave a failed init without reaching the case's normal
         // cleanup path. Every start owns cleanup even when bootstrap fails.
         stopEngine();
@@ -212,6 +212,7 @@ private:
         QStringList arguments{"--simulate", "--headless", "--endpoint", endpoint_,
             "--state-dir", directory_->path()};
         if (explicitPort) arguments << "--port" << QString::number(receiver_->localPort());
+        if (durationMs > 0) arguments << "--duration-ms" << QString::number(durationMs);
         engine_.setArguments(arguments);
         engine_.start();
         if (!engine_.waitForStarted(5000)) return failed("Engine process did not start");
@@ -255,6 +256,36 @@ private slots:
         stopEngine();
         receiver_.reset();
         directory_.reset();
+    }
+    void naturalShutdownWithConnectedControllerExitsNormally() {
+        QVERIFY2(startEngine(true, 1500), qPrintable(startupError_));
+        QVERIFY(client_->socket.isOpen());
+        QVERIFY(engine_.waitForFinished(5000));
+        QCOMPARE(engine_.exitStatus(), QProcess::NormalExit);
+        QCOMPARE(engine_.exitCode(), 0);
+    }
+    void previewQueryReturnsFreshCameraLocalHandArrays() {
+        const auto report = state();
+        QVERIFY(report.value("preview_available").toBool());
+        auto preview = client_->request("get_preview");
+        QVERIFY(preview.value("ok").toBool());
+        QVERIFY(!preview.contains("config"));
+        QVERIFY(!preview.contains("logs"));
+        QCOMPARE(preview.value("revision"), report.value("revision"));
+        for (const auto& devices : {report.value("state").toObject().value("devices").toArray(),
+                                   preview.value("devices").toArray()}) {
+            QCOMPARE(devices.size(), 2);
+            for (const auto& entry : devices) {
+                const auto device = entry.toObject();
+                for (const QString& key : {QStringLiteral("raw"), QStringLiteral("processed")}) {
+                    const auto hands = device.value(key + "_hands").toArray();
+                    QCOMPARE(hands.size(), 1);
+                    QCOMPARE(hands.first(), device.value(key));
+                    QCOMPARE(hands.first().toObject().value("hand").toString(),
+                        device.value("serial") == "SIM-A" ? "left" : "right");
+                }
+            }
+        }
     }
 
     void transactionalRoutingAndProcessingAffectActualUdp() {

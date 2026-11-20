@@ -269,8 +269,10 @@ bool LeapCTrackingSource::copyTracking(const LEAP_TRACKING_EVENT& tracking, cons
         }
         HandData hand;
         hand.nativeHandId = source.id;
+        hand.flags = source.flags;
         hand.handType = source.type == eLeapHandType_Left ? "left" : "right";
         hand.palm.position = vector(source.palm.position);
+        hand.palm.stabilizedPosition = vector(source.palm.stabilized_position);
         hand.palm.velocity = vector(source.palm.velocity);
         hand.palm.normal = vector(source.palm.normal);
         hand.palm.direction = vector(source.palm.direction);
@@ -299,6 +301,8 @@ bool LeapCTrackingSource::copyTracking(const LEAP_TRACKING_EVENT& tracking, cons
             hand.fingers.push_back(std::move(digit));
         }
         hand.pinchStrength = source.pinch_strength;
+        hand.pinchDistance = source.pinch_distance;
+        hand.grabAngle = source.grab_angle;
         hand.grabStrength = source.grab_strength;
         hand.confidence = source.confidence; // SDK calls this reserved/always 1; not a quality estimate.
         hand.visibleTime = source.visible_time;

@@ -19,6 +19,7 @@ struct PalmData {
     Vector3 direction;
     Quaternion orientation;
     float width = 0;
+    Vector3 stabilizedPosition;
 };
 
 struct ArmData {
@@ -64,6 +65,9 @@ struct HandData {
     float confidence = 0;
     uint64_t visibleTime = 0;
     bool valid = true;
+    std::uint32_t flags = 0;
+    float pinchDistance = 0; // Raw LeapC millimeters.
+    float grabAngle = 0; // Radians.
     bool isValid() const { return valid; }
     void setValid(bool v) { valid = v; }
     // Add more fields as needed

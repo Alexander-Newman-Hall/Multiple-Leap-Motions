@@ -56,6 +56,7 @@ include it too.
 | Command | Fields | Behavior |
 |---|---|---|
 | `get_state` | — | Full canonical config/state/revision |
+| `get_preview` | — | Current revision and a `devices` array with each camera's latest measured hand points. Available when a state response advertises `preview_available: true`. |
 | `apply_config` | `expected_revision`, `config` | Strict validation, new target socket ready before commit, acknowledged at worker boundary |
 | `list_profiles` | — | Saved names |
 | `save_profile` | `name`, optional `expected_revision` | Save applied snapshot and startup restore atomically with backups |
@@ -78,6 +79,13 @@ state payload. State includes a devices array with serial/alias, presence,
 subscription, freshness, hand visibility, frame age/FPS/counts/retries and observed
 raw/processed point previews. It also includes cumulative native packet/error/byte
 counters, destination/readiness, measured packet rate and socket generation.
+
+For each device, `raw_hands` and `processed_hands` contain arrays of current
+hand observations, including handedness, palm, wrist and available fingertips.
+Their array order may change from frame to frame. An empty array clears the
+corresponding view. The `raw` and `processed` fields still carry the first
+observation or null for older clients. The controller requests lightweight
+previews while Overview is visible, with at most one request outstanding.
 OS send success never indicates receiver acknowledgement.
 
 ## Provider and version diagnostics

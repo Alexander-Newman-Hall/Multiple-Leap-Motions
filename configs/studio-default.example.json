@@ -20,7 +20,8 @@
     "sendPalmVelocity": false,
     "sendPalmNormal": false,
     "sendVisibleTime": false,
-    "sendFingerIsExtended": false
+    "sendFingerIsExtended": false,
+    "sendFullSkeleton": false
   },
   "processing": {
     "bypass": true,

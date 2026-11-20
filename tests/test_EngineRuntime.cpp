@@ -47,6 +47,40 @@ protected:
         }
         runtime->tick(0);
     }
+    static TrackingEvent observed(const std::string& serial, Millis time,
+                                  std::initializer_list<std::pair<std::string, float>> palms) {
+        auto observation = frame(serial, time, time, false);
+        for (const auto& [side, palmX] : palms) {
+            HandData hand;
+            hand.handType = side;
+            hand.nativeHandId = side == "left" ? 7 : 8;
+            hand.palm.position.x = palmX;
+            observation.frame.hands.push_back(hand);
+        }
+        return observation;
+    }
+    void checkPalms(const std::map<std::string, std::optional<float>>& expected) {
+        std::map<std::string, float> expectedScalars, scalars;
+        std::map<std::string, std::optional<float>> expectedSkeletons, skeletons;
+        for (const auto& [route, palmX] : expected) {
+            expectedScalars["/leap/" + route + "/palm/tx"] = palmX.value_or(0);
+            expectedSkeletons["/handbridge/v2/" + route + "/skeleton"] = palmX;
+        }
+        for (const auto& message : messages) {
+            if (message.address.ends_with("/palm/tx")) {
+                EXPECT_TRUE(scalars.emplace(message.address, message.values.at(0)).second);
+            } else if (message.address.ends_with("/skeleton")) {
+                const auto& args = message.arguments;
+                EXPECT_EQ(std::get<std::int64_t>(args.at(3)), message.address.ends_with("/left/skeleton") ? 7 : 8);
+                std::optional<float> palmX;
+                if (std::get<std::int32_t>(args.at(0)) == 1) palmX = std::get<float>(args.at(11));
+                EXPECT_TRUE(skeletons.emplace(message.address, palmX).second);
+            }
+        }
+        EXPECT_EQ(scalars, expectedScalars);
+        EXPECT_EQ(skeletons, expectedSkeletons);
+        messages.clear();
+    }
     unsigned zeros(const std::string& alias) const {
         return static_cast<unsigned>(std::count_if(messages.begin(), messages.end(), [&](const OscMessage& msg) {
             return msg.address == "/leap/" + alias + "/left/palm/tx" && msg.values.at(0) == 0.f;
@@ -123,6 +157,53 @@ TEST_F(RuntimeTest, EmptyFramesAreHealthyAndNoHandsIsNotFailure) {
     EXPECT_TRUE(status.framesFresh); EXPECT_FALSE(status.handsVisible);
     EXPECT_EQ(status.framesProcessed, 20u); EXPECT_EQ(status.reconnectAttempts, 0u);
     EXPECT_TRUE(messages.empty());
+}
+TEST_F(RuntimeTest, SameLeftHandIdOnTwoCamerasKeepsIndependentPosesWhenOneDisconnects) {
+    connect();
+    auto settings = runtime->settings();
+    settings.channels.sendFullSkeleton = true;
+    runtime->applySettings(settings);
+
+    source.ready = {observed("B", 1, {{"left",200}}), observed("A", 1, {{"left",10}})};
+    runtime->tick(1);
+    checkPalms({{"dev1/left",10}, {"dev2/left",200}});
+
+    source.ready = {observed("B", 2, {{"left",201}}), signal(TrackingEventKind::DeviceLost, "A")};
+    runtime->tick(2);
+    checkPalms({{"dev1/left",std::nullopt}, {"dev2/left",201}});
+
+    source.ready = {observed("B", 3, {{"left",202}})};
+    runtime->tick(3);
+    checkPalms({{"dev2/left",202}});
+    EXPECT_TRUE(runtime->devices().at("B").framesFresh);
+    EXPECT_EQ(runtime->devices().at("B").reconnectAttempts, 0u);
+}
+TEST_F(RuntimeTest, SingleCameraEmitsBothHandsAndKeepsSurvivingSideWhenOneLeaves) {
+    connect(false);
+    auto settings = runtime->settings();
+    settings.channels.sendFullSkeleton = true;
+    ASSERT_EQ(settings.devices.at("A").handFilter, "both");
+    runtime->applySettings(settings);
+    source.ready = {observed("A", 1, {{"left",10}})};
+    runtime->tick(1);
+    checkPalms({{"dev1/left",10}});
+
+    source.ready = {observed("A", 2, {{"left",11}, {"right",200}})};
+    runtime->tick(2);
+    checkPalms({{"dev1/left",11}, {"dev1/right",200}});
+
+    source.ready = {observed("A", 3, {{"right",201}, {"left",12}})};
+    runtime->tick(3);
+    checkPalms({{"dev1/left",12}, {"dev1/right",201}});
+
+    source.ready = {observed("A", 4, {{"right",202}})};
+    runtime->tick(4);
+    checkPalms({{"dev1/left",std::nullopt}, {"dev1/right",202}});
+
+    source.ready = {observed("A", 5, {{"left",13}})};
+    runtime->tick(5);
+    checkPalms({{"dev1/left",13}, {"dev1/right",std::nullopt}});
+    EXPECT_EQ(runtime->devices().at("A").framesProcessed, 5u);
 }
 TEST_F(RuntimeTest, LatestFrameMailboxCountsOverwritesAndRejectsDuplicateOrOldFrames) {
     connect(false); source.ready = {frame("A",1,0),frame("A",2,0),frame("A",3,0)}; runtime->tick(0);
@@ -228,6 +309,96 @@ TEST_F(RuntimeTest, HandAssignmentAndChannelFiltersAffectRealMessages) {
     EXPECT_TRUE(std::all_of(messages.begin(),messages.end(),[](const OscMessage& m) {
         return m.address.find("/right/") != std::string::npos && m.address.find("/wrist/") == std::string::npos;
     }));
+}
+TEST_F(RuntimeTest, SkeletonsRetainDistinctLeftHandIdentitiesAndClearOldRoutesOnce) {
+    connect(false);
+    auto settings = runtime->settings();
+    settings.processing.gesturesEnabled = true;
+    settings.osc.rateHz = 1;
+    runtime->applySettings(settings);
+
+    auto observe = [&](Millis time, std::initializer_list<std::uint32_t> ids) {
+        auto sample = frame("A", time, time, false);
+        for (const auto id : ids) {
+            HandData hand;
+            hand.handType = "left";
+            hand.nativeHandId = id;
+            sample.frame.hands.push_back(hand);
+        }
+        source.ready = {std::move(sample)};
+        runtime->tick(time);
+    };
+    using Events = std::vector<std::pair<std::int32_t, std::int64_t>>;
+    auto takeEvents = [&](const std::string& alias) {
+        Events result;
+        for (const auto& message : messages) {
+            if (!message.address.starts_with("/handbridge/v2/")) continue;
+            EXPECT_EQ(message.address, "/handbridge/v2/" + alias + "/left/skeleton");
+            result.emplace_back(std::get<std::int32_t>(message.arguments.at(0)),
+                                std::get<std::int64_t>(message.arguments.at(3)));
+        }
+        messages.clear();
+        return result;
+    };
+
+    observe(0, {30, 40}); // Legacy and gesture streams already live before v2 is enabled.
+    EXPECT_FALSE(messages.empty());
+    EXPECT_TRUE(takeEvents("dev1").empty());
+    settings.channels.sendFullSkeleton = true;
+    runtime->applySettings(settings);
+    EXPECT_TRUE(messages.empty());
+    observe(1, {30, 40});
+    EXPECT_EQ(takeEvents("dev1"), (Events{{1, 30}, {1, 40}}));
+    observe(2, {30, 40});
+    EXPECT_TRUE(takeEvents("dev1").empty()); // Still within the one-second rate limit.
+    observe(3, {30, 50});
+    EXPECT_EQ(takeEvents("dev1"), (Events{{0, 40}, {1, 30}, {1, 50}}));
+    observe(4, {30, 50});
+    EXPECT_TRUE(takeEvents("dev1").empty());
+
+    settings.channels.sendFullSkeleton = false;
+    runtime->applySettings(settings);
+    EXPECT_EQ(messages.size(), 2u); // Only the two v2 losses, no scalar or gesture clears.
+    EXPECT_EQ(takeEvents("dev1"), (Events{{0, 30}, {0, 50}}));
+    settings.channels.sendFullSkeleton = true;
+    runtime->applySettings(settings);
+    EXPECT_TRUE(messages.empty());
+    observe(5, {30, 50});
+    EXPECT_EQ(takeEvents("dev1"), (Events{{1, 30}, {1, 50}}));
+
+    settings.channels.sendWrist = false;
+    runtime->applySettings(settings);
+    EXPECT_EQ(zeros("dev1"), 1u);
+    EXPECT_TRUE(takeEvents("dev1").empty());
+    observe(6, {30, 50});
+    EXPECT_EQ(takeEvents("dev1"), (Events{{1, 30}, {1, 50}}));
+    settings.processing.gesturesEnabled = false;
+    runtime->applySettings(settings);
+    EXPECT_FALSE(messages.empty());
+    EXPECT_TRUE(takeEvents("dev1").empty());
+
+    settings.devices.at("A").alias = "dev7";
+    runtime->applySettings(settings);
+    EXPECT_EQ(takeEvents("dev1"), (Events{{0, 30}, {0, 50}}));
+    runtime->applySettings(settings);
+    EXPECT_TRUE(takeEvents("dev7").empty());
+    observe(7, {30});
+    EXPECT_EQ(takeEvents("dev7"), (Events{{1, 30}}));
+    settings.devices.at("A").enabled = false;
+    runtime->applySettings(settings);
+    EXPECT_EQ(takeEvents("dev7"), (Events{{0, 30}}));
+    observe(8, {30});
+    EXPECT_TRUE(takeEvents("dev7").empty());
+    settings.devices.at("A").enabled = true;
+    runtime->applySettings(settings);
+    observe(9, {50});
+    EXPECT_EQ(takeEvents("dev7"), (Events{{1, 50}}));
+    settings.channels.sendFullSkeleton = false;
+    runtime->applySettings(settings);
+    EXPECT_EQ(takeEvents("dev7"), (Events{{0, 50}}));
+    observe(10, {50});
+    runtime->stop();
+    EXPECT_TRUE(takeEvents("dev7").empty());
 }
 TEST_F(RuntimeTest, InvalidClockAndOptionsRejected) {
     connect(false); runtime->tick(10); EXPECT_THROW(runtime->tick(9),std::invalid_argument);

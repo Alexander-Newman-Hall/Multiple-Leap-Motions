@@ -1,4 +1,5 @@
 #include "EngineRuntime.hpp"
+#include "transport/osc/SkeletonOsc.hpp"
 #include <algorithm>
 #include <cctype>
 #include <stdexcept>
@@ -29,13 +30,23 @@ void EngineRuntime::emitOutput(const OscMessage& message) {
     if (success) { ++outputStatus_.successes; outputStatus_.lastSuccessMs = lastTickMs_; }
     else { ++outputStatus_.errors; lastOutputFailureMs_ = lastTickMs_; }
 }
-void EngineRuntime::clearOutput(const std::string& serial) {
+void EngineRuntime::emitSkeletonLoss(const DeviceStatus& device, const SkeletonHand& hand) {
+    emitOutput(skeletonMessage(device.alias, hand.first, device.lastFrameId.value(),
+                               device.lastSourceTimestampUs, hand.second, nullptr));
+}
+void EngineRuntime::clearLegacyOutput(const std::string& serial) {
     FrameData lost; lost.deviceId = serial;
     if (processor_) processor_->processData(serial, lost);
     const auto alias = config_.getDeviceAliasManager().getOrAssignAlias(serial);
     for (const auto& message : processing_.gestures(lost, alias)) emitOutput(message);
     processing_.reset(serial);
     emittedHands_.erase(serial); lastOutputMs_.erase(serial);
+}
+void EngineRuntime::clearSkeletonOutput(const std::string& serial) {
+    if (const auto skeletons = emittedSkeletons_.find(serial); skeletons != emittedSkeletons_.end()) {
+        for (const auto& hand : skeletons->second) emitSkeletonLoss(status_.at(serial), hand);
+        emittedSkeletons_.erase(skeletons);
+    }
 }
 void EngineRuntime::applySettings(const ControlSettings& requested) {
     const auto previousErrors = outputStatus_.errors;
@@ -67,8 +78,12 @@ void EngineRuntime::applySettings(const ControlSettings& requested) {
     // All validation/allocation above precedes observable changes. Routing/mute
     // changes clear old addresses through the old sender before the host swaps it.
     const bool globalRoutingChanged = settings_.osc.enabled != next.osc.enabled ||
-        settings_.osc.host != next.osc.host || settings_.osc.port != next.osc.port ||
-        settings_.toJson().at("channels") != next.toJson().at("channels");
+        settings_.osc.host != next.osc.host || settings_.osc.port != next.osc.port;
+    auto previousScalarChannels = settings_.channels;
+    previousScalarChannels.sendFullSkeleton = c.sendFullSkeleton;
+    const bool scalarChannelsChanged = previousScalarChannels != c;
+    const bool skeletonDisabled = settings_.channels.sendFullSkeleton && !c.sendFullSkeleton;
+    const bool processingChanged = settings_.processing != next.processing;
     for (const auto& [serial, status] : status_) {
         (void)status;
         const auto oldDevice = settings_.devices.find(serial);
@@ -76,9 +91,11 @@ void EngineRuntime::applySettings(const ControlSettings& requested) {
         const bool routingChanged = oldDevice == settings_.devices.end() || newDevice == next.devices.end() ||
             oldDevice->second.alias != newDevice->second.alias || oldDevice->second.enabled != newDevice->second.enabled ||
             oldDevice->second.handFilter != newDevice->second.handFilter;
-        if (globalRoutingChanged || routingChanged || (settings_.processing.gesturesEnabled && !next.processing.gesturesEnabled))
-            clearOutput(serial);
-        else if (settings_.processing.gesturesEnabled) {
+        if (globalRoutingChanged || routingChanged || skeletonDisabled) clearSkeletonOutput(serial);
+        if (globalRoutingChanged || routingChanged || scalarChannelsChanged ||
+            (settings_.processing.gesturesEnabled && !next.processing.gesturesEnabled))
+            clearLegacyOutput(serial);
+        else if (processingChanged && settings_.processing.gesturesEnabled) {
             FrameData empty; empty.deviceId = serial;
             for (const auto& message : processing_.gestures(empty,status.alias)) emitOutput(message);
         }
@@ -101,13 +118,14 @@ void EngineRuntime::applySettings(const ControlSettings& requested) {
             active.sendPalmOrientation,active.sendPalmVelocity,active.sendPalmNormal,active.sendVisibleTime,active.sendFingerIsExtended,
             active.sendPinchStrength,active.sendGrabStrength);
     }
-    processing_.setSettings(settings_.processing);
+    if (processingChanged) processing_.setSettings(settings_.processing);
     lastOutputMs_.clear(); previews_.clear();
     for (auto& [serial, status] : status_) status.alias = settings_.devices.at(serial).alias;
     updateOutputHealth(previousErrors);
 }
 void EngineRuntime::processFrame(const std::string& serial, FrameData frame, Millis arrivalMs, Millis now) {
-    FrameData processed = processing_.process(selected(frame),arrivalMs);
+    const auto selectedRaw = selected(frame);
+    FrameData processed = processing_.process(selectedRaw,arrivalMs);
     previews_[serial] = {std::move(frame),processed,arrivalMs};
     if (!settings_.osc.enabled) return;
     std::set<std::string> current;
@@ -117,7 +135,28 @@ void EngineRuntime::processFrame(const std::string& serial, FrameData frame, Mil
     const auto last = lastOutputMs_.find(serial);
     const bool due = settings_.osc.rateHz == 0 || last == lastOutputMs_.end() ||
         double(now-last->second)*settings_.osc.rateHz >= 1000;
-    // No-hands/loss is never delayed behind an output frequency limiter.
+    const auto& device = status_.at(serial);
+    if (settings_.channels.sendFullSkeleton) {
+        SkeletonHands currentSkeletons;
+        for (const auto& hand : selectedRaw.hands)
+            if (hand.isValid()) currentSkeletons.emplace(hand.handType, hand.nativeHandId);
+        auto& previousSkeletons = emittedSkeletons_[serial];
+        bool lostSkeleton = false;
+        for (const auto& hand : previousSkeletons) {
+            if (!currentSkeletons.contains(hand)) {
+                emitSkeletonLoss(device, hand);
+                lostSkeleton = true;
+            }
+        }
+        // Deliver a replacement identity immediately, even within a rate-limited interval.
+        if (due || lostHand || lostSkeleton) {
+            for (const auto& hand : selectedRaw.hands) {
+                if (hand.isValid()) emitOutput(skeletonMessage(device.alias, hand.handType, device.lastFrameId.value(),
+                    selectedRaw.timestamp, hand.nativeHandId, &hand));
+            }
+            previousSkeletons = std::move(currentSkeletons);
+        }
+    }
     if (!due && !lostHand) return;
     processor_->processData(serial,processed);
     for (const auto& message : processing_.gestures(processed,status_.at(serial).alias)) emitOutput(message);
@@ -146,7 +185,7 @@ EngineRuntime::~EngineRuntime() { stop(); }
 void EngineRuntime::start(Millis now) {
     if (running_) return;
     status_.clear(); pending_.clear(); previews_.clear(); processing_.reset();
-    emittedHands_.clear(); lastOutputMs_.clear(); outputStatus_ = {}; lastOutputFailureMs_.reset();
+    emittedHands_.clear(); emittedSkeletons_.clear(); lastOutputMs_.clear(); outputStatus_ = {}; lastOutputFailureMs_.reset();
     running_ = true; serviceConnected_ = false; lastTickMs_ = now;
     serviceBackoffMs_ = options_.retryInitialMs;
     serviceRetryMs_ = now + serviceBackoffMs_;
@@ -162,7 +201,8 @@ void EngineRuntime::invalidate(const std::string& serial) {
     auto& status = status_.at(serial);
     pending_.at(serial).frame.reset();
     status.framesFresh = status.handsVisible = false;
-    clearOutput(serial);
+    clearLegacyOutput(serial);
+    clearSkeletonOutput(serial);
     FrameData empty; empty.deviceId = serial;
     previews_[serial] = {empty,empty,lastTickMs_};
 }

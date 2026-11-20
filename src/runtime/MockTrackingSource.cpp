@@ -28,15 +28,34 @@ std::vector<TrackingEvent> MockTrackingSource::poll(Millis now) {
         frame.timestamp = now * 1000;
         HandData hand;
         hand.handType = index == 0 ? "left" : "right";
+        hand.nativeHandId = static_cast<std::uint32_t>(100 + index);
+        hand.confidence = 1;
+        hand.visibleTime = elapsed * 1000;
+        hand.pinchDistance = 35;
+        hand.grabAngle = .7f;
         hand.palm.position = {100.f + static_cast<float>(sequence_[index] % 50), 200.f, -30.f};
+        hand.palm.stabilizedPosition = hand.palm.position;
+        hand.palm.direction = {0, 0, -1};
+        hand.palm.normal = {0, -1, 0};
+        hand.palm.width = 80;
         hand.arm.wristPosition = {80.f, 150.f, -40.f};
+        hand.arm.elbowPosition = {80.f, 150.f, 230.f};
+        hand.arm.width = 50;
         hand.pinchStrength = .25f;
         hand.grabStrength = .5f;
         for (int finger = 0; finger < 5; ++finger) {
             FingerData digit;
             digit.fingerId = finger;
-            digit.bones.resize(4);
-            digit.bones[3].nextJoint = {float(finger * 10), 250.f, -20.f};
+            // Keep the legacy simulated fingertips, fill in the four named segments.
+            const float x = static_cast<float>(finger * 10);
+            const std::array<float, 5> joints{finger == 0 ? 195.f : 175.f, 195.f, 220.f, 237.f, 250.f};
+            for (std::size_t segment = 0; segment < 4; ++segment) {
+                BoneData bone;
+                bone.prevJoint = {x, joints[segment], -20.f};
+                bone.nextJoint = {x, joints[segment + 1], -20.f};
+                bone.width = finger == 0 && segment == 0 ? 0.f : 9.f;
+                digit.bones.push_back(bone);
+            }
             hand.fingers.push_back(digit);
         }
         frame.hands.push_back(hand);
