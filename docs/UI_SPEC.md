@@ -11,7 +11,7 @@ The requirements below still include later features, not all shipped controls.
 Five pages share a matte charcoal VST-style frame, mint/violet signal accents,
 editable rotary controls, keyboard navigation and engine-backed health. Global
 Apply/Revert separates draft editing, acknowledged application, rejection and
-persisted profile state. Views do not own the engine.
+persisted profile state. The Devices hand selector applies immediately to the selected camera. Other controls keep their drafts until Apply. Views do not own the engine.
 
 Overview shows independent live camera tiles, measured frame/packet rates,
 frame age/drop counts and raw/processed measured palm/wrist/tip previews.

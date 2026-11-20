@@ -4,6 +4,10 @@ Hand Bridge targets macOS 12 or newer on Apple Silicon. The controller
 and engine are arm64. Qt 6.8.3 is bundled. Real cameras require the separately
 installed Ultraleap Hyperion 6.2.0 runtime for Apple Silicon.
 
+## Version 2.0.7 live hand selection
+
+The native SDK-enabled Release build passed 98/98 CTest entries. A separate Qt dashboard test used two simulated cameras, each observing both hands. With the second camera set to Both, changing the first through Right, Left, Disabled and Both preserved the second camera’s preview and OSC output. For each selection, an independent UDP decoder saw the same active hands in the legacy palm channel and the full-hand skeleton messages as the routed canvas displayed.
+
 ## Version 2.0.5 two-hand preview
 
 The native SDK-enabled Release build passed 97/97 tests on Apple Silicon. The Qt-free SDK-off Release build passed 69/69. Rendered-pixel tests cover each hand entering first, both present together, and each leaving independently in raw and processed views. Synthetic frames with the same side and same native ID on two cameras kept independent OSC addresses through a device disconnect.

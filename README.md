@@ -1,9 +1,9 @@
-# Hand Bridge 2.0.6
+# Hand Bridge 2.0.7
 
 A native C++20 tracking bridge and modern Qt6 controller for independent Ultraleap
 camera streams over OSC/UDP to a local receiver on Windows or Apple Silicon.
 
-**Run on Apple Silicon.** Unzip `Hand-Bridge-2.0.6-Apple-Silicon.zip`
+**Run on Apple Silicon.** Unzip `Hand-Bridge-2.0.7-Apple-Silicon.zip`
 in Finder and double-click **Hand Bridge**. Tracking starts in the background.
 Click the hand in the Mac menu bar and choose **Open Hand Bridge** to see the
 controls. The ZIP includes Qt and the setup guide. Live tracking uses
@@ -13,9 +13,9 @@ separately. [Published Mac releases](https://github.com/Alexander-Newman-Hall/Mu
 
 **Drive a hand rig.** Enable **OSC Output → Full hand skeleton → Apply changes** for raw elbow, wrist, palm and 20 finger segments per hand. The Apple Silicon download includes a named-field Python decoder. [Wire format and T2 mapping](docs/FULL_HAND_OSC.md)
 
-**Choose which hands to send.** Under **Devices**, choose **Both hands**, **Left only** or **Right only** for each camera, then click **Apply changes**. Overview opens on **Routed hands** and shows the hands selected for OSC in each camera pane. **Raw camera** shows every detected hand. For two hands on one camera in the T2 rig, set both **Left Camera Alias** and **Right Camera Alias** to the calibrated camera. When a second camera sees the same hand, each camera publishes its own measurement.
+**Choose which hands to send.** Under **Devices**, choose **Both hands**, **Left only**, **Right only** or **Disabled** for each camera. The selection takes effect immediately for that camera’s OSC output and routed preview. Other edits stay pending until you click **Apply changes**. Overview opens on **Routed hands** and shows the hands selected for OSC in each camera pane. **Raw camera** shows every detected hand. For two hands on one camera in the T2 rig, set both **Left Camera Alias** and **Right Camera Alias** to the calibrated camera. When a second camera sees the same hand, each camera publishes its own measurement.
 
-**Work on this version.** Extract the companion `Hand-Bridge-2.0.6-Source.zip`
+**Work on this version.** Extract the companion `Hand-Bridge-2.0.7-Source.zip`
 and follow the Mac build instructions below.
 
 The native source lives in `src/`, automated tests in `tests/`, and example

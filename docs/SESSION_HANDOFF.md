@@ -1,5 +1,11 @@
 # Hand Bridge development handoff
 
+## 2.0.7 live hand selection
+
+The release builds on published v2.0.6 at `728da24`. `Controller.cpp` submits the selected camera’s hand filter against the current engine revision. `Main.qml` shows the acknowledged hand assignment. `EngineRuntime.cpp` reroutes that camera’s latest fresh frame and preserves the other camera’s send cadence. Regression coverage lives in `test_Controller.cpp`, `test_ControlUi.cpp` and `test_EngineRuntime.cpp`.
+
+The Apple Silicon Release build passed all 98 CTest entries. With two simulated cameras, switching one camera changed the rendered panes and loopback scalar and skeleton OSC together. The receiver saw one skeleton loss per removed hand. The next hardware check is to repeat the changes with two physical cameras and verify the per-camera channels in TouchDesigner.
+
 ## 2.0.6 routed hand selection
 
 Local branch `feature/full-hand-skeleton-osc` starts at `6d80da2`. `src/control/qml/Main.qml` sets the initial preview and passes the acknowledged OSC and device settings to `PreviewCanvas.qml`. The canvas draws the existing engine-provided filtered hands or, on request, raw detections. `Controller.cpp` replaces cached preview data with the acknowledged state when routing revisions change.

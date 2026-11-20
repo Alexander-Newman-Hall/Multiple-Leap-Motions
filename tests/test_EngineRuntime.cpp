@@ -205,6 +205,45 @@ TEST_F(RuntimeTest, SingleCameraEmitsBothHandsAndKeepsSurvivingSideWhenOneLeaves
     checkPalms({{"dev1/left",13}, {"dev1/right",std::nullopt}});
     EXPECT_EQ(runtime->devices().at("A").framesProcessed, 5u);
 }
+TEST_F(RuntimeTest, LiveHandFilterReroutesOnlyItsOwnFreshCameraAndPreservesRemainingHands) {
+    connect();
+    auto settings = runtime->settings();
+    settings.channels.sendFullSkeleton = true;
+    settings.osc.rateHz = 1;
+    runtime->applySettings(settings);
+    source.ready = {observed("A", 1, {{"left",10}, {"right",20}}),
+                    observed("B", 1, {{"left",30}, {"right",40}})};
+    runtime->tick(1);
+    checkPalms({{"dev1/left",10}, {"dev1/right",20}, {"dev2/left",30}, {"dev2/right",40}});
+
+    settings.devices.at("A").handFilter = "right";
+    runtime->applySettings(settings);
+    checkPalms({{"dev1/left",std::nullopt}, {"dev1/right",20}});
+    const auto& preview = runtime->previews().at("A");
+    ASSERT_EQ(preview.processed.hands.size(), 1u);
+    EXPECT_EQ(preview.processed.hands.front().handType, "right");
+    EXPECT_EQ(preview.raw.hands.size(), 2u);
+    EXPECT_EQ(runtime->previews().at("B").processed.hands.size(), 2u);
+
+    source.ready = {observed("A", 2, {{"left",11}, {"right",21}}),
+                    observed("B", 2, {{"left",31}, {"right",41}})};
+    runtime->tick(2);
+    EXPECT_TRUE(messages.empty()); // Both cameras keep their configured 1 Hz rate.
+    settings.devices.at("A").handFilter = "left";
+    runtime->applySettings(settings);
+    checkPalms({{"dev1/left",11}, {"dev1/right",std::nullopt}});
+    settings.devices.at("A").handFilter = "both";
+    runtime->applySettings(settings);
+    checkPalms({{"dev1/left",11}, {"dev1/right",21}});
+    EXPECT_EQ(runtime->devices().at("A").framesProcessed, 2u);
+
+    runtime->tick(502); // The cached camera samples have expired.
+    messages.clear();
+    settings.devices.at("A").handFilter = "right";
+    runtime->applySettings(settings);
+    EXPECT_TRUE(messages.empty());
+    EXPECT_FALSE(runtime->devices().at("A").framesFresh);
+}
 TEST_F(RuntimeTest, LatestFrameMailboxCountsOverwritesAndRejectsDuplicateOrOldFrames) {
     connect(false); source.ready = {frame("A",1,0),frame("A",2,0),frame("A",3,0)}; runtime->tick(0);
     const auto& status = runtime->devices().at("A");

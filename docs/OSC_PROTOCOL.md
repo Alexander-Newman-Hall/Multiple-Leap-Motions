@@ -83,8 +83,7 @@ The Qt controller uses configuration schema2, while OSC remains legacy scalar
 messages. Default raw bypass, millimeters, address case, 9000 fallback and goldens
 are unchanged. Channel toggles, per-device mute/filter/alias, global send enable,
 destination and rate are engine settings, applied only after validation/ack.
-Routing changes clear the old enabled pose addresses before changing aliases or
-muting. Loss messages bypass output rate limiting. A successful OS send is still
+Changing hand type in Devices immediately reroutes that camera’s latest fresh frame. A removed hand emits the usual legacy loss values and, when enabled, a skeleton loss. The other camera continues streaming. Routing changes clear the old enabled pose addresses before changing aliases or muting. Loss messages bypass output rate limiting. A successful OS send is still
 not receipt; use TouchDesigner to verify the receiver.
 
 Turning raw bypass off explicitly enables time-based positional smoothing,

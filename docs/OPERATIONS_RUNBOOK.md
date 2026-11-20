@@ -81,7 +81,7 @@ separately. The actual receiver must verify TouchDesigner receipt.
 
 ## Applied settings, profiles and diagnostics
 
-Edit settings then Apply; only engine acknowledgement is Applied. Save a named
+Choose a hand type in Devices to update that camera’s routed preview and OSC output immediately. For other settings, edit and click Apply. The engine acknowledges the change. Save a named
 profile to write the applied snapshot/current startup state atomically with a
 backup. Dirty local editors cannot be saved/loaded silently. Rejected settings
 leave the last valid engine state. A profile load can apply then encounter a

@@ -770,14 +770,23 @@ ApplicationWindow {
                                         Layout.preferredWidth: 180
                                         spacing: 7
                                         SmallLabel {
-                                            text: "HAND ASSIGNMENT"
+                                            text: "LIVE HAND ASSIGNMENT"
                                         }
                                         StudioCombo {
                                             objectName: "handFilter_" + devicePanel.serial
                                             Layout.fillWidth: true
                                             model: ["Both hands", "Left only", "Right only", "Disabled"]
-                                            currentIndex: Math.max(0, ["both", "left", "right", "disabled"].indexOf(deviceSetting(devicePanel.serial, "hand_filter", "both")))
-                                            onActivated: index => edit("devices." + devicePanel.serial + ".hand_filter", ["both", "left", "right", "disabled"][index])
+                                            readonly property var filters: ["both", "left", "right", "disabled"]
+                                            readonly property int appliedIndex: Math.max(0, filters.indexOf(
+                                                controller.config.devices?.[devicePanel.serial]?.hand_filter ?? "both"))
+                                            currentIndex: appliedIndex
+                                            onActivated: index => {
+                                                // ComboBox also moves its index locally. Keep displaying the
+                                                // engine's selection until it acknowledges the new filter.
+                                                const filter = filters[index]
+                                                currentIndex = Qt.binding(() => appliedIndex)
+                                                controller.applyHandFilter(devicePanel.serial, filter)
+                                            }
                                         }
                                     }
                                     Item {

@@ -1,5 +1,9 @@
 # Current state — Apple Silicon Desktop preview
 
+## 2.0.7 live hand selection, 2026-11-19
+
+The Devices hand selector updates the running camera route as soon as the engine acknowledges the selection. An unrelated pending edit stays in the editor. The native arm64 Release suite passed all 98 CTest entries with `ctest --test-dir <build> --output-on-failure`. A separate two-camera simulation changed the first camera from Both to Right, Left, Disabled and back to Both. The rendered preview, nonzero palm values and full-hand skeleton UDP packets agreed at each step. Raw camera continued to show both hands on each device. Testing with two physical cameras is still pending.
+
 ## 2.0.6 routed preview, 2026-11-19
 
 Overview starts on **Routed hands**, showing each camera's applied hand selection. **Raw camera** is available for checking detections. The native arm64 Release build passed 97/97 CTest entries with `ctest --test-dir <build> --output-on-failure`. An isolated native dashboard launch with two simulated camera feeds showed one right hand in the right-only pane and both hands in the other pane. This release changes the dashboard presentation.

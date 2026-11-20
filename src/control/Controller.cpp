@@ -153,7 +153,7 @@ void Controller::setError(const QString& message) {
     rejected_ = true;
     emit uiChanged();
 }
-bool Controller::request(const QString& command, QJsonObject fields) {
+bool Controller::request(const QString& command, QJsonObject fields, QString liveHandSerial) {
     if (socket_.state() != QLocalSocket::ConnectedState) {
         setError(QStringLiteral("Connect to an engine before sending commands."));
         return false;
@@ -171,7 +171,7 @@ bool Controller::request(const QString& command, QJsonObject fields) {
         setError(QStringLiteral("The request exceeds the local protocol size limit."));
         return false;
     }
-    Pending pending{command, clock_.elapsed(), {}};
+    Pending pending{command, clock_.elapsed(), {}, std::move(liveHandSerial), fields.value(QStringLiteral("expected_revision")).toInteger()};
     if (command == QStringLiteral("apply_config")) pending.submittedConfig = fields.value(QStringLiteral("config")).toObject();
     pending_.insert(id, pending);
     if (socket_.write(bytes) != bytes.size()) {
@@ -202,7 +202,7 @@ void Controller::receive() {
     if (messages.size() == 16 && received_.size() >= 4)
         QTimer::singleShot(0, this, &Controller::receive);
 }
-void Controller::adoptState(const QJsonObject& response, bool replaceDraft) {
+void Controller::adoptState(const QJsonObject& response, bool replaceDraft, const Pending* liveHandChange) {
     const bool wasDirty = dirty();
     const auto incomingRevision = response.value(QStringLiteral("revision")).toInteger(revision_);
     // Socket reconnect starts a new session, whose revision can legitimately be
@@ -228,6 +228,19 @@ void Controller::adoptState(const QJsonObject& response, bool replaceDraft) {
             draft_ = config_;
             draftRevision_ = revision_;
             if (editorChanged) emit draftChanged();
+        } else if (liveHandChange) {
+            // Keep other edits in the editor. Only advance their base if they
+            // were made against the revision this live change updated.
+            const auto& serial = liveHandChange->liveHandSerial;
+            const auto filter = config_.value("devices").toObject().value(serial).toObject().value("hand_filter");
+            bool valid = false;
+            const auto updated = replacePath(draft_, {"devices", serial, "hand_filter"}, 0, filter, valid).toObject();
+            if (valid && updated != draft_) {
+                draft_ = updated;
+                emit draftChanged();
+            }
+            if (draftRevision_ == liveHandChange->expectedRevision)
+                draftRevision_ = revision_;
         }
         if (configChanged || initialState) {
             // The last fast preview can still belong to the previous hand assignment.
@@ -301,7 +314,8 @@ void Controller::message(const QJsonObject& response) {
             replaceDraft = draft_ == pending.submittedConfig;
             rejected_ = false;
             errorMessage_.clear();
-            notice_ = QStringLiteral("Settings applied by the engine.");
+            notice_ = pending.liveHandSerial.isEmpty() ? QStringLiteral("Settings applied by the engine.")
+                                                       : QStringLiteral("Hand assignment applied to live output.");
         } else if (pending.command == QStringLiteral("save_profile")) {
             rejected_ = false;
             errorMessage_.clear();
@@ -320,8 +334,8 @@ void Controller::message(const QJsonObject& response) {
             notice_ = QStringLiteral("OSC output reset by the engine.");
             errorMessage_.clear();
         }
-        adoptState(response, replaceDraft);
-        if (pending.command == QStringLiteral("apply_config")) {
+        adoptState(response, replaceDraft, pending.liveHandSerial.isEmpty() ? nullptr : &pending);
+        if (pending.command == QStringLiteral("apply_config") && pending.liveHandSerial.isEmpty()) {
             draftRevision_ = response.value(QStringLiteral("revision")).toInteger(revision_);
             if (draftRevision_ < revision_)
                 notice_ = QStringLiteral("Settings were applied, then a newer engine revision arrived. Revert to refresh before editing further.");
@@ -377,6 +391,16 @@ void Controller::setSetting(const QString& path, const QVariant& value) {
     emit draftChanged();
     if (wasDirty != dirty()) emit dirtyChanged();
     emit uiChanged();
+}
+void Controller::applyHandFilter(const QString& serial, const QString& filter) {
+    if (!connected_ || busy()) return;
+    bool valid = false;
+    const auto candidate = replacePath(config_, {"devices", serial, "hand_filter"}, 0, filter, valid).toObject();
+    if (serial.isEmpty() || !valid) { setError(QStringLiteral("The selected camera is unavailable.")); return; }
+    if (candidate == config_) return;
+    errorMessage_.clear();
+    rejected_ = false;
+    request(QStringLiteral("apply_config"), {{"expected_revision", revision_}, {"config", candidate}}, serial);
 }
 void Controller::apply() {
     if (!connected_ || busy() || !dirty()) return;

@@ -87,7 +87,7 @@ If persistence fails after apply, the response explicitly reports that settings
 were applied but not saved, with authoritative config/revision. Applied and Saved
 remain distinct. File I/O does not run on the tracking worker.
 
-GUI edits stay local until Apply receives engine acknowledgement. Requests use
+Choosing a hand filter in Devices immediately submits that camera’s selection. Other GUI edits stay local until Apply. The engine acknowledges both kinds of change. Requests use
 `expected_revision` and conflicts reject without overwriting newer settings.
 Pending profile loads prevent further editor changes. Decimal fields use a
 consistent explicit parsing locale; validation in the engine remains authoritative.

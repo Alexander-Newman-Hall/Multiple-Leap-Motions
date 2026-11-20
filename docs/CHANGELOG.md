@@ -1,5 +1,10 @@
 # Hand Bridge 2.0 changelog
 
+## 2.0.7 — Live hand selection
+
+- Changing the hand type in Devices updates that camera’s routed preview and outgoing OSC immediately. Other pending edits stay in the editor.
+- A filter change keeps the retained hand and other cameras streaming, and sends a loss for the hand removed from output.
+
 ## 2.0.6 — Routed hands by default, 2026-11-19
 
 - Overview opens on the hand selection applied to each camera. A right-only camera shows just the right hand. Choose **Raw camera** to see all detections.

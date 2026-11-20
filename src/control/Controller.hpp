@@ -59,6 +59,7 @@ public:
     QString endpoint() const { return endpoint_; }
 
     Q_INVOKABLE void setSetting(const QString& path, const QVariant& value);
+    Q_INVOKABLE void applyHandFilter(const QString& serial, const QString& filter);
     Q_INVOKABLE void apply();
     Q_INVOKABLE void revert();
     Q_INVOKABLE void startSimulator();
@@ -89,11 +90,13 @@ private:
         QString command;
         qint64 startedMs = 0;
         QJsonObject submittedConfig;
+        QString liveHandSerial;
+        qint64 expectedRevision = 0;
     };
     void receive();
     void message(const QJsonObject& message);
-    void adoptState(const QJsonObject& message, bool replaceDraft = false);
-    bool request(const QString& command, QJsonObject fields = {});
+    void adoptState(const QJsonObject& message, bool replaceDraft = false, const Pending* liveHandChange = nullptr);
+    bool request(const QString& command, QJsonObject fields = {}, QString liveHandSerial = {});
     void disconnected();
     void setError(const QString& message);
     void checkTimeouts();

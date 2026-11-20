@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
                     "Default: LeapC tracking when enabled at build time. --simulate selects mock cameras.\n"
                     "N=0 runs until Ctrl-C. UNTESTED ON HARDWARE.\n";
                 return 0;
-            } else if (flag == "--version") { std::cout << "Hand Bridge 2.0.6\n"; return 0; }
+            } else if (flag == "--version") { std::cout << "Hand Bridge 2.0.7\n"; return 0; }
             else if (flag == "--simulate") simulate = true;
             else if (flag == "--check-leapc") checkLeapC = true;
             else if (flag == "--headless") {} // Always headless, accepted explicitly for scripts.

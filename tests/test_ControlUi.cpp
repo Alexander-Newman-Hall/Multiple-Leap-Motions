@@ -252,6 +252,54 @@ private slots:
         QTRY_VERIFY_WITH_TIMEOUT(reports.count() >= 3, 2000);
         QVERIFY(alias && alias->hasActiveFocus());
         QVERIFY(samples.count() <= samplesAtNavigation + 1);
+
+        // SIM-A observes a left hand and SIM-B observes a right hand. Change
+        // the actual picker and check the preview and incoming UDP, without Apply.
+        const auto routes = controller.config().value("devices").toMap();
+        const auto palmAddress = [&](const QString& serial, const QByteArray& side) {
+            return "/leap/" + routes.value(serial).toMap().value("alias").toByteArray() + "/" + side + "/palm/tx";
+        };
+        const auto leftPalm = palmAddress("SIM-A", "left");
+        const auto rightPalm = palmAddress("SIM-B", "right");
+        auto* handPicker = findVisual(window->contentItem(), "handFilter_SIM-A");
+        QVERIFY(handPicker);
+        for (const bool rightOnly : {true, false}) {
+            QVERIFY(click("handFilter_SIM-A"));
+            QTest::keyClick(window, rightOnly ? Qt::Key_End : Qt::Key_Home);
+            if (rightOnly) QTest::keyClick(window, Qt::Key_Up);
+            QTest::keyClick(window, Qt::Key_Return);
+            const auto expected = rightOnly ? "right" : "both";
+            QTRY_COMPARE(controller.config().value("devices").toMap().value("SIM-A").toMap().value("hand_filter").toString(), expected);
+            QCOMPARE(handPicker->property("currentText").toString(), rightOnly ? "Right only" : "Both hands");
+            QVERIFY(!controller.dirty());
+            QVERIFY(click("navOverview"));
+            const auto routed = [&] {
+                for (const auto& item : controller.previewDevices()) {
+                    const auto row = item.toMap();
+                    if (row.value("serial") == QStringLiteral("SIM-A") && !row.value("raw_hands").toList().isEmpty())
+                        return row.value("processed_hands").toList().size();
+                }
+                return qsizetype(-1);
+            };
+            QTRY_COMPARE(routed(), rightOnly ? 0 : 1);
+            while (receiver.hasPendingDatagrams()) receiver.readDatagram(nullptr, 0);
+            bool sawLeft = false, sawRight = false;
+            QElapsedTimer interval;
+            interval.start();
+            while (interval.elapsed() < 180) {
+                QTest::qWait(5);
+                while (receiver.hasPendingDatagrams()) {
+                    const auto packet = receiver.receiveDatagram().data();
+                    const auto address = packet.left(packet.indexOf('\0'));
+                    if (packet.right(4) == QByteArray(4, '\0')) continue; // The old route can receive a loss zero.
+                    sawLeft |= address == leftPalm;
+                    sawRight |= address == rightPalm;
+                }
+            }
+            QCOMPARE(sawLeft, !rightOnly);
+            QVERIFY(sawRight);
+            QVERIFY(click("navDevices"));
+        }
         QTRY_VERIFY_WITH_TIMEOUT(click("navOsc"), 3000);
         QTest::qWait(100);
 

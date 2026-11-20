@@ -284,16 +284,19 @@ private slots:
         controller_->refreshPreview();
         QTRY_COMPARE(count("get_preview"), 1);
         const auto olderRequest = last("get_preview");
-        controller_->setSetting("devices.SIM-A.hand_filter", "right");
-        controller_->apply();
+        controller_->setSetting("osc.port", 9010);
+        controller_->applyHandFilter("SIM-A", "right");
         QTRY_COMPARE(count("apply_config"), 1);
         const auto apply = last("apply_config");
+        QCOMPARE(apply.value("config").toObject().value("osc").toObject().value("port").toInt(), 9000);
         const auto routed = camera(QJsonArray{right});
         auto acknowledged = state(apply.value("config").toObject(), 3);
         acknowledged["preview_available"] = true;
         acknowledged["state"] = QJsonObject{{"devices", routed}};
         reply(apply, acknowledged);
         QTRY_COMPARE(controller_->previewDevices(), routed.toVariantList());
+        QCOMPARE(draftPort(), 9010);
+        QCOMPARE(controller_->draft().value("devices").toMap().value("SIM-A").toMap().value("hand_filter").toString(), "right");
 
         QSignalSpy samples(controller_.get(), &Controller::previewChanged);
         QSignalSpy reports(controller_.get(), &Controller::statusChanged);
@@ -302,6 +305,37 @@ private slots:
         QTRY_COMPARE(reports.count(), 1);
         QCOMPARE(samples.count(), 0);
         QCOMPARE(controller_->previewDevices(), routed.toVariantList());
+        controller_->apply();
+        QTRY_COMPARE(count("apply_config"), 2);
+        QCOMPARE(last("apply_config").value("expected_revision").toInteger(), 3);
+    }
+    void liveHandFilterKeepsRevisionProtectionForStaleEdits() {
+        controller_->setSetting("osc.port", 9010);
+        telemetry(state(config(9030), 2));
+        QTRY_COMPARE(controller_->revision(), 2);
+        controller_->applyHandFilter("SIM-A", "left");
+        QTRY_COMPARE(count("apply_config"), 1);
+        const auto live = last("apply_config");
+        QCOMPARE(live.value("expected_revision").toInteger(), 2);
+        QCOMPARE(live.value("config").toObject().value("osc").toObject().value("port").toInt(), 9030);
+        reply(live, state(live.value("config").toObject(), 3));
+        QTRY_VERIFY(!controller_->busy());
+        QCOMPARE(draftPort(), 9010);
+        controller_->apply();
+        QTRY_COMPARE(count("apply_config"), 2);
+        QCOMPARE(last("apply_config").value("expected_revision").toInteger(), 1);
+    }
+    void rejectedLiveHandFilterKeepsTheAppliedSelection() {
+        controller_->applyHandFilter("SIM-A", "right");
+        QTRY_COMPARE(count("apply_config"), 1);
+        auto rejected = state(config(), 2);
+        rejected["ok"] = false;
+        rejected["error"] = "Revision conflict";
+        reply(last("apply_config"), rejected);
+        QTRY_VERIFY(!controller_->busy());
+        QCOMPARE(controller_->config().value("devices").toMap().value("SIM-A").toMap().value("hand_filter").toString(), "both");
+        QVERIFY(!controller_->dirty());
+        QCOMPARE(controller_->errorMessage(), "Revision conflict");
     }
     void missingHardwareRuntimePreflightIsAsynchronousVisibleAndRetryable() {
         QTemporaryDir directory;

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cctype>
 #include <stdexcept>
+#include <vector>
 
 namespace handbridge {
 const char* stateName(DeviceState state) {
@@ -84,13 +85,28 @@ void EngineRuntime::applySettings(const ControlSettings& requested) {
     const bool scalarChannelsChanged = previousScalarChannels != c;
     const bool skeletonDisabled = settings_.channels.sendFullSkeleton && !c.sendFullSkeleton;
     const bool processingChanged = settings_.processing != next.processing;
+    const bool globalFrameSettingsChanged = globalRoutingChanged || processingChanged ||
+        settings_.channels != c || settings_.osc.rateHz != next.osc.rateHz;
+    std::vector<std::string> reroute;
     for (const auto& [serial, status] : status_) {
-        (void)status;
         const auto oldDevice = settings_.devices.find(serial);
-        const auto newDevice = next.devices.find(serial);
-        const bool routingChanged = oldDevice == settings_.devices.end() || newDevice == next.devices.end() ||
-            oldDevice->second.alias != newDevice->second.alias || oldDevice->second.enabled != newDevice->second.enabled ||
-            oldDevice->second.handFilter != newDevice->second.handFilter;
+        const auto& newDevice = next.devices.at(serial);
+        const bool bindingChanged = oldDevice == settings_.devices.end() ||
+            oldDevice->second.alias != newDevice.alias || oldDevice->second.enabled != newDevice.enabled;
+        const bool routingChanged = bindingChanged || oldDevice->second.handFilter != newDevice.handFilter;
+        const auto preview = previews_.find(serial);
+        if (!globalFrameSettingsChanged && !bindingChanged && routingChanged &&
+            status.framesFresh && preview != previews_.end() && lastTickMs_ - preview->second.arrivalMs < options_.staleMs) {
+            // Route the latest live observation with the new filter after committing it.
+            // Normal frame processing emits loss for excluded hands and preserves the rest.
+            lastOutputMs_.erase(serial);
+            reroute.push_back(serial);
+            continue;
+        }
+        if (globalFrameSettingsChanged || routingChanged) {
+            previews_.erase(serial);
+            lastOutputMs_.erase(serial);
+        }
         if (globalRoutingChanged || routingChanged || skeletonDisabled) clearSkeletonOutput(serial);
         if (globalRoutingChanged || routingChanged || scalarChannelsChanged ||
             (settings_.processing.gesturesEnabled && !next.processing.gesturesEnabled))
@@ -119,8 +135,11 @@ void EngineRuntime::applySettings(const ControlSettings& requested) {
             active.sendPinchStrength,active.sendGrabStrength);
     }
     if (processingChanged) processing_.setSettings(settings_.processing);
-    lastOutputMs_.clear(); previews_.clear();
     for (auto& [serial, status] : status_) status.alias = settings_.devices.at(serial).alias;
+    for (const auto& serial : reroute) {
+        const auto& latest = previews_.at(serial);
+        processFrame(serial, latest.raw, latest.arrivalMs, lastTickMs_);
+    }
     updateOutputHealth(previousErrors);
 }
 void EngineRuntime::processFrame(const std::string& serial, FrameData frame, Millis arrivalMs, Millis now) {

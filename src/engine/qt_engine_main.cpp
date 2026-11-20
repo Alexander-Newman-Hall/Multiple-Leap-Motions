@@ -556,7 +556,7 @@ private:
 int main(int argc, char** argv) {
     QCoreApplication app(argc, argv);
     QCoreApplication::setApplicationName("HandBridge");
-    QCoreApplication::setApplicationVersion("2.0.6");
+    QCoreApplication::setApplicationVersion("2.0.7");
     try {
         QCommandLineParser parser;
         parser.setApplicationDescription("Hand Bridge native headless engine. LeapC tracking by default; --simulate selects mock cameras. UNTESTED ON HARDWARE.");
